@@ -1,1299 +1,1655 @@
-import React, { useState, useRef, useEffect, useCallback } from 'react';
+
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import {
-  View, Text, ScrollView, TouchableOpacity, TextInput,
-  SafeAreaView, StatusBar, Dimensions, Modal, Alert,
-  FlatList, KeyboardAvoidingView, Platform, Switch,
-  Pressable, Animated, RefreshControl,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput,
+  FlatList, Modal, Alert, Animated, RefreshControl, StatusBar,
+  KeyboardAvoidingView, Platform, Dimensions, SectionList,
 } from 'react-native';
 
+const { width: SW, height: SH } = Dimensions.get('window');
+
+// ─── DESIGN TOKENS ──────────────────────────────────────────────────────────
 const C = {
-  bg:'#080C14', bgCard:'#0F1520', bgElevated:'#16202E', bgHighlight:'#1E2A3A', bgGlass:'rgba(15,21,32,0.92)',
-  primary:'#F5A623', accent:'#00D4B4', punch:'#FF5C5C', success:'#4ADE80', purple:'#A78BFA', blue:'#3B82F6',
-  primaryT:'rgba(245,166,35,0.12)', accentT:'rgba(0,212,180,0.12)', punchT:'rgba(255,92,92,0.12)',
-  successT:'rgba(74,222,128,0.12)', purpleT:'rgba(167,139,250,0.12)', blueT:'rgba(59,130,246,0.12)',
-  ink:'#F0F4FF', inkSub:'#8896A8', inkFaint:'#2E3D52', inkDark:'#080C14',
-  border:'#1A2538', borderGlow:'rgba(245,166,35,0.35)', shadow:'rgba(0,0,0,0.6)', overlay:'rgba(8,12,20,0.88)',
+  bg:      '#080C14',
+  surface: '#0F1521',
+  card:    '#141C2B',
+  border:  '#1E2A3D',
+  muted:   '#2A3A55',
+  text:    '#F0F4FF',
+  sub:     '#7A8FAF',
+  gold:    '#F5A623',
+  goldD:   '#C47E0F',
+  teal:    '#00D4B4',
+  tealD:   '#009E87',
+  red:     '#FF5C5C',
+  green:   '#4ADE80',
+  purple:  '#A78BFA',
+  blue:    '#3B82F6',
+  orange:  '#FB923C',
+  pink:    '#F472B6',
+  goldBg:  'rgba(245,166,35,0.10)',
+  tealBg:  'rgba(0,212,180,0.10)',
+  redBg:   'rgba(255,92,92,0.10)',
+  greenBg: 'rgba(74,222,128,0.10)',
+  purpleBg:'rgba(167,139,250,0.10)',
+  blueBg:  'rgba(59,130,246,0.10)',
 };
-const TY = {
-  hero:  {fontSize:38,fontWeight:'800',letterSpacing:-1.5,lineHeight:44},
-  h1:    {fontSize:28,fontWeight:'800',letterSpacing:-1,  lineHeight:34},
-  h2:    {fontSize:22,fontWeight:'700',letterSpacing:-0.5,lineHeight:28},
-  h3:    {fontSize:17,fontWeight:'700',letterSpacing:-0.3,lineHeight:22},
-  h4:    {fontSize:15,fontWeight:'700',letterSpacing:-0.1,lineHeight:20},
-  label: {fontSize:11,fontWeight:'700',letterSpacing:1.4, textTransform:'uppercase'},
-  body:  {fontSize:15,fontWeight:'400',lineHeight:23},
-  bodyMd:{fontSize:14,fontWeight:'400',lineHeight:21},
-  caption:{fontSize:12,fontWeight:'500',lineHeight:17},
-  micro: {fontSize:10,fontWeight:'700',letterSpacing:0.6},
-  mono:  {fontSize:13,fontWeight:'600'},
-};
-const SW = Dimensions.get('window').width;
-const isIOS = Platform.OS === 'ios';
 
-let _listeners = [];
-const store = {
-  projects:[
-    {id:'p1',title:'Midnight Runner',subtitle:'Feature Film',client:'StudioFX Productions',status:'active',budget:480000,spent:312000,crew:14,startDate:'2026-01-15',endDate:'2026-07-30',location:'London, UK',color:'#F5A623',desc:'A high-octane action thriller filmed across London and Edinburgh. Principal photography underway.'},
-    {id:'p2',title:'Nova Campaign',subtitle:'Brand and Commercial',client:'Nova Collective',status:'active',budget:95000,spent:41200,crew:6,startDate:'2026-02-01',endDate:'2026-04-15',location:'Manchester, UK',color:'#00D4B4',desc:'A 360 brand refresh campaign across OOH, digital and broadcast channels.'},
-    {id:'p3',title:'Altitude',subtitle:'Documentary',client:'Channel 4',status:'completed',budget:220000,spent:218500,crew:9,startDate:'2025-09-01',endDate:'2026-01-20',location:'Scotland, UK',color:'#A78BFA',desc:'Award-winning documentary exploring life above the clouds. Post-production complete.'},
-    {id:'p4',title:'The Last Signal',subtitle:'Short Film',client:'Indie Arts Fund',status:'pending',budget:35000,spent:0,crew:5,startDate:'2026-04-01',endDate:'2026-06-30',location:'Bristol, UK',color:'#3B82F6',desc:'A sci-fi short film selected for Sundance development programme.'},
-  ],
-  crew:[
-    {id:'c1',name:'Sophia Marlowe',role:'Director of Photography',dept:'Camera',rate:1200,status:'active',phone:'+44 7700 900001',email:'sophia@crewdesk.io',location:'London',skills:['Arri Alexa','Lighting','Drone Op'],initials:'SM',color:'#F5A623',projects:['p1','p2']},
-    {id:'c2',name:'Marcus Webb',role:'Production Designer',dept:'Art',rate:950,status:'active',phone:'+44 7700 900002',email:'marcus@crewdesk.io',location:'Manchester',skills:['Set Design','Concept Art','CAD'],initials:'MW',color:'#00D4B4',projects:['p1']},
-    {id:'c3',name:'Priya Nair',role:'Sound Supervisor',dept:'Sound',rate:875,status:'onleave',phone:'+44 7700 900003',email:'priya@crewdesk.io',location:'Birmingham',skills:['Boom','Pro Tools','Foley'],initials:'PN',color:'#A78BFA',projects:['p3']},
-    {id:'c4',name:'James Fletcher',role:'1st AC',dept:'Camera',rate:720,status:'active',phone:'+44 7700 900004',email:'james@crewdesk.io',location:'London',skills:['Focus Pull','Lens Matching','DIT'],initials:'JF',color:'#FF5C5C',projects:['p1','p2']},
-    {id:'c5',name:'Aisha Okafor',role:'Gaffer',dept:'Electrical',rate:810,status:'active',phone:'+44 7700 900005',email:'aisha@crewdesk.io',location:'Leeds',skills:['HMI','LED','Rigging'],initials:'AO',color:'#4ADE80',projects:['p1']},
-    {id:'c6',name:'Tom Bradshaw',role:'Editor',dept:'Post',rate:680,status:'active',phone:'+44 7700 900006',email:'tom@crewdesk.io',location:'London',skills:['Avid','Premiere','DaVinci'],initials:'TB',color:'#3B82F6',projects:['p3']},
-  ],
-  shifts:[
-    {id:'s1',title:'Principal Photography Day 18',project:'Midnight Runner',crewNeeded:8,date:'2026-03-08',callTime:'06:00',wrapTime:'18:30',location:'Pinewood Studios Stage 4',status:'confirmed',dept:'Full Crew',notes:'Camera test 05:30. Catering on set.'},
-    {id:'s2',title:'Brand Shoot Day 1',project:'Nova Campaign',crewNeeded:4,date:'2026-03-09',callTime:'08:00',wrapTime:'17:00',location:'ICI Studios Manchester',status:'pending',dept:'Camera + Art',notes:'Client attending. Smart dress.'},
-    {id:'s3',title:'VFX Review',project:'Midnight Runner',crewNeeded:3,date:'2026-03-10',callTime:'10:00',wrapTime:'16:00',location:'Remote Zoom',status:'confirmed',dept:'Post',notes:'Bring latest cut on SSD.'},
-    {id:'s4',title:'Location Scout',project:'The Last Signal',crewNeeded:2,date:'2026-03-11',callTime:'09:00',wrapTime:'15:00',location:'Bristol Docks',status:'pending',dept:'Production',notes:'Rain gear recommended.'},
-  ],
-  messages:[
-    {id:'m1',name:'Sophia Marlowe',initials:'SM',color:'#F5A623',preview:'Can we push call time to 06:30?',time:'09:41',unread:2,msgs:[
-      {id:'msg1',from:'them',text:'Morning! Just checking call time for tomorrow?',time:'09:38'},
-      {id:'msg2',from:'them',text:'Can we push call time to 06:30?',time:'09:41'},
-    ]},
-    {id:'m2',name:'Marcus Webb',initials:'MW',color:'#00D4B4',preview:'Set build confirmed on schedule',time:'Yesterday',unread:0,msgs:[
-      {id:'msg1',from:'them',text:'Set build confirmed on schedule',time:'Yesterday'},
-    ]},
-    {id:'m3',name:'Midnight Runner Crew',initials:'MR',color:'#A78BFA',preview:'Budget review moved to 15:00',time:'08:15',unread:1,msgs:[
-      {id:'msg1',from:'me',text:'Heads up: budget review moved to 15:00 today',time:'08:15'},
-      {id:'msg2',from:'them',text:'Got it, thanks!',time:'08:17'},
-    ]},
-    {id:'m4',name:'James Fletcher',initials:'JF',color:'#FF5C5C',preview:'Lens kit ready for tomorrow',time:'Tue',unread:0,msgs:[
-      {id:'msg1',from:'them',text:'Lens kit checked and ready for tomorrow',time:'Tue'},
-    ]},
-  ],
-  invoices:[
-    {id:'i1',number:'INV-2026-001',client:'StudioFX Productions',project:'Midnight Runner',amount:48000,status:'paid',dueDate:'2026-02-28',issueDate:'2026-02-01',desc:'Director of Photography Weeks 1-4'},
-    {id:'i2',number:'INV-2026-002',client:'Nova Collective',project:'Nova Campaign',amount:18500,status:'pending',dueDate:'2026-03-20',issueDate:'2026-03-01',desc:'Production Design Phase 1'},
-    {id:'i3',number:'INV-2026-003',client:'Channel 4',project:'Altitude',amount:9250,status:'overdue',dueDate:'2026-02-15',issueDate:'2026-01-25',desc:'Sound Supervision Final Mix'},
-    {id:'i4',number:'INV-2026-004',client:'StudioFX Productions',project:'Midnight Runner',amount:62000,status:'pending',dueDate:'2026-04-01',issueDate:'2026-03-01',desc:'Director of Photography Weeks 5-8'},
-  ],
-  notifications:[
-    {id:'n1',type:'warning',title:'Budget Alert',body:'Midnight Runner is at 65% of budget with 8 weeks of shoot remaining.',action:'Review Budget',read:false,time:'10 min ago'},
-    {id:'n2',type:'success',title:'Invoice Paid',body:'INV-2026-001 for GBP48,000 from StudioFX Productions has cleared.',action:'View Invoice',read:false,time:'2 hrs ago'},
-    {id:'n3',type:'info',title:'3 Crew Available',body:'James, Aisha and Tom have confirmed availability for next month.',action:'View Crew',read:true,time:'Yesterday'},
-    {id:'n4',type:'error',title:'Invoice Overdue',body:'INV-2026-003 from Channel 4 is 20 days overdue. Send a reminder now.',action:'Send Reminder',read:false,time:'2 days ago'},
-  ],
-};
-function subscribe(fn){_listeners.push(fn);return()=>{_listeners=_listeners.filter(l=>l!==fn);};}
-function getStore(){return{...store};}
-function dispatch(fn){fn(store);_listeners.forEach(l=>l());}
-function useStore(){const[,setTick]=useState(0);useEffect(()=>subscribe(()=>setTick(t=>t+1)),[]);return{data:getStore(),dispatch};}
+const ACCENT_OPTIONS = [C.gold, C.teal, C.purple, C.blue, C.pink, C.orange, C.red, C.green];
 
-function PressCard({children,style,onPress,glowColor}){
-  const scale=useRef(new Animated.Value(1)).current;
-  function onIn(){Animated.spring(scale,{toValue:0.97,useNativeDriver:true,speed:40,bounciness:4}).start();}
-  function onOut(){Animated.spring(scale,{toValue:1,useNativeDriver:true,speed:30,bounciness:6}).start();}
-  if(!onPress)return<View style={[{backgroundColor:C.bgCard,borderRadius:20,borderWidth:1,borderColor:C.border,shadowColor:C.shadow,shadowOffset:{width:0,height:6},shadowOpacity:1,shadowRadius:20,elevation:8},style]}>{children}</View>;
-  return(
-    <Pressable onPress={onPress} onPressIn={onIn} onPressOut={onOut}>
-      <Animated.View style={[{backgroundColor:C.bgCard,borderRadius:20,borderWidth:1.5,borderColor:glowColor||C.border,shadowColor:C.shadow,shadowOffset:{width:0,height:6},shadowOpacity:1,shadowRadius:20,elevation:8,transform:[{scale}]},style]}>
+// ─── HELPERS ─────────────────────────────────────────────────────────────────
+const fmtGBP = (n) => {
+  if (n >= 1_000_000) return 'GBP' + (n / 1_000_000).toFixed(1) + 'm';
+  if (n >= 1_000)     return 'GBP' + (n / 1_000).toFixed(0) + 'k';
+  return 'GBP' + n.toLocaleString();
+};
+const fmtDate = (d) => {
+  if (!d) return '';
+  const parts = d.split('-');
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  return parts[2] + ' ' + (months[parseInt(parts[1],10)-1] || '') + ' ' + parts[0];
+};
+const today = () => new Date().toISOString().split('T')[0];
+const uid = () => Math.random().toString(36).slice(2,9);
+const clamp = (v,min,max) => Math.max(min, Math.min(max, v));
+
+// ─── INITIAL DATA ─────────────────────────────────────────────────────────────
+const INIT_PROJECTS = [
+  { id:'p1', name:'Midnight Runner', type:'Feature Film', client:'Apex Studios', budget:480000, spent:312000, status:'active', accent:C.gold, crew:['c1','c2','c4'], startDate:'2026-01-10', endDate:'2026-08-30', location:'London, UK', notes:'Primary production phase. Weekly rushes review.' },
+  { id:'p2', name:'Nova Campaign', type:'Brand Campaign', client:'Nova Beverages', budget:95000, spent:61200, status:'active', accent:C.teal, crew:['c3','c5'], startDate:'2026-02-01', endDate:'2026-04-15', location:'Manchester, UK', notes:'Social-first. Deliverables: 3 hero films + cutdowns.' },
+  { id:'p3', name:'Altitude', type:'Documentary', client:'Sky Docs', budget:220000, spent:220000, status:'completed', accent:C.purple, crew:['c2','c6'], startDate:'2025-05-01', endDate:'2025-12-20', location:'Scotland, UK', notes:'Delivered on time. Post-production complete.' },
+  { id:'p4', name:'The Last Signal', type:'Short Film', client:'BFI', budget:40000, spent:8500, status:'pending', accent:C.blue, crew:['c1','c3'], startDate:'2026-05-01', endDate:'2026-07-15', location:'Bristol, UK', notes:'Awaiting location permits and final cast confirmation.' },
+];
+
+const INIT_CREW = [
+  { id:'c1', name:'Sophia Marlowe', role:'Director', email:'sophia@crewdesk.co', phone:'+44 7700 900001', rate:1200, rateUnit:'day', status:'active', projects:['p1','p4'], avatar:'SM', skills:['Direction','Creative Vision','Script Development'], bio:'Award-winning director with 12 years in film and advertising.' },
+  { id:'c2', name:'Marcus Webb', role:'DOP', email:'marcus@crewdesk.co', phone:'+44 7700 900002', rate:950, rateUnit:'day', status:'active', projects:['p1','p3'], avatar:'MW', skills:['Cinematography','Lighting','Camera Operating'], bio:'BAFTA-nominated director of photography.' },
+  { id:'c3', name:'Priya Nair', role:'Producer', email:'priya@crewdesk.co', phone:'+44 7700 900003', rate:800, rateUnit:'day', status:'active', projects:['p2','p4'], avatar:'PN', skills:['Production Management','Budgeting','Scheduling'], bio:'Experienced producer across commercials and long-form.' },
+  { id:'c4', name:'James Fletcher', role:'1st AD', email:'james@crewdesk.co', phone:'+44 7700 900004', rate:700, rateUnit:'day', status:'active', projects:['p1'], avatar:'JF', skills:['Scheduling','Set Management','Safety'], bio:'Detail-focused AD keeping productions on track.' },
+  { id:'c5', name:'Aisha Okafor', role:'Art Director', email:'aisha@crewdesk.co', phone:'+44 7700 900005', rate:650, rateUnit:'day', status:'active', projects:['p2'], avatar:'AO', skills:['Art Direction','Set Design','Props'], bio:'Bold aesthetic sensibility across brand and narrative.' },
+  { id:'c6', name:'Tom Bradshaw', role:'Editor', email:'tom@crewdesk.co', phone:'+44 7700 900006', rate:750, rateUnit:'day', status:'freelance', projects:['p3'], avatar:'TB', skills:['Offline Editing','Colour Grade','Sound Design'], bio:'Post specialist with credits on BAFTA-winning documentaries.' },
+];
+
+const INIT_SHIFTS = [
+  { id:'s1', projectId:'p1', title:'Shoot Day 12 - Ext. Warehouse', date:'2026-03-10', callTime:'06:00', wrapTime:'20:00', location:'Bermondsey SE1', crew:['c1','c2','c4'], status:'confirmed', notes:'Golden hour final shot at 19:30.' },
+  { id:'s2', projectId:'p1', title:'Shoot Day 13 - Int. Office Set', date:'2026-03-11', callTime:'07:30', wrapTime:'18:00', location:'Shepperton Studios', crew:['c1','c2','c4'], status:'confirmed', notes:'Studio base. Catering on set.' },
+  { id:'s3', projectId:'p2', title:'Brand Film Shoot', date:'2026-03-15', callTime:'08:00', wrapTime:'17:00', location:'Media City, Manchester', crew:['c3','c5'], status:'tentative', notes:'Talent confirmed. Weather dependent.' },
+  { id:'s4', projectId:'p4', title:'Pre-Production Meeting', date:'2026-04-01', callTime:'10:00', wrapTime:'13:00', location:'Zoom / Remote', crew:['c1','c3'], status:'confirmed', notes:'Location scouting review and casting shortlist.' },
+];
+
+const INIT_INVOICES = [
+  { id:'i1', projectId:'p1', number:'INV-2026-001', client:'Apex Studios', amount:120000, status:'paid', issueDate:'2026-01-15', dueDate:'2026-02-14', paidDate:'2026-02-10', notes:'Production milestone 1 of 4.' },
+  { id:'i2', projectId:'p1', number:'INV-2026-002', client:'Apex Studios', amount:120000, status:'paid', issueDate:'2026-02-15', dueDate:'2026-03-16', paidDate:'2026-03-12', notes:'Production milestone 2 of 4.' },
+  { id:'i3', projectId:'p2', number:'INV-2026-003', client:'Nova Beverages', amount:47500, status:'overdue', issueDate:'2026-02-01', dueDate:'2026-03-01', paidDate:null, notes:'50% of campaign fee.' },
+  { id:'i4', projectId:'p1', number:'INV-2026-004', client:'Apex Studios', amount:120000, status:'sent', issueDate:'2026-03-01', dueDate:'2026-03-31', paidDate:null, notes:'Production milestone 3 of 4.' },
+  { id:'i5', projectId:'p4', number:'INV-2026-005', client:'BFI', amount:20000, status:'draft', issueDate:'2026-03-05', dueDate:'2026-04-04', paidDate:null, notes:'Development fee.' },
+  { id:'i6', projectId:'p3', number:'INV-2025-019', client:'Sky Docs', amount:220000, status:'paid', issueDate:'2025-12-22', dueDate:'2026-01-21', paidDate:'2026-01-18', notes:'Final delivery invoice.' },
+];
+
+const INIT_MESSAGES = [
+  { id:'m1', projectId:'p1', from:'Sophia Marlowe', fromId:'c1', avatar:'SM', text:'Rushes from day 12 looking incredible. The warehouse light is exactly what we wanted.', ts:'2026-03-08T09:14:00Z', read:true, replies:[] },
+  { id:'m2', projectId:'p1', from:'Marcus Webb', fromId:'c2', avatar:'MW', text:'Agreed. I want to push the look even further on day 13 - trying a colder key to contrast the interiors.', ts:'2026-03-08T09:22:00Z', read:true, replies:[] },
+  { id:'m3', projectId:'p2', from:'Priya Nair', fromId:'c3', avatar:'PN', text:'Manchester recce confirmed. Sending over the location pack this afternoon.', ts:'2026-03-07T14:05:00Z', read:false, replies:[] },
+  { id:'m4', projectId:'p1', from:'James Fletcher', fromId:'c4', avatar:'JF', text:'Call sheet for day 13 is out. Please confirm receipt.', ts:'2026-03-08T11:00:00Z', read:false, replies:[] },
+  { id:'m5', projectId:'p2', from:'Aisha Okafor', fromId:'c5', avatar:'AO', text:'Props list finalised. Sourcing the hero bottle display from a specialist props house.', ts:'2026-03-06T16:30:00Z', read:true, replies:[] },
+];
+
+
+// ─── STORE ────────────────────────────────────────────────────────────────────
+const useStore = () => {
+  const [projects, setProjects]   = useState(INIT_PROJECTS);
+  const [crew,     setCrew]       = useState(INIT_CREW);
+  const [shifts,   setShifts]     = useState(INIT_SHIFTS);
+  const [invoices, setInvoices]   = useState(INIT_INVOICES);
+  const [messages, setMessages]   = useState(INIT_MESSAGES);
+
+  const addProject    = (p) => setProjects(ps => [{ ...p, id: uid(), crew:[] }, ...ps]);
+  const updateProject = (p) => setProjects(ps => ps.map(x => x.id === p.id ? p : x));
+  const deleteProject = (id) => setProjects(ps => ps.filter(x => x.id !== id));
+
+  const addCrew    = (c) => setCrew(cs => [{ ...c, id: uid(), projects:[] }, ...cs]);
+  const updateCrew = (c) => setCrew(cs => cs.map(x => x.id === c.id ? c : x));
+  const deleteCrew = (id) => setCrew(cs => cs.filter(x => x.id !== id));
+
+  const assignCrewToProject = (crewId, projectId) => {
+    setCrew(cs => cs.map(c => c.id === crewId ? { ...c, projects: [...new Set([...c.projects, projectId])] } : c));
+    setProjects(ps => ps.map(p => p.id === projectId ? { ...p, crew: [...new Set([...p.crew, crewId])] } : p));
+  };
+  const removeCrewFromProject = (crewId, projectId) => {
+    setCrew(cs => cs.map(c => c.id === crewId ? { ...c, projects: c.projects.filter(x => x !== projectId) } : c));
+    setProjects(ps => ps.map(p => p.id === projectId ? { ...p, crew: p.crew.filter(x => x !== crewId) } : p));
+  };
+
+  const addShift    = (s) => setShifts(ss => [{ ...s, id: uid() }, ...ss]);
+  const updateShift = (s) => setShifts(ss => ss.map(x => x.id === s.id ? s : x));
+  const deleteShift = (id) => setShifts(ss => ss.filter(x => x.id !== id));
+
+  const addInvoice    = (i) => setInvoices(is => [{ ...i, id: uid() }, ...is]);
+  const updateInvoice = (i) => setInvoices(is => is.map(x => x.id === i.id ? i : x));
+  const deleteInvoice = (id) => setInvoices(is => is.filter(x => x.id !== id));
+
+  const addMessage  = (m) => setMessages(ms => [{ ...m, id: uid(), ts: new Date().toISOString(), read: false, replies:[] }, ...ms]);
+  const markRead    = (id) => setMessages(ms => ms.map(m => m.id === id ? { ...m, read: true } : m));
+  const deleteMsg   = (id) => setMessages(ms => ms.filter(x => x.id !== id));
+
+  return {
+    projects, crew, shifts, invoices, messages,
+    addProject, updateProject, deleteProject,
+    addCrew, updateCrew, deleteCrew,
+    assignCrewToProject, removeCrewFromProject,
+    addShift, updateShift, deleteShift,
+    addInvoice, updateInvoice, deleteInvoice,
+    addMessage, markRead, deleteMsg,
+  };
+};
+
+// ─── SHARED COMPONENTS ───────────────────────────────────────────────────────
+const PressCard = ({ onPress, style, children }) => {
+  const scale = useRef(new Animated.Value(1)).current;
+  const glow  = useRef(new Animated.Value(0)).current;
+  const onIn  = () => Animated.parallel([
+    Animated.spring(scale, { toValue:0.97, useNativeDriver:true, speed:40, bounciness:4 }),
+    Animated.timing(glow,  { toValue:1,    useNativeDriver:false, duration:120 }),
+  ]).start();
+  const onOut = () => Animated.parallel([
+    Animated.spring(scale, { toValue:1,    useNativeDriver:true, speed:30, bounciness:6 }),
+    Animated.timing(glow,  { toValue:0,    useNativeDriver:false, duration:200 }),
+  ]).start();
+  const borderColor = glow.interpolate({ inputRange:[0,1], outputRange:[C.border, C.gold + '55'] });
+  return (
+    <TouchableOpacity activeOpacity={1} onPressIn={onIn} onPressOut={onOut} onPress={onPress}>
+      <Animated.View style={[{ transform:[{scale}], borderColor, borderWidth:1, borderRadius:16, overflow:'hidden' }, style]}>
         {children}
       </Animated.View>
-    </Pressable>
+    </TouchableOpacity>
   );
-}
-function NotifCard({notif,onDismiss}){
-  const MAP={warning:{color:C.primary,bg:'rgba(245,166,35,0.08)',icon:'!'},success:{color:C.success,bg:'rgba(74,222,128,0.08)',icon:'c'},info:{color:C.accent,bg:'rgba(0,212,180,0.08)',icon:'i'},error:{color:C.punch,bg:'rgba(255,92,92,0.08)',icon:'x'}};
-  const t=MAP[notif.type]||MAP.info;
-  return(
-    <View style={{backgroundColor:t.bg,borderRadius:16,borderLeftWidth:3.5,borderLeftColor:t.color,marginBottom:10,flexDirection:'row'}}>
-      <View style={{flex:1,padding:14}}>
-        <View style={{flexDirection:'row',alignItems:'center',marginBottom:4}}>
-          <View style={{width:20,height:20,borderRadius:10,backgroundColor:t.color,alignItems:'center',justifyContent:'center',marginRight:8}}>
-            <Text style={{color:C.inkDark,fontSize:11,fontWeight:'900'}}>{t.icon}</Text>
-          </View>
-          <Text style={[TY.h4,{color:C.ink,flex:1}]}>{notif.title}</Text>
-          {!notif.read&&<View style={{width:7,height:7,borderRadius:4,backgroundColor:t.color}}/>}
-        </View>
-        <Text style={[TY.bodyMd,{color:C.inkSub,marginBottom:8,marginLeft:28}]}>{notif.body}</Text>
-        <View style={{flexDirection:'row',alignItems:'center',marginLeft:28}}>
-          <Text style={{color:t.color,...TY.micro,fontWeight:'700'}}>{notif.action}</Text>
-          <Text style={{color:t.color,fontSize:11,marginLeft:3}}>-></Text>
-        </View>
-        <Text style={[TY.micro,{color:C.inkFaint,marginTop:6,marginLeft:28}]}>{notif.time}</Text>
-      </View>
-      <TouchableOpacity onPress={onDismiss} style={{padding:14,justifyContent:'flex-start'}}>
-        <View style={{width:24,height:24,borderRadius:12,backgroundColor:C.bgHighlight,alignItems:'center',justifyContent:'center'}}>
-          <Text style={{color:C.inkSub,fontSize:14,lineHeight:16}}>x</Text>
-        </View>
+};
+
+const Badge = ({ label, color = C.gold, bg }) => (
+  <View style={{ backgroundColor: bg || color + '22', borderRadius:20, paddingHorizontal:10, paddingVertical:3 }}>
+    <Text style={{ color, fontSize:11, fontWeight:'700', textTransform:'uppercase', letterSpacing:0.6 }}>{label}</Text>
+  </View>
+);
+
+const StatusPicker = ({ value, options, onChange, style }) => (
+  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={style}>
+    {options.map(opt => (
+      <TouchableOpacity key={opt.value} onPress={() => onChange(opt.value)}
+        style={{ marginRight:8, paddingHorizontal:14, paddingVertical:7, borderRadius:20,
+          backgroundColor: value === opt.value ? opt.color : C.muted,
+          borderWidth:1, borderColor: value === opt.value ? opt.color : 'transparent' }}>
+        <Text style={{ color: value === opt.value ? C.bg : C.sub, fontSize:12, fontWeight:'700' }}>{opt.label}</Text>
       </TouchableOpacity>
+    ))}
+  </ScrollView>
+);
+
+const Avatar = ({ initials, color = C.gold, size = 36 }) => (
+  <View style={{ width:size, height:size, borderRadius:size/2, backgroundColor:color+'33',
+    borderWidth:2, borderColor:color, alignItems:'center', justifyContent:'center' }}>
+    <Text style={{ color, fontSize: size * 0.33, fontWeight:'800' }}>{initials}</Text>
+  </View>
+);
+
+const AvatarStack = ({ ids, crew, limit = 4 }) => {
+  const shown = ids.slice(0, limit);
+  const extra = ids.length - limit;
+  return (
+    <View style={{ flexDirection:'row', alignItems:'center' }}>
+      {shown.map((id, i) => {
+        const m = crew.find(c => c.id === id);
+        if (!m) return null;
+        const col = ACCENT_OPTIONS[i % ACCENT_OPTIONS.length];
+        return (
+          <View key={id} style={{ marginLeft: i === 0 ? 0 : -10, borderWidth:2, borderColor:C.surface, borderRadius:18 }}>
+            <Avatar initials={m.avatar} color={col} size={28} />
+          </View>
+        );
+      })}
+      {extra > 0 && (
+        <View style={{ marginLeft:-10, width:28, height:28, borderRadius:14, backgroundColor:C.muted,
+          borderWidth:2, borderColor:C.surface, alignItems:'center', justifyContent:'center' }}>
+          <Text style={{ color:C.sub, fontSize:10, fontWeight:'700' }}>+{extra}</Text>
+        </View>
+      )}
     </View>
   );
-}
-function Avatar({initials,color,size=44,style}){
-  return(
-    <View style={[{width:size,height:size,borderRadius:size/2,backgroundColor:color+'22',borderWidth:2,borderColor:color+'66',alignItems:'center',justifyContent:'center'},style]}>
-      <Text style={{color,fontSize:size*0.34,fontWeight:'900',letterSpacing:-0.5}}>{initials}</Text>
-    </View>
-  );
-}
-function AvatarStack({members,max=4,size=34}){
-  const shown=members.slice(0,max); const extra=members.length-max;
-  return(
-    <View style={{flexDirection:'row'}}>
-      {shown.map((m,i)=>(
-        <View key={m.id} style={{marginLeft:i===0?0:-(size*0.35),zIndex:max-i,borderRadius:size/2,borderWidth:2,borderColor:C.bgCard}}>
-          <Avatar initials={m.initials} color={m.color} size={size}/>
-        </View>
-      ))}
-      {extra>0&&<View style={{marginLeft:-(size*0.35),width:size,height:size,borderRadius:size/2,backgroundColor:C.bgHighlight,borderWidth:2,borderColor:C.bgCard,alignItems:'center',justifyContent:'center',zIndex:0}}>
-        <Text style={[TY.micro,{color:C.inkSub}]}>+{extra}</Text>
-      </View>}
-    </View>
-  );
-}
-function Badge({label,color=C.primary,textColor,size='md'}){
-  const tc=textColor||(color===C.primary?C.inkDark:C.ink);
-  const px=size==='sm'?8:12,py=size==='sm'?3:5,fs=size==='sm'?9:10;
-  return(<View style={{backgroundColor:color+'25',borderRadius:100,borderWidth:1,borderColor:color+'50',paddingHorizontal:px,paddingVertical:py}}>
-    <Text style={{color,fontSize:fs,fontWeight:'700',letterSpacing:0.8,textTransform:'uppercase'}}>{label}</Text>
-  </View>);
-}
-function SectionLabel({text,right,style}){
-  return(<View style={[{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginBottom:14},style]}>
-    <Text style={[TY.label,{color:C.inkSub}]}>{text}</Text>{right}
-  </View>);
-}
-function ProgressBar({pct,color,height=6}){
-  const safe=Math.min(100,Math.max(0,pct));
-  return(<View style={{height,backgroundColor:C.bgHighlight,borderRadius:height/2,overflow:'hidden'}}>
-    <View style={{height,width:safe+'%',backgroundColor:color,borderRadius:height/2}}/>
-  </View>);
-}
-function StatPill({label,value,color,icon}){
-  return(<View style={{backgroundColor:C.bgHighlight,borderRadius:16,padding:14,flex:1,marginHorizontal:4}}>
-    {icon?<Text style={{fontSize:18,marginBottom:8}}>{icon}</Text>:null}
-    <Text style={[TY.h2,{color:color||C.ink,marginBottom:4}]}>{value}</Text>
-    <Text style={[TY.label,{color:C.inkSub,fontSize:9}]}>{label}</Text>
-  </View>);
-}
-function EmptyState({title,body,onAction,actionLabel,color}){
-  return(<View style={{alignItems:'center',paddingVertical:56,paddingHorizontal:28}}>
-    <View style={{width:72,height:72,borderRadius:36,backgroundColor:(color||C.primary)+'18',borderWidth:2,borderColor:(color||C.primary)+'30',alignItems:'center',justifyContent:'center',marginBottom:20}}>
-      <Text style={{fontSize:30,color:color||C.primary}}>o</Text>
-    </View>
-    <Text style={[TY.h3,{color:C.ink,textAlign:'center',marginBottom:8}]}>{title}</Text>
-    <Text style={[TY.body,{color:C.inkSub,textAlign:'center',marginBottom:24,lineHeight:22}]}>{body}</Text>
-    {onAction&&<TouchableOpacity onPress={onAction} style={{backgroundColor:color||C.primary,paddingHorizontal:24,paddingVertical:13,borderRadius:100,shadowColor:color||C.primary,shadowOffset:{width:0,height:4},shadowOpacity:0.4,shadowRadius:12,elevation:6}}>
-      <Text style={[TY.h4,{color:C.inkDark}]}>{actionLabel}</Text>
-    </TouchableOpacity>}
-  </View>);
-}
-function Field({label,value,onChangeText,placeholder,keyboardType,multiline,lines}){
-  const[focused,setFocused]=useState(false);
-  return(<View style={{marginBottom:16}}>
-    <Text style={[TY.label,{color:C.inkSub,marginBottom:7}]}>{label}</Text>
-    <TextInput value={value} onChangeText={onChangeText} placeholder={placeholder} placeholderTextColor={C.inkFaint}
-      keyboardType={keyboardType||'default'} multiline={multiline} numberOfLines={lines||1}
-      onFocus={()=>setFocused(true)} onBlur={()=>setFocused(false)}
-      style={{backgroundColor:focused?C.bgElevated:C.bgHighlight,borderRadius:14,paddingHorizontal:16,paddingVertical:13,color:C.ink,fontSize:15,lineHeight:21,borderWidth:1.5,borderColor:focused?C.primary:C.border,minHeight:multiline?90:50}}/>
-  </View>);
-}
-function StatusPicker({options,value,onChange,activeColor}){
-  return(<View style={{marginBottom:16}}>
-    <Text style={[TY.label,{color:C.inkSub,marginBottom:8}]}>Status</Text>
-    <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-      {options.map(s=>{const on=value===s;return(
-        <TouchableOpacity key={s} onPress={()=>onChange(s)} style={{backgroundColor:on?(activeColor||C.primary):C.bgHighlight,borderRadius:100,paddingHorizontal:16,paddingVertical:9,marginRight:8,borderWidth:1.5,borderColor:on?(activeColor||C.primary):C.border}}>
-          <Text style={[TY.caption,{color:on?C.inkDark:C.inkSub,fontWeight:'700'}]}>{s==='onleave'?'On Leave':s.charAt(0).toUpperCase()+s.slice(1)}</Text>
-        </TouchableOpacity>
-      );})}
-    </ScrollView>
-  </View>);
-}
-function PrimaryBtn({label,onPress,color,disabled,style}){
-  const c=color||C.primary;
-  return(<TouchableOpacity onPress={onPress} disabled={disabled} style={[{backgroundColor:disabled?C.bgHighlight:c,borderRadius:100,paddingVertical:16,alignItems:'center',shadowColor:c,shadowOffset:{width:0,height:6},shadowOpacity:disabled?0:0.4,shadowRadius:16,elevation:8,opacity:disabled?0.5:1},style]}>
-    <Text style={[TY.h4,{color:disabled?C.inkSub:C.inkDark,fontWeight:'700'}]}>{label}</Text>
-  </TouchableOpacity>);
-}
-function Sheet({visible,onClose,title,children}){
-  return(<Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-    <Pressable style={{flex:1,backgroundColor:C.overlay,justifyContent:'flex-end'}} onPress={onClose}>
-      <Pressable onPress={()=>{}} style={{backgroundColor:C.bgCard,borderTopLeftRadius:28,borderTopRightRadius:28,paddingBottom:isIOS?36:24,maxHeight:'92%'}}>
-        <View style={{alignItems:'center',paddingTop:12,paddingBottom:4}}>
-          <View style={{width:44,height:4,backgroundColor:C.border,borderRadius:2}}/>
-        </View>
-        <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',paddingHorizontal:24,paddingVertical:16,borderBottomWidth:1,borderBottomColor:C.border}}>
-          <Text style={[TY.h2,{color:C.ink}]}>{title}</Text>
-          <TouchableOpacity onPress={onClose} style={{width:32,height:32,borderRadius:16,backgroundColor:C.bgHighlight,alignItems:'center',justifyContent:'center'}}>
-            <Text style={{color:C.inkSub,fontSize:18,lineHeight:22}}>x</Text>
-          </TouchableOpacity>
-        </View>
-        <KeyboardAvoidingView behavior={isIOS?'padding':undefined}>
-          <ScrollView contentContainerStyle={{padding:24}} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
+};
+
+const SearchBar = ({ value, onChange, placeholder }) => (
+  <View style={{ flexDirection:'row', alignItems:'center', backgroundColor:C.card,
+    borderRadius:12, borderWidth:1, borderColor:C.border, paddingHorizontal:14, marginBottom:12 }}>
+    <Text style={{ color:C.sub, fontSize:16, marginRight:8 }}>?</Text>
+    <TextInput value={value} onChangeText={onChange} placeholder={placeholder || 'Search...'}
+      placeholderTextColor={C.sub} style={{ flex:1, color:C.text, fontSize:14, paddingVertical:10 }} />
+    {value.length > 0 && (
+      <TouchableOpacity onPress={() => onChange('')}>
+        <Text style={{ color:C.sub, fontSize:18, paddingLeft:8 }}>x</Text>
+      </TouchableOpacity>
+    )}
+  </View>
+);
+
+const SectionHdr = ({ title, action, actionLabel }) => (
+  <View style={{ flexDirection:'row', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+    <Text style={{ color:C.sub, fontSize:11, fontWeight:'700', textTransform:'uppercase', letterSpacing:1.2 }}>{title}</Text>
+    {action && <TouchableOpacity onPress={action}><Text style={{ color:C.gold, fontSize:12, fontWeight:'700' }}>{actionLabel || 'See all'}</Text></TouchableOpacity>}
+  </View>
+);
+
+const Empty = ({ icon, title, sub, action, actionLabel }) => (
+  <View style={{ alignItems:'center', paddingVertical:48 }}>
+    <Text style={{ fontSize:42, marginBottom:12 }}>{icon}</Text>
+    <Text style={{ color:C.text, fontSize:18, fontWeight:'700', marginBottom:6, textAlign:'center' }}>{title}</Text>
+    <Text style={{ color:C.sub, fontSize:14, textAlign:'center', maxWidth:240, lineHeight:21, marginBottom:action?20:0 }}>{sub}</Text>
+    {action && (
+      <TouchableOpacity onPress={action} style={{ backgroundColor:C.gold, borderRadius:22, paddingHorizontal:22, paddingVertical:10 }}>
+        <Text style={{ color:C.bg, fontWeight:'800', fontSize:14 }}>{actionLabel}</Text>
+      </TouchableOpacity>
+    )}
+  </View>
+);
+
+const Sheet = ({ visible, onClose, title, children }) => (
+  <Modal visible={visible} animationType="slide" transparent>
+    <KeyboardAvoidingView behavior={Platform.OS==='ios'?'padding':'height'} style={{ flex:1 }}>
+      <View style={{ flex:1, backgroundColor:'rgba(0,0,0,0.7)', justifyContent:'flex-end' }}>
+        <View style={{ backgroundColor:C.surface, borderTopLeftRadius:24, borderTopRightRadius:24,
+          maxHeight: SH * 0.92, paddingBottom:32 }}>
+          <View style={{ flexDirection:'row', alignItems:'center', justifyContent:'space-between',
+            paddingHorizontal:20, paddingVertical:16, borderBottomWidth:1, borderBottomColor:C.border }}>
+            <Text style={{ color:C.text, fontSize:17, fontWeight:'800' }}>{title}</Text>
+            <TouchableOpacity onPress={onClose} style={{ backgroundColor:C.muted, width:32, height:32,
+              borderRadius:16, alignItems:'center', justifyContent:'center' }}>
+              <Text style={{ color:C.sub, fontSize:16, fontWeight:'700' }}>x</Text>
+            </TouchableOpacity>
+          </View>
+          <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ padding:20 }}>
             {children}
           </ScrollView>
-        </KeyboardAvoidingView>
-      </Pressable>
-    </Pressable>
-  </Modal>);
-}
-function Header({title,subtitle,right}){
-  return(<View style={{paddingHorizontal:20,paddingTop:8,paddingBottom:18}}>
-    {subtitle?<Text style={[TY.label,{color:C.inkSub,marginBottom:5}]}>{subtitle}</Text>:null}
-    <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between'}}>
-      <Text style={[TY.h1,{color:C.ink,flex:1}]}>{title}</Text>{right}
-    </View>
-  </View>);
-}
-function BackHeader({title,onBack,right}){
-  return(<View style={{flexDirection:'row',alignItems:'center',paddingHorizontal:16,paddingVertical:12,borderBottomWidth:1,borderBottomColor:C.border}}>
-    <TouchableOpacity onPress={onBack} style={{backgroundColor:C.bgHighlight,borderRadius:100,width:38,height:38,alignItems:'center',justifyContent:'center',marginRight:12,borderWidth:1,borderColor:C.border}}>
-      <Text style={{color:C.ink,fontSize:17,fontWeight:'600',lineHeight:22}}>{'<'}</Text>
-    </TouchableOpacity>
-    <Text style={[TY.h3,{color:C.ink,flex:1}]} numberOfLines={1}>{title}</Text>{right}
-  </View>);
-}
-function statusColor(s){return{active:C.success,confirmed:C.success,paid:C.success,pending:C.primary,onleave:C.purple,completed:C.accent,overdue:C.punch,cancelled:C.punch}[s]||C.inkSub;}
-function statusLabel(s){return{active:'Active',confirmed:'Confirmed',pending:'Pending',paid:'Paid',overdue:'Overdue',completed:'Completed',onleave:'On Leave',cancelled:'Cancelled'}[s]||s;}
-function fmtGBP(n){return 'GBP'+(n>=1000?(n/1000).toFixed(n%1000===0?0:1)+'k':n.toLocaleString());}
-function FAB({onPress,label,color}){
-  const scale=useRef(new Animated.Value(1)).current;
-  function onIn(){Animated.spring(scale,{toValue:0.93,useNativeDriver:true,speed:40,bounciness:4}).start();}
-  function onOut(){Animated.spring(scale,{toValue:1,useNativeDriver:true,speed:30,bounciness:8}).start();}
-  return(<Pressable onPress={onPress} onPressIn={onIn} onPressOut={onOut} style={{position:'absolute',bottom:30,right:20,zIndex:10}}>
-    <Animated.View style={{flexDirection:'row',alignItems:'center',backgroundColor:color||C.primary,paddingHorizontal:22,paddingVertical:15,borderRadius:100,shadowColor:color||C.primary,shadowOffset:{width:0,height:8},shadowOpacity:0.5,shadowRadius:20,elevation:14,transform:[{scale}]}}>
-      <Text style={{color:C.inkDark,fontSize:20,fontWeight:'900',marginRight:8,lineHeight:24}}>+</Text>
-      <Text style={[TY.h4,{color:C.inkDark}]}>{label}</Text>
-    </Animated.View>
-  </Pressable>);
-}
+        </View>
+      </View>
+    </KeyboardAvoidingView>
+  </Modal>
+);
 
-function HomeScreen({navigate}){
-  const{data,dispatch}=useStore();
-  const[refreshing,setRefreshing]=useState(false);
-  const activeProjects=data.projects.filter(p=>p.status==='active');
-  const crewActive=data.crew.filter(c=>c.status==='active');
-  const pendingInvTotal=data.invoices.filter(i=>i.status==='pending'||i.status==='overdue').reduce((a,i)=>a+i.amount,0);
-  const unread=data.notifications.filter(n=>!n.read).length;
-  const totalBudget=data.projects.reduce((a,p)=>a+p.budget,0);
-  const totalSpent=data.projects.reduce((a,p)=>a+p.spent,0);
-  const overallPct=totalBudget>0?Math.round((totalSpent/totalBudget)*100):0;
-  function onRefresh(){setRefreshing(true);setTimeout(()=>setRefreshing(false),1200);}
-  function dismissNotif(id){dispatch(s=>{s.notifications=s.notifications.filter(n=>n.id!==id);});}
-  return(
-    <SafeAreaView style={{flex:1,backgroundColor:C.bg}}>
-      <StatusBar barStyle="light-content" backgroundColor={C.bg}/>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{paddingBottom:120}}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.primary}/>}>
-        <View style={{paddingHorizontal:20,paddingTop:20,paddingBottom:28}}>
-          <View style={{flexDirection:'row',alignItems:'flex-start',justifyContent:'space-between'}}>
-            <View style={{flex:1}}>
-              <Text style={[TY.label,{color:C.primary,marginBottom:10,letterSpacing:2}]}>CREWDESK</Text>
-              <Text style={[TY.hero,{color:C.ink}]}>Good morning,</Text>
-              <Text style={[TY.hero,{color:C.primary,marginTop:-4}]}>Ashtyn.</Text>
-              <Text style={[TY.body,{color:C.inkSub,marginTop:10}]}>{activeProjects.length} active project{activeProjects.length!==1?'s':''} · {crewActive.length} crew on call</Text>
+const Field = ({ label, children }) => (
+  <View style={{ marginBottom:16 }}>
+    <Text style={{ color:C.sub, fontSize:11, fontWeight:'700', textTransform:'uppercase',
+      letterSpacing:0.8, marginBottom:6 }}>{label}</Text>
+    {children}
+  </View>
+);
+
+const TInput = ({ value, onChangeText, placeholder, multiline, keyboardType }) => (
+  <TextInput value={value} onChangeText={onChangeText} placeholder={placeholder}
+    placeholderTextColor={C.sub} multiline={multiline} keyboardType={keyboardType}
+    style={{ backgroundColor:C.card, borderRadius:10, borderWidth:1, borderColor:C.border,
+      color:C.text, padding:12, fontSize:14, minHeight: multiline ? 80 : undefined, textAlignVertical: multiline ? 'top' : undefined }} />
+);
+
+const Btn = ({ label, onPress, color = C.gold, style }) => (
+  <TouchableOpacity onPress={onPress} style={[{ backgroundColor:color, borderRadius:14,
+    paddingVertical:14, alignItems:'center' }, style]}>
+    <Text style={{ color: color === C.gold ? C.bg : C.text, fontWeight:'800', fontSize:15 }}>{label}</Text>
+  </TouchableOpacity>
+);
+
+const GhostBtn = ({ label, onPress, color = C.gold, style }) => (
+  <TouchableOpacity onPress={onPress} style={[{ borderRadius:14, paddingVertical:12,
+    alignItems:'center', borderWidth:1.5, borderColor:color }, style]}>
+    <Text style={{ color, fontWeight:'700', fontSize:14 }}>{label}</Text>
+  </TouchableOpacity>
+);
+
+const ProgressBar = ({ value, total, color = C.gold, height = 6 }) => {
+  const pct = total > 0 ? clamp(value / total, 0, 1) : 0;
+  return (
+    <View style={{ height, backgroundColor:C.muted, borderRadius:height/2, overflow:'hidden' }}>
+      <View style={{ width: (pct * 100) + '%', height:'100%', backgroundColor:color, borderRadius:height/2 }} />
+    </View>
+  );
+};
+
+const AnimBar = ({ value, max, color = C.gold, label, subLabel, delay = 0 }) => {
+  const anim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(anim, { toValue:1, duration:700, delay, useNativeDriver:false }).start();
+  }, []);
+  const pct = max > 0 ? clamp(value / max, 0, 1) : 0;
+  const w = anim.interpolate({ inputRange:[0,1], outputRange:['0%', (pct*100)+'%'] });
+  return (
+    <View style={{ marginBottom:14 }}>
+      <View style={{ flexDirection:'row', justifyContent:'space-between', marginBottom:5 }}>
+        <Text style={{ color:C.text, fontSize:13, fontWeight:'600' }}>{label}</Text>
+        <Text style={{ color:color, fontSize:13, fontWeight:'700' }}>{subLabel}</Text>
+      </View>
+      <View style={{ height:10, backgroundColor:C.muted, borderRadius:5, overflow:'hidden' }}>
+        <Animated.View style={{ width:w, height:'100%', backgroundColor:color, borderRadius:5 }} />
+      </View>
+    </View>
+  );
+};
+
+const Divider = ({ style }) => <View style={[{ height:1, backgroundColor:C.border }, style]} />;
+
+const StatTile = ({ label, value, color = C.gold, sub, onPress }) => (
+  <TouchableOpacity onPress={onPress} style={{ flex:1, backgroundColor:C.card, borderRadius:14,
+    padding:14, borderWidth:1, borderColor:C.border, alignItems:'flex-start' }}>
+    <Text style={{ color:color, fontSize:22, fontWeight:'900', marginBottom:2 }}>{value}</Text>
+    <Text style={{ color:C.text, fontSize:12, fontWeight:'700', marginBottom:2 }}>{label}</Text>
+    {sub && <Text style={{ color:C.sub, fontSize:11 }}>{sub}</Text>}
+  </TouchableOpacity>
+);
+
+const ColourPicker = ({ value, onChange }) => (
+  <View style={{ flexDirection:'row', flexWrap:'wrap' }}>
+    {ACCENT_OPTIONS.map(col => (
+      <TouchableOpacity key={col} onPress={() => onChange(col)}
+        style={{ width:36, height:36, borderRadius:18, backgroundColor:col, margin:4,
+          borderWidth: value===col ? 3 : 0, borderColor:C.text,
+          alignItems:'center', justifyContent:'center' }}>
+        {value===col && <View style={{ width:10, height:10, borderRadius:5, backgroundColor:C.text }} />}
+      </TouchableOpacity>
+    ))}
+  </View>
+);
+
+
+// ─── HOME SCREEN ─────────────────────────────────────────────────────────────
+const HomeScreen = ({ store, navigate }) => {
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = useCallback(() => { setRefreshing(true); setTimeout(() => setRefreshing(false), 1000); }, []);
+
+  const { projects, crew, invoices, shifts } = store;
+  const totalBudget = projects.reduce((s, p) => s + p.budget, 0);
+  const totalSpent  = projects.reduce((s, p) => s + p.spent, 0);
+  const burnPct     = totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 100) : 0;
+  const activeProj  = projects.filter(p => p.status === 'active').length;
+  const overdue     = invoices.filter(i => i.status === 'overdue').length;
+  const unreadMsgs  = store.messages.filter(m => !m.read).length;
+
+  const upcoming = [...shifts]
+    .filter(s => s.date >= today())
+    .sort((a,b) => a.date.localeCompare(b.date))
+    .slice(0, 3);
+
+  const recentInv = [...invoices]
+    .sort((a,b) => b.issueDate.localeCompare(a.issueDate))
+    .slice(0, 3);
+
+  return (
+    <ScrollView style={{ flex:1, backgroundColor:C.bg }}
+      contentContainerStyle={{ paddingTop:56, paddingBottom:120 }}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={C.gold} />}>
+      <StatusBar barStyle="light-content" />
+
+      <View style={{ paddingHorizontal:20, marginBottom:24 }}>
+        <Text style={{ color:C.sub, fontSize:13, fontWeight:'600', letterSpacing:0.5 }}>CREWDESK</Text>
+        <Text style={{ color:C.text, fontSize:28, fontWeight:'900', marginTop:2 }}>Command Centre</Text>
+        <Text style={{ color:C.sub, fontSize:14, marginTop:4 }}>
+          {activeProj} active {activeProj === 1 ? 'project' : 'projects'} in production
+        </Text>
+      </View>
+
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal:20, marginBottom:24 }}>
+        <StatTile label="Active" value={activeProj} color={C.teal} sub="projects" onPress={() => navigate('Projects')} style={{ marginRight:10 }} />
+        <StatTile label="Crew" value={crew.length} color={C.purple} sub="members" onPress={() => navigate('Crew')} style={{ marginRight:10 }} />
+        <StatTile label="Upcoming" value={upcoming.length} color={C.blue} sub="shoot days" onPress={() => navigate('Schedule')} style={{ marginRight:10 }} />
+        {overdue > 0 && <StatTile label="Overdue" value={overdue} color={C.red} sub="invoices" onPress={() => navigate('Invoices')} style={{ marginRight:10 }} />}
+        {unreadMsgs > 0 && <StatTile label="Unread" value={unreadMsgs} color={C.gold} sub="messages" onPress={() => navigate('Messages')} />}
+      </ScrollView>
+
+      <View style={{ marginHorizontal:20, marginBottom:24 }}>
+        <PressCard onPress={() => navigate('Reports')} style={{ backgroundColor:C.card, padding:20 }}>
+          <View style={{ flexDirection:'row', alignItems:'flex-start', justifyContent:'space-between', marginBottom:12 }}>
+            <View>
+              <Text style={{ color:C.sub, fontSize:11, fontWeight:'700', textTransform:'uppercase', letterSpacing:1 }}>Portfolio Burn</Text>
+              <Text style={{ color:C.text, fontSize:22, fontWeight:'900', marginTop:4 }}>{fmtGBP(totalSpent)}</Text>
+              <Text style={{ color:C.sub, fontSize:13, marginTop:2 }}>of {fmtGBP(totalBudget)} total budget</Text>
             </View>
-            <TouchableOpacity onPress={()=>navigate('More')} style={{width:44,height:44,borderRadius:22,backgroundColor:C.bgElevated,borderWidth:1.5,borderColor:C.primary+'40',alignItems:'center',justifyContent:'center',marginTop:4}}>
-              <Text style={{color:C.primary,fontSize:18,fontWeight:'700'}}>A</Text>
-              {unread>0&&<View style={{position:'absolute',top:-2,right:-2,backgroundColor:C.punch,width:14,height:14,borderRadius:7,alignItems:'center',justifyContent:'center',borderWidth:2,borderColor:C.bg}}>
-                <Text style={{color:C.ink,fontSize:8,fontWeight:'900'}}>{unread}</Text>
-              </View>}
-            </TouchableOpacity>
+            <Text style={{ color: burnPct > 80 ? C.red : burnPct > 60 ? C.gold : C.green, fontSize:44, fontWeight:'900', lineHeight:48 }}>{burnPct}%</Text>
           </View>
-        </View>
-        <View style={{paddingHorizontal:20,marginBottom:28}}>
-          <PressCard style={{padding:20}}>
-            <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'flex-end',marginBottom:14}}>
-              <View>
-                <Text style={[TY.label,{color:C.inkSub,marginBottom:4}]}>Portfolio Burn</Text>
-                <Text style={[TY.h1,{color:C.ink}]}>{fmtGBP(totalSpent)}</Text>
-                <Text style={[TY.bodyMd,{color:C.inkSub,marginTop:2}]}>of {fmtGBP(totalBudget)} total budget</Text>
+          <ProgressBar value={totalSpent} total={totalBudget}
+            color={ burnPct > 80 ? C.red : burnPct > 60 ? C.gold : C.green } height={8} />
+        </PressCard>
+      </View>
+
+      <View style={{ paddingHorizontal:20, marginBottom:20 }}>
+        <SectionHdr title="Active Projects" action={() => navigate('Projects')} actionLabel="All projects" />
+        {projects.filter(p => p.status === 'active').map(p => {
+          const pct = p.budget > 0 ? Math.round((p.spent / p.budget) * 100) : 0;
+          return (
+            <PressCard key={p.id} onPress={() => navigate('Projects')} style={{ backgroundColor:C.card, padding:16, marginBottom:10 }}>
+              <View style={{ flexDirection:'row', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
+                <View style={{ flex:1 }}>
+                  <Text style={{ color:C.text, fontSize:15, fontWeight:'800' }}>{p.name}</Text>
+                  <Text style={{ color:C.sub, fontSize:12, marginTop:2 }}>{p.type} - {p.client}</Text>
+                </View>
+                <View style={{ width:8, height:8, borderRadius:4, backgroundColor:p.accent, marginLeft:12 }} />
               </View>
-              <Text style={[TY.hero,{color:overallPct>80?C.punch:overallPct>60?C.primary:C.success,fontSize:40}]}>{overallPct}<Text style={{fontSize:22}}>%</Text></Text>
-            </View>
-            <ProgressBar pct={overallPct} color={overallPct>80?C.punch:overallPct>60?C.primary:C.success} height={8}/>
-            <View style={{flexDirection:'row',marginTop:12}}>
-              <Text style={[TY.caption,{color:C.success}]}>{fmtGBP(totalBudget-totalSpent)} remaining</Text>
-              <Text style={[TY.caption,{color:C.inkSub,marginLeft:'auto'}]}>{data.projects.length} projects</Text>
-            </View>
-          </PressCard>
-        </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{paddingHorizontal:16,paddingBottom:4}}>
-          {[
-            {label:'ACTIVE',val:activeProjects.length,color:C.accent,bg:C.accentT,onPress:()=>navigate('Projects')},
-            {label:'CREW',val:crewActive.length,color:C.success,bg:C.successT,onPress:()=>navigate('Crew')},
-            {label:'OUTSTANDING',val:fmtGBP(pendingInvTotal),color:C.punch,bg:C.punchT,onPress:()=>navigate('Invoices')},
-            {label:'ALERTS',val:unread,color:C.purple,bg:C.purpleT,onPress:()=>navigate('More')},
-          ].map(k=>(
-            <TouchableOpacity key={k.label} onPress={k.onPress} activeOpacity={0.8}
-              style={{backgroundColor:k.bg,borderRadius:18,padding:16,marginRight:10,minWidth:120,borderWidth:1,borderColor:k.color+'30'}}>
-              <Text style={[TY.hero,{color:k.color,fontSize:30,lineHeight:36}]}>{k.val}</Text>
-              <Text style={[TY.label,{color:k.color,fontSize:9,marginTop:4}]}>{k.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-        {data.notifications.length>0&&(
-          <View style={{paddingHorizontal:20,marginTop:28}}>
-            <SectionLabel text="Alerts and Updates" right={<TouchableOpacity onPress={()=>dispatch(s=>{s.notifications.forEach(n=>n.read=true);})}>
-              <Text style={[TY.caption,{color:C.primary}]}>Clear all</Text>
-            </TouchableOpacity>}/>
-            {data.notifications.map(n=>(<NotifCard key={n.id} notif={n} onDismiss={()=>dismissNotif(n.id)}/>))}
-          </View>
-        )}
-        <View style={{paddingHorizontal:20,marginTop:24}}>
-          <SectionLabel text="Active Projects" right={<TouchableOpacity onPress={()=>navigate('Projects')}>
-            <Text style={[TY.caption,{color:C.primary}]}>See all</Text>
-          </TouchableOpacity>}/>
-          {activeProjects.map(p=>{
-            const pct=p.budget>0?Math.round((p.spent/p.budget)*100):0;
-            const bc=pct>85?C.punch:pct>65?C.primary:C.success;
-            const projCrew=data.crew.filter(c=>c.projects&&c.projects.includes(p.id));
-            return(
-              <PressCard key={p.id} style={{marginBottom:14}} onPress={()=>navigate('Projects')} glowColor={p.color}>
-                <View style={{width:4,position:'absolute',top:0,bottom:0,left:0,backgroundColor:p.color,borderTopLeftRadius:20,borderBottomLeftRadius:20}}/>
-                <View style={{padding:20,paddingLeft:18}}>
-                  <View style={{flexDirection:'row',alignItems:'flex-start',justifyContent:'space-between',marginBottom:12}}>
-                    <View style={{flex:1,marginRight:10}}>
-                      <Text style={[TY.bodyMd,{color:p.color,fontWeight:'700',marginBottom:2}]}>{p.subtitle}</Text>
-                      <Text style={[TY.h3,{color:C.ink}]}>{p.title}</Text>
-                      <Text style={[TY.caption,{color:C.inkSub,marginTop:2}]}>{p.client}</Text>
-                    </View>
-                    <Badge label={statusLabel(p.status)} color={statusColor(p.status)}/>
+              <ProgressBar value={p.spent} total={p.budget} color={pct>80?C.red:p.accent} height={5} />
+              <View style={{ flexDirection:'row', justifyContent:'space-between', marginTop:8, alignItems:'center' }}>
+                <AvatarStack ids={p.crew} crew={crew} />
+                <Text style={{ color:C.sub, fontSize:12 }}>{fmtGBP(p.spent)} / {fmtGBP(p.budget)}</Text>
+              </View>
+            </PressCard>
+          );
+        })}
+      </View>
+
+      {upcoming.length > 0 && (
+        <View style={{ paddingHorizontal:20, marginBottom:20 }}>
+          <SectionHdr title="Next Up" action={() => navigate('Schedule')} actionLabel="Full schedule" />
+          {upcoming.map(s => {
+            const proj = projects.find(p => p.id === s.projectId);
+            return (
+              <PressCard key={s.id} onPress={() => navigate('Schedule')}
+                style={{ backgroundColor:C.card, padding:14, marginBottom:8 }}>
+                <View style={{ flexDirection:'row', alignItems:'center' }}>
+                  <View style={{ width:3, borderRadius:2, alignSelf:'stretch', backgroundColor: proj ? proj.accent : C.gold, marginRight:12 }} />
+                  <View style={{ flex:1 }}>
+                    <Text style={{ color:C.text, fontSize:14, fontWeight:'700' }}>{s.title}</Text>
+                    <Text style={{ color:C.sub, fontSize:12, marginTop:2 }}>{fmtDate(s.date)} - {s.callTime} call</Text>
+                    <Text style={{ color:C.sub, fontSize:12 }}>{s.location}</Text>
                   </View>
-                  <View style={{flexDirection:'row',justifyContent:'space-between',marginBottom:7}}>
-                    <Text style={[TY.caption,{color:C.inkSub}]}>Budget used</Text>
-                    <Text style={[TY.mono,{color:bc,fontSize:12}]}>{pct}% · {fmtGBP(p.spent)} / {fmtGBP(p.budget)}</Text>
-                  </View>
-                  <ProgressBar pct={pct} color={bc} height={7}/>
-                  <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginTop:12}}>
-                    {projCrew.length>0&&<AvatarStack members={projCrew} max={4} size={28}/>}
-                    <Text style={[TY.caption,{color:C.inkSub,marginLeft:'auto'}]}>End {p.endDate}</Text>
-                  </View>
+                  <Badge label={s.status} color={ s.status==='confirmed' ? C.green : C.gold } />
                 </View>
               </PressCard>
             );
           })}
         </View>
-        {data.shifts.length>0&&(
-          <View style={{paddingHorizontal:20,marginTop:8}}>
-            <SectionLabel text="Next Shift" right={<TouchableOpacity onPress={()=>navigate('Schedule')}>
-              <Text style={[TY.caption,{color:C.accent}]}>Schedule</Text>
-            </TouchableOpacity>}/>
-            {data.shifts.slice(0,1).map(s=>(
-              <PressCard key={s.id} style={{padding:20}} onPress={()=>navigate('Schedule')} glowColor={C.accent}>
-                <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'flex-start',marginBottom:12}}>
-                  <View style={{flex:1}}>
-                    <Text style={[TY.h3,{color:C.ink}]}>{s.title}</Text>
-                    <Text style={[TY.bodyMd,{color:C.accent,fontWeight:'600',marginTop:2}]}>{s.project}</Text>
-                  </View>
-                  <Badge label={statusLabel(s.status)} color={statusColor(s.status)}/>
-                </View>
-                <View style={{flexDirection:'row',flexWrap:'wrap'}}>
-                  {[
-                    {v:'Call '+s.callTime,c:C.accent,bg:C.accentT},
-                    {v:s.location,c:C.inkSub,bg:C.bgHighlight},
-                    {v:s.crewNeeded+' crew',c:C.inkSub,bg:C.bgHighlight},
-                  ].map(function(tag,ti){return(
-                    <View key={ti} style={{backgroundColor:tag.bg,borderRadius:8,paddingHorizontal:10,paddingVertical:5,marginRight:7,marginBottom:6}}>
-                      <Text style={[TY.micro,{color:tag.c}]}>{tag.v}</Text>
-                    </View>
-                  );})}
-                </View>
-              </PressCard>
-            ))}
-          </View>
-        )}
-      </ScrollView>
-    </SafeAreaView>
-  );
-}
+      )}
 
-function ProjectsScreen(){
-  const{data,dispatch}=useStore();
-  const[showForm,setShowForm]=useState(false);
-  const[editing,setEditing]=useState(null);
-  const[detail,setDetail]=useState(null);
-  const[filter,setFilter]=useState('all');
-  const PCOLS=[C.primary,C.accent,C.purple,C.success,C.punch,C.blue];
-  const blank={title:'',subtitle:'',client:'',status:'active',budget:'',spent:'',crew:'',startDate:'',endDate:'',location:'',desc:'',color:C.primary};
-  const[form,setForm]=useState(blank);
-  const filtered=data.projects.filter(p=>filter==='all'||p.status===filter);
-  function openNew(){setForm({...blank,color:PCOLS[data.projects.length%PCOLS.length]});setEditing(null);setShowForm(true);}
-  function openEdit(p){setForm({...p,budget:String(p.budget),spent:String(p.spent),crew:String(p.crew)});setEditing(p.id);setShowForm(true);}
-  function save(){
-    if(!form.title.trim()){Alert.alert('Required','Project title is required');return;}
-    const proj={...form,budget:parseFloat(form.budget)||0,spent:parseFloat(form.spent)||0,crew:parseInt(form.crew)||0};
-    if(editing){dispatch(s=>{const i=s.projects.findIndex(p=>p.id===editing);if(i>-1)s.projects[i]={...s.projects[i],...proj};});}
-    else{dispatch(s=>{s.projects.push({...proj,id:'p'+Date.now()});});}
-    setShowForm(false);
-  }
-  function del(id){
-    Alert.alert('Delete Project','Permanently delete this project?',
-      [{text:'Cancel',style:'cancel'},{text:'Delete',style:'destructive',onPress:function(){dispatch(s=>{s.projects=s.projects.filter(p=>p.id!==id);});setDetail(null);}}]);
-  }
-  if(detail){
-    const p=data.projects.find(x=>x.id===detail);
-    if(!p){setDetail(null);return null;}
-    const pct=p.budget>0?Math.round((p.spent/p.budget)*100):0;
-    const bc=pct>85?C.punch:pct>65?C.primary:C.success;
-    const projCrew=data.crew.filter(c=>c.projects&&c.projects.includes(p.id));
-    return(
-      <SafeAreaView style={{flex:1,backgroundColor:C.bg}}>
-        <BackHeader title={p.title} onBack={()=>setDetail(null)} right={<View style={{flexDirection:'row'}}>
-          <TouchableOpacity onPress={()=>{setDetail(null);openEdit(p);}} style={{backgroundColor:C.bgHighlight,borderRadius:100,paddingHorizontal:14,paddingVertical:7,marginRight:8,borderWidth:1,borderColor:C.border}}>
-            <Text style={[TY.micro,{color:C.primary,fontWeight:'700'}]}>EDIT</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={()=>del(p.id)} style={{backgroundColor:C.punchT,borderRadius:100,paddingHorizontal:14,paddingVertical:7,borderWidth:1,borderColor:C.punch+'40'}}>
-            <Text style={[TY.micro,{color:C.punch,fontWeight:'700'}]}>DELETE</Text>
-          </TouchableOpacity>
-        </View>}/>
-        <ScrollView contentContainerStyle={{padding:20,paddingBottom:60}} showsVerticalScrollIndicator={false}>
-          <PressCard style={{padding:22,marginBottom:16,overflow:'hidden'}}>
-            <View style={{position:'absolute',top:0,right:0,width:120,height:120,borderRadius:60,backgroundColor:p.color,opacity:0.07,transform:[{translateX:30},{translateY:-30}]}}/>
-            <Badge label={statusLabel(p.status)} color={statusColor(p.status)}/>
-            <Text style={[TY.bodyMd,{color:p.color,fontWeight:'700',marginTop:14,marginBottom:4}]}>{p.subtitle}</Text>
-            <Text style={[TY.h1,{color:C.ink}]}>{p.title}</Text>
-            <Text style={[TY.body,{color:C.inkSub,marginTop:4}]}>{p.client}</Text>
-            <Text style={[TY.bodyMd,{color:C.inkSub,marginTop:14,lineHeight:22}]}>{p.desc}</Text>
-          </PressCard>
-          <PressCard style={{padding:20,marginBottom:12}}>
-            <Text style={[TY.label,{color:C.inkSub,marginBottom:14}]}>Budget Health</Text>
-            <View style={{flexDirection:'row',marginBottom:10}}>
-              <StatPill label="TOTAL BUDGET" value={fmtGBP(p.budget)} color={C.ink}/>
-              <StatPill label="SPENT" value={fmtGBP(p.spent)} color={bc}/>
-              <StatPill label="REMAINING" value={fmtGBP(p.budget-p.spent)} color={C.success}/>
-            </View>
-            <View style={{flexDirection:'row',justifyContent:'space-between',marginBottom:8}}>
-              <Text style={[TY.body,{color:C.ink,fontWeight:'600'}]}>{pct}% used</Text>
-              {pct>80&&<Text style={[TY.caption,{color:C.punch,fontWeight:'700'}]}>Over-run risk</Text>}
-            </View>
-            <ProgressBar pct={pct} color={bc} height={10}/>
-          </PressCard>
-          {projCrew.length>0&&(
-            <PressCard style={{padding:20,marginBottom:12}}>
-              <Text style={[TY.label,{color:C.inkSub,marginBottom:14}]}>Crew ({projCrew.length})</Text>
-              {projCrew.map((c,i)=>(
-                <View key={c.id} style={{flexDirection:'row',alignItems:'center',paddingVertical:10,borderBottomWidth:i<projCrew.length-1?1:0,borderBottomColor:C.border}}>
-                  <Avatar initials={c.initials} color={c.color} size={38}/>
-                  <View style={{flex:1,marginLeft:12}}>
-                    <Text style={[TY.h4,{color:C.ink}]}>{c.name}</Text>
-                    <Text style={[TY.caption,{color:C.inkSub}]}>{c.role}</Text>
-                  </View>
-                  <Text style={[TY.caption,{color:C.primary,fontWeight:'700'}]}>{fmtGBP(c.rate)}/day</Text>
+      <View style={{ paddingHorizontal:20, marginBottom:20 }}>
+        <SectionHdr title="Recent Invoices" action={() => navigate('Invoices')} actionLabel="All invoices" />
+        {recentInv.map(inv => {
+          const col = inv.status==='paid' ? C.green : inv.status==='overdue' ? C.red : inv.status==='sent' ? C.blue : C.sub;
+          return (
+            <PressCard key={inv.id} onPress={() => navigate('Invoices')}
+              style={{ backgroundColor:C.card, padding:14, marginBottom:8 }}>
+              <View style={{ flexDirection:'row', alignItems:'center', justifyContent:'space-between' }}>
+                <View>
+                  <Text style={{ color:C.text, fontSize:14, fontWeight:'700' }}>{inv.number}</Text>
+                  <Text style={{ color:C.sub, fontSize:12, marginTop:2 }}>{inv.client} - {fmtDate(inv.issueDate)}</Text>
                 </View>
-              ))}
-            </PressCard>
-          )}
-          <PressCard style={{padding:20}}>
-            {[{label:'Location',value:p.location},{label:'Start Date',value:p.startDate},{label:'End Date',value:p.endDate},{label:'Crew Count',value:String(p.crew)}].map(row=>(
-              <View key={row.label} style={{flexDirection:'row',justifyContent:'space-between',paddingVertical:12,borderBottomWidth:1,borderBottomColor:C.border}}>
-                <Text style={[TY.body,{color:C.inkSub}]}>{row.label}</Text>
-                <Text style={[TY.body,{color:C.ink,fontWeight:'600'}]}>{row.value}</Text>
-              </View>
-            ))}
-          </PressCard>
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
-  return(
-    <SafeAreaView style={{flex:1,backgroundColor:C.bg}}>
-      <StatusBar barStyle="light-content" backgroundColor={C.bg}/>
-      <Header title="Projects" subtitle="PRODUCTIONS" right={<TouchableOpacity onPress={openNew} style={{backgroundColor:C.primary,borderRadius:100,paddingHorizontal:18,paddingVertical:9,shadowColor:C.primary,shadowOffset:{width:0,height:4},shadowOpacity:0.4,shadowRadius:10,elevation:6}}>
-        <Text style={[TY.micro,{color:C.inkDark,fontWeight:'900'}]}>+ NEW</Text>
-      </TouchableOpacity>}/>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{paddingHorizontal:20,paddingBottom:14}}>
-        {['all','active','pending','completed'].map(f=>(
-          <TouchableOpacity key={f} onPress={()=>setFilter(f)} style={{backgroundColor:filter===f?C.primary:C.bgHighlight,borderRadius:100,paddingHorizontal:16,paddingVertical:9,marginRight:8,borderWidth:1.5,borderColor:filter===f?C.primary:C.border}}>
-            <Text style={[TY.caption,{color:filter===f?C.inkDark:C.inkSub,fontWeight:'700'}]}>{f.charAt(0).toUpperCase()+f.slice(1)}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-      <FlatList data={filtered} keyExtractor={i=>i.id} contentContainerStyle={{paddingHorizontal:20,paddingBottom:100}} showsVerticalScrollIndicator={false}
-        ListEmptyComponent={<EmptyState title="No projects" body="Create your first production project." onAction={openNew} actionLabel="Create Project"/>}
-        renderItem={({item:p})=>{
-          const pct=p.budget>0?Math.round((p.spent/p.budget)*100):0;
-          const bc=pct>85?C.punch:pct>65?C.primary:C.success;
-          return(
-            <PressCard style={{marginBottom:14}} onPress={()=>setDetail(p.id)} glowColor={p.color}>
-              <View style={{width:4,position:'absolute',top:0,bottom:0,left:0,backgroundColor:p.color,borderTopLeftRadius:20,borderBottomLeftRadius:20}}/>
-              <View style={{padding:18,paddingLeft:20}}>
-                <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'flex-start',marginBottom:12}}>
-                  <View style={{flex:1,marginRight:10}}>
-                    <Text style={[TY.micro,{color:p.color,marginBottom:4}]}>{p.subtitle||''}</Text>
-                    <Text style={[TY.h3,{color:C.ink}]}>{p.title}</Text>
-                    <Text style={[TY.caption,{color:C.inkSub,marginTop:3}]}>{p.client}</Text>
-                  </View>
-                  <Badge label={statusLabel(p.status)} color={statusColor(p.status)}/>
-                </View>
-                <View style={{flexDirection:'row',justifyContent:'space-between',marginBottom:7}}>
-                  <Text style={[TY.caption,{color:C.inkSub}]}>Budget burn</Text>
-                  <Text style={[TY.mono,{color:bc,fontSize:12}]}>{pct}%</Text>
-                </View>
-                <ProgressBar pct={pct} color={bc} height={6}/>
-                <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'center',marginTop:12}}>
-                  <Text style={[TY.caption,{color:C.inkSub}]}>{fmtGBP(p.spent)} / {fmtGBP(p.budget)}</Text>
-                  <Text style={[TY.caption,{color:C.inkSub}]}>{p.crew} crew · {p.location}</Text>
+                <View style={{ alignItems:'flex-end' }}>
+                  <Text style={{ color:C.text, fontSize:15, fontWeight:'800' }}>{fmtGBP(inv.amount)}</Text>
+                  <Badge label={inv.status} color={col} style={{ marginTop:4 }} />
                 </View>
               </View>
             </PressCard>
           );
-        }}/>
-      <Sheet visible={showForm} onClose={()=>setShowForm(false)} title={editing?'Edit Project':'New Project'}>
-        <Field label="Project Title" value={form.title} onChangeText={v=>setForm(f=>({...f,title:v}))} placeholder="e.g. Midnight Runner"/>
-        <Field label="Type / Genre" value={form.subtitle} onChangeText={v=>setForm(f=>({...f,subtitle:v}))} placeholder="e.g. Feature Film"/>
-        <Field label="Client" value={form.client} onChangeText={v=>setForm(f=>({...f,client:v}))} placeholder="e.g. StudioFX Productions"/>
-        <Field label="Location" value={form.location} onChangeText={v=>setForm(f=>({...f,location:v}))} placeholder="e.g. London, UK"/>
-        <StatusPicker options={['active','pending','completed']} value={form.status} onChange={v=>setForm(f=>({...f,status:v}))}/>
-        <Field label="Total Budget (GBP)" value={form.budget} onChangeText={v=>setForm(f=>({...f,budget:v}))} placeholder="0" keyboardType="numeric"/>
-        <Field label="Spent to Date (GBP)" value={form.spent} onChangeText={v=>setForm(f=>({...f,spent:v}))} placeholder="0" keyboardType="numeric"/>
-        <Field label="Crew Count" value={form.crew} onChangeText={v=>setForm(f=>({...f,crew:v}))} placeholder="0" keyboardType="numeric"/>
-        <Field label="Start Date" value={form.startDate} onChangeText={v=>setForm(f=>({...f,startDate:v}))} placeholder="YYYY-MM-DD"/>
-        <Field label="End Date" value={form.endDate} onChangeText={v=>setForm(f=>({...f,endDate:v}))} placeholder="YYYY-MM-DD"/>
-        <Field label="Description" value={form.desc} onChangeText={v=>setForm(f=>({...f,desc:v}))} placeholder="Brief overview..." multiline lines={3}/>
-        <View style={{marginBottom:20}}>
-          <Text style={[TY.label,{color:C.inkSub,marginBottom:10}]}>Accent Colour</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            {PCOLS.map(col=>(
-              <TouchableOpacity key={col} onPress={()=>setForm(f=>({...f,color:col}))} style={{width:36,height:36,borderRadius:18,backgroundColor:col,marginRight:10,borderWidth:3,borderColor:form.color===col?C.ink:col}}/>
-            ))}
-          </ScrollView>
-        </View>
-        <PrimaryBtn label={editing?'Save Changes':'Create Project'} onPress={save}/>
-        {editing&&<TouchableOpacity onPress={()=>{setShowForm(false);del(editing);}} style={{alignItems:'center',marginTop:16}}>
-          <Text style={[TY.body,{color:C.punch}]}>Delete this project</Text>
-        </TouchableOpacity>}
-      </Sheet>
-    </SafeAreaView>
+        })}
+      </View>
+    </ScrollView>
   );
-}
+};
 
-function CrewScreen(){
-  const{data,dispatch}=useStore();
-  const[showForm,setShowForm]=useState(false);
-  const[editing,setEditing]=useState(null);
-  const[detail,setDetail]=useState(null);
-  const[filter,setFilter]=useState('all');
-  const CCOLS=[C.primary,C.accent,C.purple,C.punch,C.success,C.blue];
-  const blank={name:'',role:'',dept:'',rate:'',status:'active',phone:'',email:'',location:'',skills:'',projects:[]};
-  const[form,setForm]=useState(blank);
-  const DEPTS=['all','Camera','Art','Sound','Electrical','Post','Production'];
-  const filtered=data.crew.filter(c=>filter==='all'||c.dept===filter);
-  function openNew(){setForm(blank);setEditing(null);setShowForm(true);}
-  function openEdit(c){setForm({...c,rate:String(c.rate),skills:Array.isArray(c.skills)?c.skills.join(', '):c.skills});setEditing(c.id);setShowForm(true);}
-  function save(){
-    if(!form.name.trim()){Alert.alert('Required','Name is required');return;}
-    const member={...form,rate:parseFloat(form.rate)||0,skills:form.skills.split(',').map(s=>s.trim()).filter(Boolean)};
-    if(editing){dispatch(s=>{const i=s.crew.findIndex(c=>c.id===editing);if(i>-1)s.crew[i]={...s.crew[i],...member};});}
-    else{const initials=form.name.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2);const color=CCOLS[data.crew.length%CCOLS.length];dispatch(s=>{s.crew.push({...member,id:'c'+Date.now(),initials,color,projects:[]});});}
-    setShowForm(false);
-  }
-  function del(id){
-    Alert.alert('Remove Crew Member','Remove from CrewDesk?',
-      [{text:'Cancel',style:'cancel'},{text:'Remove',style:'destructive',onPress:function(){dispatch(s=>{s.crew=s.crew.filter(c=>c.id!==id);});setDetail(null);}}]);
-  }
-  if(detail){
-    const c=data.crew.find(x=>x.id===detail);
-    if(!c){setDetail(null);return null;}
-    const crewProjects=data.projects.filter(p=>c.projects&&c.projects.includes(p.id));
-    return(
-      <SafeAreaView style={{flex:1,backgroundColor:C.bg}}>
-        <BackHeader title="Crew Profile" onBack={()=>setDetail(null)} right={<View style={{flexDirection:'row'}}>
-          <TouchableOpacity onPress={()=>{setDetail(null);openEdit(c);}} style={{backgroundColor:C.bgHighlight,borderRadius:100,paddingHorizontal:14,paddingVertical:7,marginRight:8,borderWidth:1,borderColor:C.border}}>
-            <Text style={[TY.micro,{color:C.primary,fontWeight:'700'}]}>EDIT</Text>
+
+// ─── PROJECTS SCREEN ─────────────────────────────────────────────────────────
+const PROJECT_STATUS_OPTIONS = [
+  { value:'all',       label:'All',       color:C.sub },
+  { value:'active',    label:'Active',    color:C.teal },
+  { value:'pending',   label:'Pending',   color:C.gold },
+  { value:'completed', label:'Completed', color:C.green },
+];
+const PROJ_STATUSES = [
+  { value:'active',    label:'Active',    color:C.teal },
+  { value:'pending',   label:'Pending',   color:C.gold },
+  { value:'completed', label:'Completed', color:C.green },
+  { value:'on-hold',   label:'On Hold',   color:C.orange },
+];
+const emptyProj = () => ({ name:'', type:'', client:'', budget:'', spent:'', status:'active', accent:C.gold, location:'', notes:'', startDate:'', endDate:'' });
+
+const ProjectsScreen = ({ store }) => {
+  const { projects, crew, addProject, updateProject, deleteProject, assignCrewToProject, removeCrewFromProject } = store;
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState('all');
+  const [sheet, setSheet]   = useState(null);
+  const [form, setForm]     = useState(emptyProj());
+  const [crewSheet, setCrewSheet] = useState(null);
+
+  const visible = projects.filter(p => {
+    const matchFilter = filter === 'all' || p.status === filter;
+    const q = search.toLowerCase();
+    const matchSearch = !q || p.name.toLowerCase().includes(q) || p.client.toLowerCase().includes(q) || p.type.toLowerCase().includes(q);
+    return matchFilter && matchSearch;
+  });
+
+  const openAdd  = () => { setForm(emptyProj()); setSheet('add'); };
+  const openEdit = (p) => { setForm({ ...p, budget: String(p.budget), spent: String(p.spent) }); setSheet(p); };
+  const closeSheet = () => setSheet(null);
+
+  const save = () => {
+    if (!form.name.trim()) { Alert.alert('Required', 'Project name is required'); return; }
+    const data = { ...form, budget: Number(form.budget)||0, spent: Number(form.spent)||0 };
+    if (sheet === 'add') addProject(data);
+    else updateProject({ ...sheet, ...data });
+    closeSheet();
+  };
+
+  const del = (p) => {
+    Alert.alert('Delete Project', 'Remove ' + p.name + '? This cannot be undone.', [
+      { text:'Cancel', style:'cancel' },
+      { text:'Delete', style:'destructive', onPress: () => deleteProject(p.id) },
+    ]);
+  };
+
+  const statusCol = (s) => ({ active:C.teal, pending:C.gold, completed:C.green, 'on-hold':C.orange }[s] || C.sub);
+
+  return (
+    <View style={{ flex:1, backgroundColor:C.bg }}>
+      <View style={{ paddingTop:56, paddingHorizontal:20, paddingBottom:12 }}>
+        <View style={{ flexDirection:'row', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
+          <Text style={{ color:C.text, fontSize:26, fontWeight:'900' }}>Projects</Text>
+          <TouchableOpacity onPress={openAdd} style={{ backgroundColor:C.gold, borderRadius:22,
+            paddingHorizontal:16, paddingVertical:8 }}>
+            <Text style={{ color:C.bg, fontWeight:'800', fontSize:13 }}>+ New</Text>
           </TouchableOpacity>
-          <TouchableOpacity onPress={()=>del(c.id)} style={{backgroundColor:C.punchT,borderRadius:100,paddingHorizontal:14,paddingVertical:7,borderWidth:1,borderColor:C.punch+'40'}}>
-            <Text style={[TY.micro,{color:C.punch,fontWeight:'700'}]}>REMOVE</Text>
-          </TouchableOpacity>
-        </View>}/>
-        <ScrollView contentContainerStyle={{padding:20,paddingBottom:60}} showsVerticalScrollIndicator={false}>
-          <PressCard style={{padding:24,marginBottom:16,alignItems:'center',overflow:'hidden'}}>
-            <View style={{position:'absolute',top:-20,right:-20,width:120,height:120,borderRadius:60,backgroundColor:c.color,opacity:0.06}}/>
-            <Avatar initials={c.initials} color={c.color} size={80}/>
-            <Text style={[TY.h1,{color:C.ink,marginTop:16,textAlign:'center'}]}>{c.name}</Text>
-            <Text style={[TY.body,{color:c.color,fontWeight:'700',marginTop:4}]}>{c.role}</Text>
-            <View style={{marginTop:12}}><Badge label={statusLabel(c.status)} color={statusColor(c.status)}/></View>
-          </PressCard>
-          <View style={{flexDirection:'row',marginBottom:12}}>
-            <StatPill label="DEPARTMENT" value={c.dept} color={C.accent}/>
-            <StatPill label="DAY RATE" value={fmtGBP(c.rate)} color={C.primary}/>
-          </View>
-          <PressCard style={{padding:20,marginBottom:12}}>
-            <Text style={[TY.label,{color:C.inkSub,marginBottom:14}]}>Contact Details</Text>
-            {[{label:'Phone',value:c.phone},{label:'Email',value:c.email},{label:'Base',value:c.location}].map(row=>(
-              <View key={row.label} style={{flexDirection:'row',justifyContent:'space-between',paddingVertical:12,borderBottomWidth:1,borderBottomColor:C.border}}>
-                <Text style={[TY.body,{color:C.inkSub}]}>{row.label}</Text>
-                <Text style={[TY.body,{color:C.ink,fontWeight:'600',flex:1,textAlign:'right'}]}>{row.value}</Text>
-              </View>
-            ))}
-          </PressCard>
-          {c.skills&&c.skills.length>0&&(
-            <PressCard style={{padding:20,marginBottom:12}}>
-              <Text style={[TY.label,{color:C.inkSub,marginBottom:14}]}>Skills and Equipment</Text>
-              <View style={{flexDirection:'row',flexWrap:'wrap'}}>
-                {c.skills.map(sk=>(
-                  <View key={sk} style={{backgroundColor:C.bgHighlight,borderRadius:100,paddingHorizontal:12,paddingVertical:7,marginRight:8,marginBottom:8,borderWidth:1,borderColor:C.border}}>
-                    <Text style={[TY.caption,{color:C.inkSub}]}>{sk}</Text>
+        </View>
+        <SearchBar value={search} onChange={setSearch} placeholder="Search projects..." />
+        <StatusPicker value={filter} options={PROJECT_STATUS_OPTIONS} onChange={setFilter} style={{ marginBottom:4 }} />
+      </View>
+
+      <FlatList data={visible} keyExtractor={i => i.id} contentContainerStyle={{ paddingHorizontal:20, paddingBottom:120 }}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={<Empty icon="[P]" title="No projects found" sub="Try adjusting your search or add a new project." action={openAdd} actionLabel="Add Project" />}
+        renderItem={({ item:p }) => {
+          const pct = p.budget > 0 ? Math.round((p.spent/p.budget)*100) : 0;
+          const col = statusCol(p.status);
+          return (
+            <PressCard onPress={() => openEdit(p)} style={{ backgroundColor:C.card, marginBottom:12 }}>
+              <View style={{ padding:16 }}>
+                <View style={{ flexDirection:'row', alignItems:'flex-start', justifyContent:'space-between', marginBottom:10 }}>
+                  <View style={{ flex:1, marginRight:12 }}>
+                    <View style={{ flexDirection:'row', alignItems:'center', marginBottom:4 }}>
+                      <View style={{ width:10, height:10, borderRadius:5, backgroundColor:p.accent, marginRight:8 }} />
+                      <Text style={{ color:C.text, fontSize:16, fontWeight:'800' }}>{p.name}</Text>
+                    </View>
+                    <Text style={{ color:C.sub, fontSize:13 }}>{p.type}</Text>
+                    <Text style={{ color:C.sub, fontSize:12, marginTop:2 }}>{p.client}</Text>
                   </View>
+                  <Badge label={p.status} color={col} />
+                </View>
+                <ProgressBar value={p.spent} total={p.budget} color={pct>80?C.red:p.accent} height={6} />
+                <View style={{ flexDirection:'row', justifyContent:'space-between', marginTop:8, alignItems:'center' }}>
+                  <AvatarStack ids={p.crew} crew={crew} limit={5} />
+                  <Text style={{ color:C.sub, fontSize:12 }}>{fmtGBP(p.spent)} / {fmtGBP(p.budget)}</Text>
+                </View>
+                {p.location ? <Text style={{ color:C.muted, fontSize:11, marginTop:6 }}>{p.location}</Text> : null}
+              </View>
+              <Divider />
+              <View style={{ flexDirection:'row' }}>
+                <TouchableOpacity onPress={() => setCrewSheet(p.id)} style={{ flex:1, paddingVertical:11, alignItems:'center' }}>
+                  <Text style={{ color:C.teal, fontSize:12, fontWeight:'700' }}>Manage Crew</Text>
+                </TouchableOpacity>
+                <View style={{ width:1, backgroundColor:C.border }} />
+                <TouchableOpacity onPress={() => openEdit(p)} style={{ flex:1, paddingVertical:11, alignItems:'center' }}>
+                  <Text style={{ color:C.gold, fontSize:12, fontWeight:'700' }}>Edit</Text>
+                </TouchableOpacity>
+                <View style={{ width:1, backgroundColor:C.border }} />
+                <TouchableOpacity onPress={() => del(p)} style={{ flex:1, paddingVertical:11, alignItems:'center' }}>
+                  <Text style={{ color:C.red, fontSize:12, fontWeight:'700' }}>Delete</Text>
+                </TouchableOpacity>
+              </View>
+            </PressCard>
+          );
+        }}
+      />
+
+      <Sheet visible={!!sheet} onClose={closeSheet} title={sheet === 'add' ? 'New Project' : 'Edit Project'}>
+        <Field label="Project Name"><TInput value={form.name} onChangeText={v => setForm(f=>({...f,name:v}))} placeholder="e.g. Midnight Runner" /></Field>
+        <Field label="Type"><TInput value={form.type} onChangeText={v => setForm(f=>({...f,type:v}))} placeholder="e.g. Feature Film" /></Field>
+        <Field label="Client"><TInput value={form.client} onChangeText={v => setForm(f=>({...f,client:v}))} placeholder="e.g. Apex Studios" /></Field>
+        <Field label="Location"><TInput value={form.location} onChangeText={v => setForm(f=>({...f,location:v}))} placeholder="e.g. London, UK" /></Field>
+        <View style={{ flexDirection:'row', marginBottom:16 }}>
+          <View style={{ flex:1, marginRight:8 }}>
+            <Field label="Total Budget (GBP)"><TInput value={form.budget} onChangeText={v => setForm(f=>({...f,budget:v}))} placeholder="0" keyboardType="numeric" /></Field>
+          </View>
+          <View style={{ flex:1 }}>
+            <Field label="Spent (GBP)"><TInput value={form.spent} onChangeText={v => setForm(f=>({...f,spent:v}))} placeholder="0" keyboardType="numeric" /></Field>
+          </View>
+        </View>
+        <Field label="Start Date"><TInput value={form.startDate} onChangeText={v => setForm(f=>({...f,startDate:v}))} placeholder="YYYY-MM-DD" /></Field>
+        <Field label="End Date"><TInput value={form.endDate} onChangeText={v => setForm(f=>({...f,endDate:v}))} placeholder="YYYY-MM-DD" /></Field>
+        <Field label="Status"><StatusPicker value={form.status} options={PROJ_STATUSES} onChange={v => setForm(f=>({...f,status:v}))} /></Field>
+        <Field label="Accent Colour"><ColourPicker value={form.accent} onChange={v => setForm(f=>({...f,accent:v}))} /></Field>
+        <Field label="Notes"><TInput value={form.notes} onChangeText={v => setForm(f=>({...f,notes:v}))} placeholder="Production notes..." multiline /></Field>
+        <Btn label="Save Project" onPress={save} style={{ marginTop:8 }} />
+        {sheet !== 'add' && <GhostBtn label="Delete Project" onPress={() => { closeSheet(); del(sheet); }} color={C.red} style={{ marginTop:10 }} />}
+      </Sheet>
+
+      <Sheet visible={!!crewSheet} onClose={() => setCrewSheet(null)} title="Manage Crew">
+        {crewSheet && crew.map(c => {
+          const proj = projects.find(p => p.id === crewSheet);
+          const assigned = proj && proj.crew.includes(c.id);
+          return (
+            <View key={c.id} style={{ flexDirection:'row', alignItems:'center', justifyContent:'space-between',
+              paddingVertical:12, borderBottomWidth:1, borderBottomColor:C.border }}>
+              <View style={{ flexDirection:'row', alignItems:'center' }}>
+                <Avatar initials={c.avatar} color={C.gold} size={36} />
+                <View style={{ marginLeft:10 }}>
+                  <Text style={{ color:C.text, fontSize:14, fontWeight:'700' }}>{c.name}</Text>
+                  <Text style={{ color:C.sub, fontSize:12 }}>{c.role}</Text>
+                </View>
+              </View>
+              <TouchableOpacity onPress={() => {
+                if (assigned) removeCrewFromProject(c.id, crewSheet);
+                else assignCrewToProject(c.id, crewSheet);
+              }} style={{ backgroundColor: assigned ? C.redBg : C.tealBg,
+                borderRadius:20, paddingHorizontal:14, paddingVertical:6,
+                borderWidth:1, borderColor: assigned ? C.red : C.teal }}>
+                <Text style={{ color: assigned ? C.red : C.teal, fontSize:12, fontWeight:'700' }}>
+                  {assigned ? 'Remove' : 'Add'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          );
+        })}
+        <Btn label="Done" onPress={() => setCrewSheet(null)} style={{ marginTop:16 }} />
+      </Sheet>
+    </View>
+  );
+};
+
+
+// ─── CREW SCREEN ─────────────────────────────────────────────────────────────
+const CREW_STATUSES = [
+  { value:'active',   label:'Active',   color:C.green },
+  { value:'freelance',label:'Freelance',color:C.teal },
+  { value:'inactive', label:'Inactive', color:C.sub },
+];
+const CREW_FILTER_OPTIONS = [
+  { value:'all',      label:'All',      color:C.sub },
+  { value:'active',   label:'Active',   color:C.green },
+  { value:'freelance',label:'Freelance',color:C.teal },
+  { value:'inactive', label:'Inactive', color:C.sub },
+];
+const emptyCrew = () => ({ name:'', role:'', email:'', phone:'', rate:'', rateUnit:'day', status:'active', bio:'', skills:'' });
+
+const CrewScreen = ({ store }) => {
+  const { crew, projects, addCrew, updateCrew, deleteCrew } = store;
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState('all');
+  const [sheet, setSheet]   = useState(null);
+  const [form, setForm]     = useState(emptyCrew());
+
+  const visible = crew.filter(c => {
+    const matchFilter = filter === 'all' || c.status === filter;
+    const q = search.toLowerCase();
+    const matchSearch = !q || c.name.toLowerCase().includes(q) || c.role.toLowerCase().includes(q) || c.email.toLowerCase().includes(q);
+    return matchFilter && matchSearch;
+  });
+
+  const openAdd  = () => { setForm(emptyCrew()); setSheet('add'); };
+  const openEdit = (c) => { setForm({ ...c, rate: String(c.rate), skills: (c.skills||[]).join(', ') }); setSheet(c); };
+  const closeSheet = () => setSheet(null);
+
+  const save = () => {
+    if (!form.name.trim()) { Alert.alert('Required', 'Name is required'); return; }
+    const data = { ...form, rate: Number(form.rate)||0, skills: form.skills.split(',').map(s=>s.trim()).filter(Boolean) };
+    if (sheet === 'add') addCrew(data);
+    else updateCrew({ ...sheet, ...data });
+    closeSheet();
+  };
+
+  const del = (c) => {
+    Alert.alert('Remove Crew Member', 'Remove ' + c.name + '?', [
+      { text:'Cancel', style:'cancel' },
+      { text:'Remove', style:'destructive', onPress: () => deleteCrew(c.id) },
+    ]);
+  };
+
+  const statusColor = (s) => ({ active:C.green, freelance:C.teal, inactive:C.sub }[s] || C.sub);
+
+  return (
+    <View style={{ flex:1, backgroundColor:C.bg }}>
+      <View style={{ paddingTop:56, paddingHorizontal:20, paddingBottom:12 }}>
+        <View style={{ flexDirection:'row', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
+          <Text style={{ color:C.text, fontSize:26, fontWeight:'900' }}>Crew</Text>
+          <TouchableOpacity onPress={openAdd} style={{ backgroundColor:C.purple, borderRadius:22, paddingHorizontal:16, paddingVertical:8 }}>
+            <Text style={{ color:C.text, fontWeight:'800', fontSize:13 }}>+ Add</Text>
+          </TouchableOpacity>
+        </View>
+        <SearchBar value={search} onChange={setSearch} placeholder="Search crew..." />
+        <StatusPicker value={filter} options={CREW_FILTER_OPTIONS} onChange={setFilter} style={{ marginBottom:4 }} />
+      </View>
+
+      <FlatList data={visible} keyExtractor={i => i.id} contentContainerStyle={{ paddingHorizontal:20, paddingBottom:120 }}
+        ListEmptyComponent={<Empty icon="[C]" title="No crew members" sub="Add your first crew member to get started." action={openAdd} actionLabel="Add Crew" />}
+        renderItem={({ item:c }) => {
+          const memberProjects = projects.filter(p => p.crew.includes(c.id));
+          return (
+            <PressCard onPress={() => openEdit(c)} style={{ backgroundColor:C.card, marginBottom:10 }}>
+              <View style={{ padding:16 }}>
+                <View style={{ flexDirection:'row', alignItems:'flex-start' }}>
+                  <Avatar initials={c.avatar || c.name.slice(0,2).toUpperCase()} color={statusColor(c.status)} size={48} />
+                  <View style={{ flex:1, marginLeft:14 }}>
+                    <View style={{ flexDirection:'row', alignItems:'center', justifyContent:'space-between' }}>
+                      <Text style={{ color:C.text, fontSize:16, fontWeight:'800' }}>{c.name}</Text>
+                      <Badge label={c.status} color={statusColor(c.status)} />
+                    </View>
+                    <Text style={{ color:C.sub, fontSize:13, marginTop:2 }}>{c.role}</Text>
+                    <Text style={{ color:C.sub, fontSize:12, marginTop:2 }}>{c.email}</Text>
+                    <View style={{ flexDirection:'row', alignItems:'center', marginTop:6 }}>
+                      <Text style={{ color:C.gold, fontSize:13, fontWeight:'700' }}>
+                        {fmtGBP(c.rate)} / {c.rateUnit}
+                      </Text>
+                      {memberProjects.length > 0 && (
+                        <Text style={{ color:C.sub, fontSize:12, marginLeft:12 }}>
+                          {memberProjects.length} {memberProjects.length === 1 ? 'project' : 'projects'}
+                        </Text>
+                      )}
+                    </View>
+                  </View>
+                </View>
+                {(c.skills||[]).length > 0 && (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop:10 }}>
+                    {(c.skills||[]).map((sk,i) => (
+                      <View key={i} style={{ backgroundColor:C.muted, borderRadius:20, paddingHorizontal:10, paddingVertical:4, marginRight:6 }}>
+                        <Text style={{ color:C.sub, fontSize:11, fontWeight:'600' }}>{sk}</Text>
+                      </View>
+                    ))}
+                  </ScrollView>
+                )}
+                {memberProjects.length > 0 && (
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop:8 }}>
+                    {memberProjects.map(p => (
+                      <View key={p.id} style={{ flexDirection:'row', alignItems:'center', backgroundColor:p.accent+'22',
+                        borderRadius:20, paddingHorizontal:10, paddingVertical:4, marginRight:6,
+                        borderWidth:1, borderColor:p.accent+'44' }}>
+                        <View style={{ width:6, height:6, borderRadius:3, backgroundColor:p.accent, marginRight:6 }} />
+                        <Text style={{ color:p.accent, fontSize:11, fontWeight:'600' }}>{p.name}</Text>
+                      </View>
+                    ))}
+                  </ScrollView>
+                )}
+              </View>
+              <Divider />
+              <View style={{ flexDirection:'row' }}>
+                <TouchableOpacity onPress={() => openEdit(c)} style={{ flex:1, paddingVertical:11, alignItems:'center' }}>
+                  <Text style={{ color:C.gold, fontSize:12, fontWeight:'700' }}>Edit</Text>
+                </TouchableOpacity>
+                <View style={{ width:1, backgroundColor:C.border }} />
+                <TouchableOpacity onPress={() => del(c)} style={{ flex:1, paddingVertical:11, alignItems:'center' }}>
+                  <Text style={{ color:C.red, fontSize:12, fontWeight:'700' }}>Remove</Text>
+                </TouchableOpacity>
+              </View>
+            </PressCard>
+          );
+        }}
+      />
+
+      <Sheet visible={!!sheet} onClose={closeSheet} title={sheet === 'add' ? 'New Crew Member' : 'Edit Crew Member'}>
+        <Field label="Full Name"><TInput value={form.name} onChangeText={v => setForm(f=>({...f,name:v}))} placeholder="e.g. Sophia Marlowe" /></Field>
+        <Field label="Role / Department"><TInput value={form.role} onChangeText={v => setForm(f=>({...f,role:v}))} placeholder="e.g. Director" /></Field>
+        <Field label="Email"><TInput value={form.email} onChangeText={v => setForm(f=>({...f,email:v}))} placeholder="name@email.com" /></Field>
+        <Field label="Phone"><TInput value={form.phone} onChangeText={v => setForm(f=>({...f,phone:v}))} placeholder="+44..." /></Field>
+        <View style={{ flexDirection:'row', marginBottom:16 }}>
+          <View style={{ flex:2, marginRight:8 }}>
+            <Field label="Day Rate (GBP)"><TInput value={form.rate} onChangeText={v => setForm(f=>({...f,rate:v}))} placeholder="0" keyboardType="numeric" /></Field>
+          </View>
+          <View style={{ flex:1 }}>
+            <Field label="Unit">
+              <View style={{ flexDirection:'row' }}>
+                {['day','hour','week'].map(u => (
+                  <TouchableOpacity key={u} onPress={() => setForm(f=>({...f,rateUnit:u}))}
+                    style={{ flex:1, paddingVertical:8, borderRadius:8, marginRight:4,
+                      backgroundColor: form.rateUnit===u ? C.gold : C.muted, alignItems:'center' }}>
+                    <Text style={{ color: form.rateUnit===u ? C.bg : C.sub, fontSize:11, fontWeight:'700' }}>{u}</Text>
+                  </TouchableOpacity>
                 ))}
               </View>
-            </PressCard>
-          )}
-          {crewProjects.length>0&&(
-            <PressCard style={{padding:20}}>
-              <Text style={[TY.label,{color:C.inkSub,marginBottom:14}]}>Active Projects</Text>
-              {crewProjects.map((p,i)=>(
-                <View key={p.id} style={{flexDirection:'row',alignItems:'center',paddingVertical:10,borderBottomWidth:i<crewProjects.length-1?1:0,borderBottomColor:C.border}}>
-                  <View style={{width:10,height:10,borderRadius:5,backgroundColor:p.color,marginRight:12}}/>
-                  <View style={{flex:1}}>
-                    <Text style={[TY.h4,{color:C.ink}]}>{p.title}</Text>
-                    <Text style={[TY.caption,{color:C.inkSub}]}>{p.client}</Text>
-                  </View>
-                  <Badge label={statusLabel(p.status)} color={statusColor(p.status)} size="sm"/>
-                </View>
-              ))}
-            </PressCard>
-          )}
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
-  return(
-    <SafeAreaView style={{flex:1,backgroundColor:C.bg}}>
-      <StatusBar barStyle="light-content" backgroundColor={C.bg}/>
-      <Header title="Crew" subtitle="TEAM ROSTER" right={<TouchableOpacity onPress={openNew} style={{backgroundColor:C.accent,borderRadius:100,paddingHorizontal:18,paddingVertical:9,shadowColor:C.accent,shadowOffset:{width:0,height:4},shadowOpacity:0.4,shadowRadius:10,elevation:6}}>
-        <Text style={[TY.micro,{color:C.inkDark,fontWeight:'900'}]}>+ ADD</Text>
-      </TouchableOpacity>}/>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{paddingHorizontal:20,paddingBottom:14}}>
-        {DEPTS.map(d=>(
-          <TouchableOpacity key={d} onPress={()=>setFilter(d)} style={{backgroundColor:filter===d?C.accent:C.bgHighlight,borderRadius:100,paddingHorizontal:14,paddingVertical:9,marginRight:8,borderWidth:1.5,borderColor:filter===d?C.accent:C.border}}>
-            <Text style={[TY.caption,{color:filter===d?C.inkDark:C.inkSub,fontWeight:'700'}]}>{d}</Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-      <FlatList data={filtered} keyExtractor={i=>i.id} contentContainerStyle={{paddingHorizontal:20,paddingBottom:100}} showsVerticalScrollIndicator={false}
-        ListEmptyComponent={<EmptyState title="No crew members" body="Build your production team by adding crew with roles, rates and contact details." onAction={openNew} actionLabel="Add First Member" color={C.accent}/>}
-        renderItem={({item:c})=>(
-          <PressCard style={{marginBottom:12}} onPress={()=>setDetail(c.id)} glowColor={c.color}>
-            <View style={{padding:16}}>
-              <View style={{flexDirection:'row',alignItems:'center'}}>
-                <Avatar initials={c.initials} color={c.color} size={50}/>
-                <View style={{flex:1,marginLeft:14}}>
-                  <View style={{flexDirection:'row',alignItems:'center',justifyContent:'space-between',marginBottom:3}}>
-                    <Text style={[TY.h3,{color:C.ink,flex:1,marginRight:8}]}>{c.name}</Text>
-                    <Badge label={statusLabel(c.status)} color={statusColor(c.status)} size="sm"/>
-                  </View>
-                  <Text style={[TY.bodyMd,{color:C.inkSub}]}>{c.role}</Text>
-                  <View style={{flexDirection:'row',marginTop:6,alignItems:'center'}}>
-                    <View style={{backgroundColor:C.bgHighlight,borderRadius:6,paddingHorizontal:8,paddingVertical:3,marginRight:8}}>
-                      <Text style={[TY.micro,{color:C.inkSub}]}>{c.dept}</Text>
-                    </View>
-                    <Text style={[TY.caption,{color:C.primary,fontWeight:'700'}]}>{fmtGBP(c.rate)}/day</Text>
-                  </View>
-                </View>
-              </View>
-            </View>
-          </PressCard>
-        )}/>
-      <Sheet visible={showForm} onClose={()=>setShowForm(false)} title={editing?'Edit Crew Member':'Add Crew Member'}>
-        <Field label="Full Name" value={form.name} onChangeText={v=>setForm(f=>({...f,name:v}))} placeholder="e.g. Sophia Marlowe"/>
-        <Field label="Role" value={form.role} onChangeText={v=>setForm(f=>({...f,role:v}))} placeholder="e.g. Director of Photography"/>
-        <Field label="Department" value={form.dept} onChangeText={v=>setForm(f=>({...f,dept:v}))} placeholder="e.g. Camera"/>
-        <Field label="Day Rate (GBP)" value={form.rate} onChangeText={v=>setForm(f=>({...f,rate:v}))} placeholder="0" keyboardType="numeric"/>
-        <StatusPicker options={['active','onleave','inactive']} value={form.status} onChange={v=>setForm(f=>({...f,status:v}))} activeColor={C.accent}/>
-        <Field label="Phone" value={form.phone} onChangeText={v=>setForm(f=>({...f,phone:v}))} placeholder="+44 7700 000000" keyboardType="phone-pad"/>
-        <Field label="Email" value={form.email} onChangeText={v=>setForm(f=>({...f,email:v}))} placeholder="email@example.com" keyboardType="email-address"/>
-        <Field label="Base Location" value={form.location} onChangeText={v=>setForm(f=>({...f,location:v}))} placeholder="e.g. London"/>
-        <Field label="Skills (comma-separated)" value={form.skills} onChangeText={v=>setForm(f=>({...f,skills:v}))} placeholder="e.g. Arri Alexa, Drone, Lighting"/>
-        <PrimaryBtn label={editing?'Save Changes':'Add to Crew'} onPress={save} color={C.accent}/>
-        {editing&&<TouchableOpacity onPress={()=>{setShowForm(false);del(editing);}} style={{alignItems:'center',marginTop:16}}>
-          <Text style={[TY.body,{color:C.punch}]}>Remove from crew</Text>
-        </TouchableOpacity>}
-      </Sheet>
-    </SafeAreaView>
-  );
-}
-
-function ScheduleScreen(){
-  const{data,dispatch}=useStore();
-  const[showForm,setShowForm]=useState(false);
-  const[editing,setEditing]=useState(null);
-  const[selectedDay,setSelectedDay]=useState(0);
-  const blank={title:'',project:'',date:'',callTime:'',wrapTime:'',location:'',dept:'',crewNeeded:'',status:'pending',notes:''};
-  const[form,setForm]=useState(blank);
-  const BASE=new Date('2026-03-08');
-  const days=Array.from({length:10},(_,i)=>{const d=new Date(BASE);d.setDate(d.getDate()+i);return{label:d.toLocaleDateString('en-GB',{weekday:'short'}).toUpperCase(),num:d.getDate(),month:d.toLocaleDateString('en-GB',{month:'short'}).toUpperCase(),full:d.toISOString().slice(0,10)};});
-  const selDate=days[selectedDay].full;
-  const dayShifts=data.shifts.filter(s=>s.date===selDate);
-  const allOther=data.shifts.filter(s=>s.date!==selDate);
-  function openNew(){setForm({...blank,date:selDate});setEditing(null);setShowForm(true);}
-  function openEdit(s){setForm({...s,crewNeeded:String(s.crewNeeded)});setEditing(s.id);setShowForm(true);}
-  function save(){
-    if(!form.title.trim()){Alert.alert('Required','Shift title is required');return;}
-    const shift={...form,crewNeeded:parseInt(form.crewNeeded)||0};
-    if(editing){dispatch(s=>{const i=s.shifts.findIndex(x=>x.id===editing);if(i>-1)s.shifts[i]={...s.shifts[i],...shift};});}
-    else{dispatch(s=>{s.shifts.push({...shift,id:'s'+Date.now()});});}
-    setShowForm(false);
-  }
-  function del(id){Alert.alert('Delete Shift','Remove from schedule?',[{text:'Cancel',style:'cancel'},{text:'Delete',style:'destructive',onPress:function(){dispatch(s=>{s.shifts=s.shifts.filter(x=>x.id!==id);});}}]);}
-  return(
-    <SafeAreaView style={{flex:1,backgroundColor:C.bg}}>
-      <StatusBar barStyle="light-content" backgroundColor={C.bg}/>
-      <Header title="Schedule" subtitle="PRODUCTION CALENDAR" right={<TouchableOpacity onPress={openNew} style={{backgroundColor:C.accent,borderRadius:100,paddingHorizontal:18,paddingVertical:9,shadowColor:C.accent,shadowOffset:{width:0,height:4},shadowOpacity:0.4,shadowRadius:10,elevation:6}}>
-        <Text style={[TY.micro,{color:C.inkDark,fontWeight:'900'}]}>+ SHIFT</Text>
-      </TouchableOpacity>}/>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{paddingHorizontal:16,paddingBottom:16}}>
-        {days.map((d,i)=>{const has=data.shifts.some(s=>s.date===d.full);const on=i===selectedDay;return(
-          <TouchableOpacity key={i} onPress={()=>setSelectedDay(i)} style={{alignItems:'center',marginRight:8,width:58,paddingVertical:14,borderRadius:18,backgroundColor:on?C.accent:C.bgCard,borderWidth:1.5,borderColor:on?C.accent:C.border}}>
-            <Text style={[TY.label,{color:on?C.inkDark:C.inkSub,fontSize:9}]}>{d.label}</Text>
-            <Text style={[TY.h2,{color:on?C.inkDark:C.ink,marginTop:4}]}>{d.num}</Text>
-            <Text style={[TY.micro,{color:on?C.inkDark+'99':C.inkFaint,marginTop:2}]}>{d.month}</Text>
-            {has&&<View style={{width:6,height:6,borderRadius:3,backgroundColor:on?C.inkDark:C.accent,marginTop:5}}/>}
-          </TouchableOpacity>
-        );})}
-      </ScrollView>
-      <ScrollView contentContainerStyle={{paddingHorizontal:20,paddingBottom:120}} showsVerticalScrollIndicator={false}>
-        <SectionLabel text={dayShifts.length+' shift'+(dayShifts.length!==1?'s':'')+' on '+selDate}/>
-        {dayShifts.length===0?(
-          <PressCard style={{padding:32,alignItems:'center'}}>
-            <Text style={[TY.h3,{color:C.ink,marginBottom:6}]}>Nothing scheduled</Text>
-            <Text style={[TY.body,{color:C.inkSub,textAlign:'center',marginBottom:20}]}>No shifts on this day yet.</Text>
-            <TouchableOpacity onPress={openNew} style={{backgroundColor:C.accent,borderRadius:100,paddingHorizontal:22,paddingVertical:12,shadowColor:C.accent,shadowOffset:{width:0,height:4},shadowOpacity:0.4,shadowRadius:12}}>
-              <Text style={[TY.h4,{color:C.inkDark}]}>Add Shift</Text>
-            </TouchableOpacity>
-          </PressCard>
-        ):(dayShifts.map(s=>{const bc=statusColor(s.status);return(
-          <PressCard key={s.id} style={{marginBottom:14,padding:18}} glowColor={bc}>
-            <View style={{position:'absolute',top:0,right:0,bottom:0,width:4,backgroundColor:bc,borderTopRightRadius:20,borderBottomRightRadius:20}}/>
-            <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'flex-start',marginBottom:12}}>
-              <View style={{flex:1,marginRight:10}}>
-                <Text style={[TY.h3,{color:C.ink}]}>{s.title}</Text>
-                <Text style={[TY.bodyMd,{color:C.accent,fontWeight:'600',marginTop:3}]}>{s.project}</Text>
-              </View>
-              <Badge label={statusLabel(s.status)} color={bc}/>
-            </View>
-            <View style={{flexDirection:'row',flexWrap:'wrap',marginBottom:10}}>
-              {[{v:'Call '+s.callTime+' Wrap '+s.wrapTime,c:C.accent,bg:C.accentT},{v:s.location,c:C.inkSub,bg:C.bgHighlight},{v:s.crewNeeded+' crew',c:C.inkSub,bg:C.bgHighlight},{v:s.dept,c:C.inkSub,bg:C.bgHighlight}].map(function(tag,ti){return(
-                <View key={ti} style={{backgroundColor:tag.bg,borderRadius:8,paddingHorizontal:10,paddingVertical:5,marginRight:7,marginBottom:6}}>
-                  <Text style={[TY.micro,{color:tag.c}]}>{tag.v}</Text>
-                </View>
-              );})}
-            </View>
-            {s.notes?<Text style={[TY.caption,{color:C.inkFaint,marginBottom:12,fontStyle:'italic'}]}>Note: {s.notes}</Text>:null}
-            <View style={{flexDirection:'row'}}>
-              <TouchableOpacity onPress={()=>openEdit(s)} style={{flex:1,backgroundColor:C.bgHighlight,borderRadius:100,paddingVertical:10,alignItems:'center',marginRight:8,borderWidth:1,borderColor:C.border}}>
-                <Text style={[TY.micro,{color:C.primary,fontWeight:'700'}]}>EDIT</Text>
-              </TouchableOpacity>
-              <TouchableOpacity onPress={()=>del(s.id)} style={{flex:1,backgroundColor:C.punchT,borderRadius:100,paddingVertical:10,alignItems:'center',borderWidth:1,borderColor:C.punch+'30'}}>
-                <Text style={[TY.micro,{color:C.punch,fontWeight:'700'}]}>DELETE</Text>
-              </TouchableOpacity>
-            </View>
-          </PressCard>
-        );}))}
-        {allOther.length>0&&(
-          <View style={{marginTop:24}}>
-            <SectionLabel text="Upcoming Shifts"/>
-            {allOther.slice(0,6).map(s=>(
-              <PressCard key={s.id} style={{marginBottom:10,padding:16}}>
-                <View style={{flexDirection:'row',alignItems:'center'}}>
-                  <View style={{width:44,height:44,borderRadius:12,backgroundColor:C.accentT,alignItems:'center',justifyContent:'center',marginRight:14}}>
-                    <Text style={[TY.micro,{color:C.accent}]}>{s.date.slice(8)}</Text>
-                    <Text style={[TY.label,{color:C.accent,fontSize:8}]}>{s.date.slice(5,7)}</Text>
-                  </View>
-                  <View style={{flex:1}}>
-                    <Text style={[TY.h4,{color:C.ink}]}>{s.title}</Text>
-                    <Text style={[TY.caption,{color:C.inkSub,marginTop:2}]}>{s.project} · {s.callTime}</Text>
-                  </View>
-                  <Badge label={statusLabel(s.status)} color={statusColor(s.status)} size="sm"/>
-                </View>
-              </PressCard>
-            ))}
+            </Field>
           </View>
-        )}
-      </ScrollView>
-      <Sheet visible={showForm} onClose={()=>setShowForm(false)} title={editing?'Edit Shift':'New Shift'}>
-        <Field label="Shift Title" value={form.title} onChangeText={v=>setForm(f=>({...f,title:v}))} placeholder="e.g. Principal Photography Day 1"/>
-        <Field label="Project" value={form.project} onChangeText={v=>setForm(f=>({...f,project:v}))} placeholder="e.g. Midnight Runner"/>
-        <Field label="Date" value={form.date} onChangeText={v=>setForm(f=>({...f,date:v}))} placeholder="YYYY-MM-DD"/>
-        <Field label="Call Time" value={form.callTime} onChangeText={v=>setForm(f=>({...f,callTime:v}))} placeholder="e.g. 06:00"/>
-        <Field label="Wrap Time" value={form.wrapTime} onChangeText={v=>setForm(f=>({...f,wrapTime:v}))} placeholder="e.g. 18:00"/>
-        <Field label="Location" value={form.location} onChangeText={v=>setForm(f=>({...f,location:v}))} placeholder="e.g. Pinewood Studios"/>
-        <Field label="Department" value={form.dept} onChangeText={v=>setForm(f=>({...f,dept:v}))} placeholder="e.g. Full Crew"/>
-        <Field label="Crew Needed" value={form.crewNeeded} onChangeText={v=>setForm(f=>({...f,crewNeeded:v}))} placeholder="0" keyboardType="numeric"/>
-        <StatusPicker options={['pending','confirmed','cancelled']} value={form.status} onChange={v=>setForm(f=>({...f,status:v}))} activeColor={C.accent}/>
-        <Field label="Notes" value={form.notes} onChangeText={v=>setForm(f=>({...f,notes:v}))} placeholder="Any notes..." multiline lines={2}/>
-        <PrimaryBtn label={editing?'Save Changes':'Schedule Shift'} onPress={save} color={C.accent}/>
-        {editing&&<TouchableOpacity onPress={()=>{setShowForm(false);del(editing);}} style={{alignItems:'center',marginTop:16}}>
-          <Text style={[TY.body,{color:C.punch}]}>Delete this shift</Text>
-        </TouchableOpacity>}
+        </View>
+        <Field label="Skills (comma separated)"><TInput value={form.skills} onChangeText={v => setForm(f=>({...f,skills:v}))} placeholder="Direction, Lighting, Camera..." /></Field>
+        <Field label="Status"><StatusPicker value={form.status} options={CREW_STATUSES} onChange={v => setForm(f=>({...f,status:v}))} /></Field>
+        <Field label="Bio"><TInput value={form.bio} onChangeText={v => setForm(f=>({...f,bio:v}))} placeholder="Short bio..." multiline /></Field>
+        <Btn label="Save" onPress={save} style={{ marginTop:8 }} />
+        {sheet !== 'add' && <GhostBtn label="Remove from Crew" onPress={() => { closeSheet(); del(sheet); }} color={C.red} style={{ marginTop:10 }} />}
       </Sheet>
-    </SafeAreaView>
+    </View>
   );
-}
+};
 
-function MessagesScreen(){
-  const{data,dispatch}=useStore();
-  const[thread,setThread]=useState(null);
-  const[input,setInput]=useState('');
-  const scrollRef=useRef(null);
-  const AUTO=['Sounds good, I will be there!','Can we push back 30 minutes?','On my way now.','Confirmed. See you on set.','I will send the files over shortly.','Great, noted. Thanks!','Let me check my schedule.','No problem at all.'];
-  function sendMsg(){
-    if(!input.trim())return;
-    const txt=input.trim();setInput('');
-    dispatch(function(s){var conv=s.messages.find(function(m){return m.id===thread;});if(!conv)return;conv.msgs.push({id:'msg'+Date.now(),from:'me',text:txt,time:'Now'});conv.preview=txt;conv.time='Now';});
-    setTimeout(function(){var reply=AUTO[Math.floor(Math.random()*AUTO.length)];dispatch(function(s){var conv=s.messages.find(function(m){return m.id===thread;});if(!conv)return;conv.msgs.push({id:'msg'+Date.now()+'r',from:'them',text:reply,time:'Now'});conv.preview=reply;});},1100+Math.random()*800);
-  }
-  function newConvo(){
-    Alert.alert('New Conversation','Start:',[{text:'Cancel',style:'cancel'},{text:'New Direct',onPress:function(){var id='m'+Date.now();dispatch(function(s){s.messages.unshift({id,name:'New Contact',initials:'NC',color:C.accent,preview:'',time:'Now',unread:0,msgs:[]});});setThread(id);}}]);
-  }
-  if(thread){
-    var conv=data.messages.find(function(m){return m.id===thread;});
-    if(!conv){setThread(null);return null;}
-    dispatch(function(s){var c=s.messages.find(function(m){return m.id===thread;});if(c)c.unread=0;});
-    return(
-      <SafeAreaView style={{flex:1,backgroundColor:C.bg}}>
-        <BackHeader title={conv.name} onBack={function(){setThread(null);}} right={<Avatar initials={conv.initials} color={conv.color} size={36}/>}/>
-        <KeyboardAvoidingView style={{flex:1}} behavior={isIOS?'padding':undefined}>
-          <ScrollView ref={scrollRef} contentContainerStyle={{padding:16,paddingBottom:16}} onContentSizeChange={function(){if(scrollRef.current)scrollRef.current.scrollToEnd({animated:true});}}>
-            {conv.msgs.length===0&&(
-              <View style={{alignItems:'center',paddingVertical:48}}>
-                <Avatar initials={conv.initials} color={conv.color} size={72}/>
-                <Text style={[TY.h2,{color:C.ink,marginTop:18}]}>{conv.name}</Text>
-                <Text style={[TY.body,{color:C.inkSub,marginTop:6}]}>Start the conversation</Text>
+
+// ─── SCHEDULE SCREEN ─────────────────────────────────────────────────────────
+const SHIFT_STATUSES = [
+  { value:'confirmed', label:'Confirmed', color:C.green },
+  { value:'tentative', label:'Tentative', color:C.gold },
+  { value:'cancelled', label:'Cancelled', color:C.red },
+];
+const SHIFT_FILTER_OPTIONS = [
+  { value:'all',       label:'All',       color:C.sub },
+  { value:'upcoming',  label:'Upcoming',  color:C.teal },
+  { value:'confirmed', label:'Confirmed', color:C.green },
+  { value:'tentative', label:'Tentative', color:C.gold },
+];
+const emptyShift = () => ({ projectId:'', title:'', date:'', callTime:'', wrapTime:'', location:'', status:'confirmed', notes:'', crew:[] });
+
+const ScheduleScreen = ({ store }) => {
+  const { shifts, projects, crew, addShift, updateShift, deleteShift } = store;
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState('all');
+  const [sheet, setSheet]   = useState(null);
+  const [form, setForm]     = useState(emptyShift());
+
+  const sorted = [...shifts].sort((a,b) => a.date.localeCompare(b.date));
+  const visible = sorted.filter(s => {
+    if (filter === 'upcoming' && s.date < today()) return false;
+    if (filter === 'confirmed' && s.status !== 'confirmed') return false;
+    if (filter === 'tentative' && s.status !== 'tentative') return false;
+    const q = search.toLowerCase();
+    if (!q) return true;
+    return s.title.toLowerCase().includes(q) || s.location.toLowerCase().includes(q);
+  });
+
+  const openAdd  = () => { setForm(emptyShift()); setSheet('add'); };
+  const openEdit = (s) => { setForm({...s}); setSheet(s); };
+  const closeSheet = () => setSheet(null);
+
+  const save = () => {
+    if (!form.title.trim()) { Alert.alert('Required', 'Title is required'); return; }
+    if (sheet === 'add') addShift(form);
+    else updateShift({ ...sheet, ...form });
+    closeSheet();
+  };
+  const del = (s) => {
+    Alert.alert('Delete Shift', 'Remove this shift?', [
+      { text:'Cancel', style:'cancel' },
+      { text:'Delete', style:'destructive', onPress: () => deleteShift(s.id) },
+    ]);
+  };
+  const statusColor = (s) => ({ confirmed:C.green, tentative:C.gold, cancelled:C.red }[s] || C.sub);
+
+  return (
+    <View style={{ flex:1, backgroundColor:C.bg }}>
+      <View style={{ paddingTop:56, paddingHorizontal:20, paddingBottom:12 }}>
+        <View style={{ flexDirection:'row', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
+          <Text style={{ color:C.text, fontSize:26, fontWeight:'900' }}>Schedule</Text>
+          <TouchableOpacity onPress={openAdd} style={{ backgroundColor:C.blue, borderRadius:22, paddingHorizontal:16, paddingVertical:8 }}>
+            <Text style={{ color:C.text, fontWeight:'800', fontSize:13 }}>+ Shift</Text>
+          </TouchableOpacity>
+        </View>
+        <SearchBar value={search} onChange={setSearch} placeholder="Search shifts..." />
+        <StatusPicker value={filter} options={SHIFT_FILTER_OPTIONS} onChange={setFilter} style={{ marginBottom:4 }} />
+      </View>
+
+      <FlatList data={visible} keyExtractor={i => i.id}
+        contentContainerStyle={{ paddingHorizontal:20, paddingBottom:120 }}
+        ListEmptyComponent={<Empty icon="[S]" title="No shifts" sub="Schedule your first shoot day or meeting." action={openAdd} actionLabel="Add Shift" />}
+        renderItem={({ item:s }) => {
+          const proj = projects.find(p => p.id === s.projectId);
+          const sc = statusColor(s.status);
+          const isPast = s.date < today();
+          return (
+            <PressCard onPress={() => openEdit(s)} style={{ backgroundColor: isPast ? C.surface : C.card, marginBottom:10, opacity: isPast ? 0.7 : 1 }}>
+              <View style={{ padding:16 }}>
+                <View style={{ flexDirection:'row', alignItems:'flex-start', justifyContent:'space-between' }}>
+                  <View style={{ flex:1 }}>
+                    <Text style={{ color:C.text, fontSize:15, fontWeight:'800', marginBottom:4 }}>{s.title}</Text>
+                    <Text style={{ color: proj ? proj.accent : C.gold, fontSize:12, fontWeight:'700' }}>
+                      {proj ? proj.name : 'No project'}
+                    </Text>
+                    <Text style={{ color:C.sub, fontSize:12, marginTop:4 }}>{fmtDate(s.date)}</Text>
+                    <Text style={{ color:C.sub, fontSize:12 }}>
+                      {s.callTime ? 'Call ' + s.callTime : ''}{s.wrapTime ? '  Wrap ' + s.wrapTime : ''}
+                    </Text>
+                    {s.location ? <Text style={{ color:C.sub, fontSize:12, marginTop:2 }}>{s.location}</Text> : null}
+                  </View>
+                  <Badge label={s.status} color={sc} />
+                </View>
+                {s.crew.length > 0 && (
+                  <View style={{ marginTop:10 }}>
+                    <AvatarStack ids={s.crew} crew={crew} limit={6} />
+                  </View>
+                )}
+                {s.notes ? <Text style={{ color:C.sub, fontSize:12, marginTop:8, fontStyle:'italic' }}>{s.notes}</Text> : null}
+              </View>
+              <Divider />
+              <View style={{ flexDirection:'row' }}>
+                <TouchableOpacity onPress={() => openEdit(s)} style={{ flex:1, paddingVertical:11, alignItems:'center' }}>
+                  <Text style={{ color:C.gold, fontSize:12, fontWeight:'700' }}>Edit</Text>
+                </TouchableOpacity>
+                <View style={{ width:1, backgroundColor:C.border }} />
+                <TouchableOpacity onPress={() => del(s)} style={{ flex:1, paddingVertical:11, alignItems:'center' }}>
+                  <Text style={{ color:C.red, fontSize:12, fontWeight:'700' }}>Delete</Text>
+                </TouchableOpacity>
+              </View>
+            </PressCard>
+          );
+        }}
+      />
+
+      <Sheet visible={!!sheet} onClose={closeSheet} title={sheet === 'add' ? 'New Shift' : 'Edit Shift'}>
+        <Field label="Title"><TInput value={form.title} onChangeText={v => setForm(f=>({...f,title:v}))} placeholder="e.g. Shoot Day 12 - Ext. Warehouse" /></Field>
+        <Field label="Project">
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {projects.map(p => (
+              <TouchableOpacity key={p.id} onPress={() => setForm(f=>({...f,projectId:p.id}))}
+                style={{ marginRight:8, paddingHorizontal:12, paddingVertical:6, borderRadius:20,
+                  backgroundColor: form.projectId===p.id ? p.accent : C.muted,
+                  borderWidth:1, borderColor: form.projectId===p.id ? p.accent : 'transparent' }}>
+                <Text style={{ color: form.projectId===p.id ? C.bg : C.sub, fontSize:12, fontWeight:'700' }}>{p.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </Field>
+        <Field label="Date"><TInput value={form.date} onChangeText={v => setForm(f=>({...f,date:v}))} placeholder="YYYY-MM-DD" /></Field>
+        <View style={{ flexDirection:'row', marginBottom:16 }}>
+          <View style={{ flex:1, marginRight:8 }}>
+            <Field label="Call Time"><TInput value={form.callTime} onChangeText={v => setForm(f=>({...f,callTime:v}))} placeholder="06:00" /></Field>
+          </View>
+          <View style={{ flex:1 }}>
+            <Field label="Wrap Time"><TInput value={form.wrapTime} onChangeText={v => setForm(f=>({...f,wrapTime:v}))} placeholder="20:00" /></Field>
+          </View>
+        </View>
+        <Field label="Location"><TInput value={form.location} onChangeText={v => setForm(f=>({...f,location:v}))} placeholder="e.g. Shepperton Studios" /></Field>
+        <Field label="Status"><StatusPicker value={form.status} options={SHIFT_STATUSES} onChange={v => setForm(f=>({...f,status:v}))} /></Field>
+        <Field label="Assign Crew">
+          <View style={{ flexDirection:'row', flexWrap:'wrap' }}>
+            {crew.map(c => {
+              const sel = form.crew.includes(c.id);
+              return (
+                <TouchableOpacity key={c.id} onPress={() => {
+                  setForm(f => ({ ...f, crew: sel ? f.crew.filter(x=>x!==c.id) : [...f.crew, c.id] }));
+                }} style={{ flexDirection:'row', alignItems:'center', marginRight:8, marginBottom:8,
+                  paddingHorizontal:10, paddingVertical:6, borderRadius:20,
+                  backgroundColor: sel ? C.tealBg : C.muted,
+                  borderWidth:1, borderColor: sel ? C.teal : 'transparent' }}>
+                  <Avatar initials={c.avatar || c.name.slice(0,2)} color={sel ? C.teal : C.sub} size={18} />
+                  <Text style={{ color: sel ? C.teal : C.sub, fontSize:12, fontWeight:'600', marginLeft:6 }}>{c.name.split(' ')[0]}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </Field>
+        <Field label="Notes"><TInput value={form.notes} onChangeText={v => setForm(f=>({...f,notes:v}))} placeholder="Important notes for the crew..." multiline /></Field>
+        <Btn label="Save Shift" onPress={save} style={{ marginTop:8 }} />
+        {sheet !== 'add' && <GhostBtn label="Delete Shift" onPress={() => { closeSheet(); del(sheet); }} color={C.red} style={{ marginTop:10 }} />}
+      </Sheet>
+    </View>
+  );
+};
+
+
+// ─── MESSAGES SCREEN ─────────────────────────────────────────────────────────
+const MessagesScreen = ({ store }) => {
+  const { messages, projects, crew, addMessage, markRead, deleteMsg } = store;
+  const [search, setSearch] = useState('');
+  const [filterProj, setFilterProj] = useState('all');
+  const [compose, setCompose] = useState(false);
+  const [msgText, setMsgText] = useState('');
+  const [msgProj, setMsgProj] = useState('');
+  const [msgFrom, setMsgFrom] = useState('');
+
+  const visible = messages.filter(m => {
+    if (filterProj !== 'all' && m.projectId !== filterProj) return false;
+    if (!search) return true;
+    const q = search.toLowerCase();
+    return m.text.toLowerCase().includes(q) || m.from.toLowerCase().includes(q);
+  }).sort((a,b) => b.ts.localeCompare(a.ts));
+
+  const unread = messages.filter(m => !m.read).length;
+
+  const send = () => {
+    if (!msgText.trim()) { Alert.alert('Required', 'Message text is required'); return; }
+    const sender = crew.find(c => c.id === msgFrom);
+    addMessage({
+      projectId: msgProj,
+      from: sender ? sender.name : 'You',
+      fromId: msgFrom,
+      avatar: sender ? sender.avatar : 'ME',
+      text: msgText.trim(),
+    });
+    setMsgText(''); setMsgProj(''); setMsgFrom('');
+    setCompose(false);
+  };
+
+  const delMsg = (m) => {
+    Alert.alert('Delete Message', 'Remove this message?', [
+      { text:'Cancel', style:'cancel' },
+      { text:'Delete', style:'destructive', onPress: () => deleteMsg(m.id) },
+    ]);
+  };
+
+  const fmtTs = (ts) => {
+    const d = new Date(ts);
+    const now = new Date();
+    const diff = Math.floor((now - d) / 60000);
+    if (diff < 1) return 'Just now';
+    if (diff < 60) return diff + 'm ago';
+    if (diff < 1440) return Math.floor(diff/60) + 'h ago';
+    return fmtDate(ts.split('T')[0]);
+  };
+
+  const projFilterOptions = [
+    { value:'all', label:'All', color:C.sub },
+    ...projects.map(p => ({ value:p.id, label:p.name, color:p.accent })),
+  ];
+
+  return (
+    <View style={{ flex:1, backgroundColor:C.bg }}>
+      <View style={{ paddingTop:56, paddingHorizontal:20, paddingBottom:12 }}>
+        <View style={{ flexDirection:'row', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
+          <View style={{ flexDirection:'row', alignItems:'center' }}>
+            <Text style={{ color:C.text, fontSize:26, fontWeight:'900' }}>Messages</Text>
+            {unread > 0 && (
+              <View style={{ marginLeft:10, backgroundColor:C.red, borderRadius:12,
+                paddingHorizontal:8, paddingVertical:2 }}>
+                <Text style={{ color:C.text, fontSize:12, fontWeight:'800' }}>{unread}</Text>
               </View>
             )}
-            {conv.msgs.map(function(m){
-              var isMe=m.from==='me';
-              return(
-                <View key={m.id} style={{flexDirection:'row',justifyContent:isMe?'flex-end':'flex-start',marginBottom:10}}>
-                  {!isMe&&<Avatar initials={conv.initials} color={conv.color} size={26} style={{marginRight:8,marginTop:4}}/>}
-                  <View style={{maxWidth:'72%'}}>
-                    <View style={{backgroundColor:isMe?C.primary:C.bgElevated,borderRadius:20,borderBottomRightRadius:isMe?4:20,borderBottomLeftRadius:isMe?20:4,paddingHorizontal:16,paddingVertical:11,borderWidth:isMe?0:1,borderColor:C.border}}>
-                      <Text style={{color:isMe?C.inkDark:C.ink,...TY.body}}>{m.text}</Text>
-                    </View>
-                    <Text style={[TY.micro,{color:C.inkFaint,marginTop:4,textAlign:isMe?'right':'left',marginHorizontal:4}]}>{m.time}</Text>
-                  </View>
-                </View>
-              );
-            })}
-          </ScrollView>
-          <View style={{flexDirection:'row',alignItems:'flex-end',paddingHorizontal:12,paddingVertical:10,borderTopWidth:1,borderTopColor:C.border,backgroundColor:C.bgCard}}>
-            <TextInput value={input} onChangeText={setInput} placeholder="Message..." placeholderTextColor={C.inkFaint} multiline maxLength={500} style={{flex:1,backgroundColor:C.bgHighlight,borderRadius:22,paddingHorizontal:18,paddingVertical:11,color:C.ink,fontSize:15,lineHeight:21,maxHeight:100,marginRight:10,borderWidth:1,borderColor:C.border}}/>
-            <TouchableOpacity onPress={sendMsg} style={{backgroundColor:input.trim()?C.primary:C.bgHighlight,width:44,height:44,borderRadius:22,alignItems:'center',justifyContent:'center',shadowColor:C.primary,shadowOffset:{width:0,height:3},shadowOpacity:input.trim()?0.4:0,shadowRadius:8}}>
-              <Text style={{color:input.trim()?C.inkDark:C.inkFaint,fontSize:20,fontWeight:'700',lineHeight:24}}>^</Text>
-            </TouchableOpacity>
           </View>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    );
-  }
-  const totalUnread=data.messages.reduce(function(a,m){return a+(m.unread||0);},0);
-  return(
-    <SafeAreaView style={{flex:1,backgroundColor:C.bg}}>
-      <StatusBar barStyle="light-content" backgroundColor={C.bg}/>
-      <Header title="Messages" subtitle="INBOX" right={<TouchableOpacity onPress={newConvo} style={{backgroundColor:C.primary,borderRadius:100,paddingHorizontal:18,paddingVertical:9,shadowColor:C.primary,shadowOffset:{width:0,height:4},shadowOpacity:0.4,shadowRadius:10,elevation:6}}>
-        <Text style={[TY.micro,{color:C.inkDark,fontWeight:'900'}]}>+ NEW</Text>
-      </TouchableOpacity>}/>
-      {totalUnread>0&&<View style={{marginHorizontal:20,marginBottom:14,backgroundColor:C.punchT,borderRadius:14,padding:12,flexDirection:'row',alignItems:'center',borderWidth:1,borderColor:C.punch+'30'}}>
-        <View style={{width:22,height:22,borderRadius:11,backgroundColor:C.punch,alignItems:'center',justifyContent:'center',marginRight:10}}>
-          <Text style={{color:C.ink,fontSize:11,fontWeight:'900'}}>{totalUnread}</Text>
+          <TouchableOpacity onPress={() => setCompose(true)} style={{ backgroundColor:C.teal, borderRadius:22, paddingHorizontal:16, paddingVertical:8 }}>
+            <Text style={{ color:C.bg, fontWeight:'800', fontSize:13 }}>+ New</Text>
+          </TouchableOpacity>
         </View>
-        <Text style={[TY.body,{color:C.punch,fontWeight:'600'}]}>{totalUnread} unread message{totalUnread!==1?'s':''}</Text>
-      </View>}
-      <FlatList data={data.messages} keyExtractor={function(i){return i.id;}} contentContainerStyle={{paddingHorizontal:20,paddingBottom:100}} showsVerticalScrollIndicator={false}
-        ListEmptyComponent={<EmptyState title="No messages yet" body="Start a conversation with your crew." onAction={newConvo} actionLabel="Start Messaging"/>}
-        renderItem={function({item:m}){return(
-          <TouchableOpacity onPress={function(){setThread(m.id);}} activeOpacity={0.82} style={{flexDirection:'row',alignItems:'center',paddingVertical:14,borderBottomWidth:1,borderBottomColor:C.border}}>
-            <View style={{position:'relative',marginRight:14}}>
-              <Avatar initials={m.initials} color={m.color} size={52}/>
-              {m.unread>0&&<View style={{position:'absolute',top:-3,right:-3,backgroundColor:C.punch,width:20,height:20,borderRadius:10,alignItems:'center',justifyContent:'center',borderWidth:2.5,borderColor:C.bg}}>
-                <Text style={{color:C.ink,fontSize:10,fontWeight:'900'}}>{m.unread}</Text>
-              </View>}
-            </View>
-            <View style={{flex:1}}>
-              <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'baseline',marginBottom:4}}>
-                <Text style={[TY.h4,{color:C.ink}]}>{m.name}</Text>
-                <Text style={[TY.micro,{color:C.inkSub}]}>{m.time}</Text>
-              </View>
-              <Text style={[TY.bodyMd,{color:m.unread>0?C.inkSub:C.inkFaint,fontWeight:m.unread>0?'600':'400'}]} numberOfLines={1}>{m.preview}</Text>
-            </View>
-          </TouchableOpacity>
-        );}}/>
-    </SafeAreaView>
-  );
-}
-
-function InvoicesScreen(){
-  const{data,dispatch}=useStore();
-  const[showForm,setShowForm]=useState(false);
-  const[editing,setEditing]=useState(null);
-  const[detail,setDetail]=useState(null);
-  const[filter,setFilter]=useState('all');
-  const blank={number:'',client:'',project:'',amount:'',status:'pending',dueDate:'',issueDate:'',desc:''};
-  const[form,setForm]=useState(blank);
-  const total=data.invoices.reduce(function(a,i){return a+i.amount;},0);
-  const paid=data.invoices.filter(function(i){return i.status==='paid';}).reduce(function(a,i){return a+i.amount;},0);
-  const pending=data.invoices.filter(function(i){return i.status==='pending';}).reduce(function(a,i){return a+i.amount;},0);
-  const overdue=data.invoices.filter(function(i){return i.status==='overdue';}).reduce(function(a,i){return a+i.amount;},0);
-  const collRate=total>0?Math.round((paid/total)*100):0;
-  const filtered=data.invoices.filter(function(i){return filter==='all'||i.status===filter;});
-  function openNew(){var num='INV-2026-'+String(data.invoices.length+1).padStart(3,'0');setForm({...blank,number:num,issueDate:new Date().toISOString().slice(0,10)});setEditing(null);setShowForm(true);}
-  function openEdit(inv){setForm({...inv,amount:String(inv.amount)});setEditing(inv.id);setShowForm(true);}
-  function save(){
-    if(!form.client.trim()){Alert.alert('Required','Client name is required');return;}
-    var inv={...form,amount:parseFloat(form.amount)||0};
-    if(editing){dispatch(function(s){var i=s.invoices.findIndex(function(x){return x.id===editing;});if(i>-1)s.invoices[i]={...s.invoices[i],...inv};});}
-    else{dispatch(function(s){s.invoices.push({...inv,id:'i'+Date.now()});});}
-    setShowForm(false);
-  }
-  function del(id){Alert.alert('Delete Invoice','Permanently delete?',[{text:'Cancel',style:'cancel'},{text:'Delete',style:'destructive',onPress:function(){dispatch(function(s){s.invoices=s.invoices.filter(function(i){return i.id!==id;});});setDetail(null);}}]);}
-  function markPaid(id){dispatch(function(s){var inv=s.invoices.find(function(i){return i.id===id;});if(inv)inv.status='paid';});}
-  function remind(inv){Alert.alert('Reminder Sent','Payment reminder sent to '+inv.client+'.');}
-  if(detail){
-    var inv=data.invoices.find(function(i){return i.id===detail;});
-    if(!inv){setDetail(null);return null;}
-    const sc=statusColor(inv.status);
-    return(
-      <SafeAreaView style={{flex:1,backgroundColor:C.bg}}>
-        <BackHeader title={inv.number} onBack={function(){setDetail(null);}} right={<View style={{flexDirection:'row'}}>
-          <TouchableOpacity onPress={function(){setDetail(null);openEdit(inv);}} style={{backgroundColor:C.bgHighlight,borderRadius:100,paddingHorizontal:14,paddingVertical:7,marginRight:8,borderWidth:1,borderColor:C.border}}>
-            <Text style={[TY.micro,{color:C.primary,fontWeight:'700'}]}>EDIT</Text>
-          </TouchableOpacity>
-          <TouchableOpacity onPress={function(){del(inv.id);}} style={{backgroundColor:C.punchT,borderRadius:100,paddingHorizontal:14,paddingVertical:7,borderWidth:1,borderColor:C.punch+'40'}}>
-            <Text style={[TY.micro,{color:C.punch,fontWeight:'700'}]}>DELETE</Text>
-          </TouchableOpacity>
-        </View>}/>
-        <ScrollView contentContainerStyle={{padding:20,paddingBottom:60}} showsVerticalScrollIndicator={false}>
-          <PressCard style={{padding:24,marginBottom:16,overflow:'hidden'}}>
-            <View style={{position:'absolute',top:-30,right:-30,width:150,height:150,borderRadius:75,backgroundColor:sc,opacity:0.06}}/>
-            <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'flex-start',marginBottom:16}}>
-              <View>
-                <Text style={[TY.label,{color:C.inkSub,marginBottom:6}]}>Invoice Amount</Text>
-                <Text style={[TY.hero,{color:sc}]}>{fmtGBP(inv.amount)}</Text>
-              </View>
-              <Badge label={statusLabel(inv.status)} color={sc}/>
-            </View>
-            <Text style={[TY.h2,{color:C.ink}]}>{inv.client}</Text>
-            <Text style={[TY.body,{color:C.inkSub,marginTop:4}]}>{inv.project}</Text>
-            {inv.desc?<Text style={[TY.bodyMd,{color:C.inkFaint,marginTop:10,fontStyle:'italic'}]}>{inv.desc}</Text>:null}
-          </PressCard>
-          <PressCard style={{padding:20,marginBottom:16}}>
-            {[{label:'Invoice No.',value:inv.number},{label:'Issue Date',value:inv.issueDate},{label:'Due Date',value:inv.dueDate}].map(function(row){return(
-              <View key={row.label} style={{flexDirection:'row',justifyContent:'space-between',paddingVertical:12,borderBottomWidth:1,borderBottomColor:C.border}}>
-                <Text style={[TY.body,{color:C.inkSub}]}>{row.label}</Text>
-                <Text style={[TY.body,{color:C.ink,fontWeight:'600'}]}>{row.value}</Text>
-              </View>
-            );})}
-          </PressCard>
-          <View style={{flexDirection:'row'}}>
-            {inv.status!=='paid'&&<TouchableOpacity onPress={function(){markPaid(inv.id);}} style={{flex:1,marginRight:8}}><PrimaryBtn label="Mark as Paid" color={C.success}/></TouchableOpacity>}
-            <TouchableOpacity onPress={function(){remind(inv);}} style={{flex:1}}><PrimaryBtn label="Send Reminder" color={C.accent}/></TouchableOpacity>
-          </View>
-        </ScrollView>
-      </SafeAreaView>
-    );
-  }
-  return(
-    <SafeAreaView style={{flex:1,backgroundColor:C.bg}}>
-      <StatusBar barStyle="light-content" backgroundColor={C.bg}/>
-      <Header title="Invoices" subtitle="BILLING" right={<TouchableOpacity onPress={openNew} style={{backgroundColor:C.primary,borderRadius:100,paddingHorizontal:18,paddingVertical:9,shadowColor:C.primary,shadowOffset:{width:0,height:4},shadowOpacity:0.4,shadowRadius:10,elevation:6}}>
-        <Text style={[TY.micro,{color:C.inkDark,fontWeight:'900'}]}>+ INVOICE</Text>
-      </TouchableOpacity>}/>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{paddingHorizontal:16,paddingBottom:12}}>
-        {[{label:'TOTAL RAISED',value:fmtGBP(total),color:C.ink,bg:C.bgHighlight},{label:'COLLECTED',value:fmtGBP(paid),color:C.success,bg:C.successT},{label:'OUTSTANDING',value:fmtGBP(pending),color:C.primary,bg:C.primaryT},{label:'OVERDUE',value:fmtGBP(overdue),color:C.punch,bg:C.punchT}].map(function(k){return(
-          <View key={k.label} style={{backgroundColor:k.bg,borderRadius:16,padding:16,marginRight:10,minWidth:130,borderWidth:1,borderColor:k.color==='#F0F4FF'?C.border:k.color+'30'}}>
-            <Text style={[TY.h2,{color:k.color}]}>{k.value}</Text>
-            <Text style={[TY.label,{color:k.color,opacity:0.7,fontSize:9,marginTop:4}]}>{k.label}</Text>
-          </View>
-        );})}
-      </ScrollView>
-      <View style={{paddingHorizontal:20,marginBottom:16}}>
-        <View style={{flexDirection:'row',justifyContent:'space-between',marginBottom:7}}>
-          <Text style={[TY.caption,{color:C.inkSub}]}>Collection rate</Text>
-          <Text style={[TY.mono,{color:C.success,fontSize:12}]}>{collRate}%</Text>
-        </View>
-        <ProgressBar pct={collRate} color={C.success} height={6}/>
+        <SearchBar value={search} onChange={setSearch} placeholder="Search messages..." />
+        <StatusPicker value={filterProj} options={projFilterOptions} onChange={setFilterProj} style={{ marginBottom:4 }} />
       </View>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{paddingHorizontal:20,paddingBottom:14}}>
-        {['all','pending','paid','overdue'].map(function(f){return(
-          <TouchableOpacity key={f} onPress={function(){setFilter(f);}} style={{backgroundColor:filter===f?C.primary:C.bgHighlight,borderRadius:100,paddingHorizontal:16,paddingVertical:9,marginRight:8,borderWidth:1.5,borderColor:filter===f?C.primary:C.border}}>
-            <Text style={[TY.caption,{color:filter===f?C.inkDark:C.inkSub,fontWeight:'700'}]}>{f.charAt(0).toUpperCase()+f.slice(1)}</Text>
-          </TouchableOpacity>
-        );})}
-      </ScrollView>
-      <FlatList data={filtered} keyExtractor={function(i){return i.id;}} contentContainerStyle={{paddingHorizontal:20,paddingBottom:100}} showsVerticalScrollIndicator={false}
-        ListEmptyComponent={<EmptyState title="No invoices" body="Create your first invoice and start tracking payments." onAction={openNew} actionLabel="Create Invoice"/>}
-        renderItem={function({item:inv}){const sc=statusColor(inv.status);return(
-          <PressCard style={{marginBottom:12}} onPress={function(){setDetail(inv.id);}} glowColor={sc}>
-            <View style={{padding:18}}>
-              <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'flex-start',marginBottom:12}}>
-                <View style={{flex:1,marginRight:10}}>
-                  <Text style={[TY.micro,{color:C.inkSub,marginBottom:4}]}>{inv.number}</Text>
-                  <Text style={[TY.h3,{color:C.ink}]}>{inv.client}</Text>
-                  <Text style={[TY.caption,{color:C.inkSub,marginTop:2}]}>{inv.project}</Text>
-                </View>
-                <Badge label={statusLabel(inv.status)} color={sc}/>
-              </View>
-              <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'center'}}>
-                <Text style={[TY.h2,{color:sc}]}>{fmtGBP(inv.amount)}</Text>
-                <Text style={[TY.caption,{color:C.inkSub}]}>Due {inv.dueDate}</Text>
-              </View>
-              {inv.status==='overdue'&&<View style={{marginTop:12,backgroundColor:C.punchT,borderRadius:10,padding:10,borderWidth:1,borderColor:C.punch+'30'}}>
-                <Text style={[TY.caption,{color:C.punch,fontWeight:'700'}]}>Payment overdue · Send a reminder</Text>
-              </View>}
-            </View>
-          </PressCard>
-        );}}/>
-      <Sheet visible={showForm} onClose={function(){setShowForm(false);}} title={editing?'Edit Invoice':'New Invoice'}>
-        <Field label="Invoice Number" value={form.number} onChangeText={function(v){setForm(function(f){return{...f,number:v};});}} placeholder="INV-2026-001"/>
-        <Field label="Client" value={form.client} onChangeText={function(v){setForm(function(f){return{...f,client:v};});}} placeholder="Client name"/>
-        <Field label="Project" value={form.project} onChangeText={function(v){setForm(function(f){return{...f,project:v};});}} placeholder="Project name"/>
-        <Field label="Description" value={form.desc} onChangeText={function(v){setForm(function(f){return{...f,desc:v};});}} placeholder="e.g. DoP Weeks 1-4"/>
-        <Field label="Amount (GBP)" value={form.amount} onChangeText={function(v){setForm(function(f){return{...f,amount:v};});}} placeholder="0" keyboardType="numeric"/>
-        <StatusPicker options={['pending','paid','overdue']} value={form.status} onChange={function(v){setForm(function(f){return{...f,status:v};});}}/>
-        <Field label="Issue Date" value={form.issueDate} onChangeText={function(v){setForm(function(f){return{...f,issueDate:v};});}} placeholder="YYYY-MM-DD"/>
-        <Field label="Due Date" value={form.dueDate} onChangeText={function(v){setForm(function(f){return{...f,dueDate:v};});}} placeholder="YYYY-MM-DD"/>
-        <PrimaryBtn label={editing?'Save Changes':'Create Invoice'} onPress={save}/>
-        {editing&&<TouchableOpacity onPress={function(){setShowForm(false);del(editing);}} style={{alignItems:'center',marginTop:16}}>
-          <Text style={[TY.body,{color:C.punch}]}>Delete this invoice</Text>
-        </TouchableOpacity>}
-      </Sheet>
-    </SafeAreaView>
-  );
-}
 
-function ReportsScreen(){
-  const{data}=useStore();
-  const totalBudget=data.projects.reduce(function(a,p){return a+p.budget;},0);
-  const totalSpent=data.projects.reduce(function(a,p){return a+p.spent;},0);
-  const invoiceRevenue=data.invoices.filter(function(i){return i.status==='paid';}).reduce(function(a,i){return a+i.amount;},0);
-  const crewActive=data.crew.filter(function(c){return c.status==='active';}).length;
-  const maxBudget=Math.max.apply(null,data.projects.map(function(p){return p.budget;}))||1;
-  const deptCount=data.crew.reduce(function(acc,c){acc[c.dept]=(acc[c.dept]||0)+1;return acc;},{});
-  const deptEntries=Object.entries(deptCount).sort(function(a,b){return b[1]-a[1];});
-  const PALETTE=[C.primary,C.accent,C.purple,C.success,C.punch,C.blue];
-  const kpis=[{label:'TOTAL BUDGET',value:fmtGBP(totalBudget),color:C.ink,g:'B'},{label:'TOTAL SPENT',value:fmtGBP(totalSpent),color:totalSpent/totalBudget>0.8?C.punch:C.accent,g:'S'},{label:'REVENUE IN',value:fmtGBP(invoiceRevenue),color:C.success,g:'R'},{label:'ACTIVE CREW',value:String(crewActive),color:C.purple,g:'C'}];
-  return(
-    <SafeAreaView style={{flex:1,backgroundColor:C.bg}}>
-      <StatusBar barStyle="light-content" backgroundColor={C.bg}/>
-      <ScrollView contentContainerStyle={{paddingBottom:120}} showsVerticalScrollIndicator={false}>
-        <Header title="Reports" subtitle="ANALYTICS"/>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{paddingHorizontal:16,paddingBottom:20}}>
-          {kpis.map(function(k){return(
-            <View key={k.label} style={{backgroundColor:C.bgCard,borderRadius:18,padding:18,marginRight:10,minWidth:140,borderWidth:1,borderColor:C.border}}>
-              <View style={{width:36,height:36,borderRadius:10,backgroundColor:k.color+'18',alignItems:'center',justifyContent:'center',marginBottom:12}}>
-                <Text style={{color:k.color,fontSize:16,fontWeight:'900'}}>{k.g}</Text>
-              </View>
-              <Text style={[TY.h2,{color:k.color}]}>{k.value}</Text>
-              <Text style={[TY.label,{color:C.inkSub,fontSize:9,marginTop:4}]}>{k.label}</Text>
-            </View>
-          );})}
-        </ScrollView>
-        <View style={{paddingHorizontal:20,marginBottom:24}}>
-          <SectionLabel text="Budget by Project"/>
-          <PressCard style={{padding:20}}>
-            {data.projects.map(function(p,i){
-              var pct=p.budget>0?Math.round((p.spent/p.budget)*100):0;
-              var barW=(p.budget/maxBudget)*100;
-              var color=p.color||PALETTE[i%PALETTE.length];
-              var bc=pct>85?C.punch:pct>65?C.primary:C.success;
-              return(
-                <View key={p.id} style={{marginBottom:18}}>
-                  <View style={{flexDirection:'row',justifyContent:'space-between',marginBottom:7,alignItems:'baseline'}}>
-                    <View style={{flex:1,marginRight:8}}>
-                      <Text style={[TY.h4,{color:C.ink}]} numberOfLines={1}>{p.title}</Text>
-                      <Text style={[TY.caption,{color:C.inkSub,marginTop:2}]}>{p.client}</Text>
+      <FlatList data={visible} keyExtractor={i => i.id}
+        contentContainerStyle={{ paddingHorizontal:20, paddingBottom:120 }}
+        ListEmptyComponent={<Empty icon="[M]" title="No messages" sub="Send the first message to your crew." action={() => setCompose(true)} actionLabel="Send Message" />}
+        renderItem={({ item:m }) => {
+          const proj = projects.find(p => p.id === m.projectId);
+          return (
+            <TouchableOpacity onPress={() => markRead(m.id)}
+              style={{ backgroundColor: m.read ? C.card : C.surface, borderRadius:14,
+                borderWidth:1, borderColor: m.read ? C.border : C.gold + '44',
+                padding:14, marginBottom:8 }}>
+              <View style={{ flexDirection:'row', alignItems:'flex-start' }}>
+                <View style={{ position:'relative' }}>
+                  <Avatar initials={m.avatar} color={proj ? proj.accent : C.gold} size={40} />
+                  {!m.read && (
+                    <View style={{ position:'absolute', top:-2, right:-2, width:10, height:10,
+                      borderRadius:5, backgroundColor:C.red, borderWidth:2, borderColor:C.bg }} />
+                  )}
+                </View>
+                <View style={{ flex:1, marginLeft:12 }}>
+                  <View style={{ flexDirection:'row', alignItems:'center', justifyContent:'space-between', marginBottom:3 }}>
+                    <Text style={{ color:C.text, fontSize:14, fontWeight: m.read ? '600' : '800' }}>{m.from}</Text>
+                    <Text style={{ color:C.sub, fontSize:11 }}>{fmtTs(m.ts)}</Text>
+                  </View>
+                  {proj && (
+                    <View style={{ flexDirection:'row', alignItems:'center', marginBottom:4 }}>
+                      <View style={{ width:6, height:6, borderRadius:3, backgroundColor:proj.accent, marginRight:5 }} />
+                      <Text style={{ color:proj.accent, fontSize:11, fontWeight:'600' }}>{proj.name}</Text>
                     </View>
-                    <Text style={[TY.mono,{color:color,fontSize:13}]}>{fmtGBP(p.budget)}</Text>
-                  </View>
-                  <View style={{height:10,backgroundColor:C.bgHighlight,borderRadius:5,marginBottom:4}}>
-                    <View style={{height:10,width:barW+'%',backgroundColor:color+'40',borderRadius:5}}/>
-                  </View>
-                  <View style={{height:10,backgroundColor:'transparent',borderRadius:5,marginTop:-10}}>
-                    <View style={{height:10,width:Math.min(100,p.budget>0?(p.spent/p.budget)*100:0)+'%',backgroundColor:bc,borderRadius:5,opacity:0.9}}/>
-                  </View>
-                  <View style={{flexDirection:'row',justifyContent:'space-between',marginTop:5}}>
-                    <Text style={[TY.micro,{color:C.inkSub}]}>Spent {fmtGBP(p.spent)}</Text>
-                    <Text style={[TY.micro,{color:bc}]}>{pct}%</Text>
-                  </View>
+                  )}
+                  <Text style={{ color: m.read ? C.sub : C.text, fontSize:13, lineHeight:18 }} numberOfLines={2}>{m.text}</Text>
                 </View>
-              );
-            })}
-          </PressCard>
-        </View>
-        <View style={{paddingHorizontal:20,marginBottom:24}}>
-          <SectionLabel text="Invoice Breakdown"/>
-          <View style={{flexDirection:'row'}}>
-            {[{label:'Paid',count:data.invoices.filter(function(i){return i.status==='paid';}).length,value:data.invoices.filter(function(i){return i.status==='paid';}).reduce(function(a,i){return a+i.amount;},0),color:C.success},{label:'Pending',count:data.invoices.filter(function(i){return i.status==='pending';}).length,value:data.invoices.filter(function(i){return i.status==='pending';}).reduce(function(a,i){return a+i.amount;},0),color:C.primary},{label:'Overdue',count:data.invoices.filter(function(i){return i.status==='overdue';}).length,value:data.invoices.filter(function(i){return i.status==='overdue';}).reduce(function(a,i){return a+i.amount;},0),color:C.punch}].map(function(item){return(
-              <PressCard key={item.label} style={{flex:1,marginHorizontal:4,padding:16,alignItems:'center'}}>
-                <Text style={[TY.hero,{color:item.color,fontSize:32}]}>{item.count}</Text>
-                <Text style={[TY.label,{color:item.color,fontSize:9,marginTop:4}]}>{item.label}</Text>
-                <Text style={[TY.caption,{color:C.inkSub,marginTop:6}]}>{fmtGBP(item.value)}</Text>
-              </PressCard>
-            );})}
-          </View>
-        </View>
-        <View style={{paddingHorizontal:20,marginBottom:24}}>
-          <SectionLabel text="Team by Department"/>
-          <PressCard style={{padding:20}}>
-            {deptEntries.map(function(entry,i){
-              var dept=entry[0];var count=entry[1];
-              var pct=data.crew.length>0?Math.round((count/data.crew.length)*100):0;
-              var color=PALETTE[i%PALETTE.length];
-              return(
-                <View key={dept} style={{marginBottom:16}}>
-                  <View style={{flexDirection:'row',justifyContent:'space-between',alignItems:'center',marginBottom:7}}>
-                    <View style={{flexDirection:'row',alignItems:'center'}}>
-                      <View style={{width:10,height:10,borderRadius:5,backgroundColor:color,marginRight:10}}/>
-                      <Text style={[TY.h4,{color:C.ink}]}>{dept}</Text>
-                    </View>
-                    <Text style={[TY.mono,{color:color,fontSize:12}]}>{count} · {pct}%</Text>
-                  </View>
-                  <ProgressBar pct={pct} color={color} height={7}/>
-                </View>
-              );
-            })}
-          </PressCard>
-        </View>
-        <View style={{paddingHorizontal:20}}>
-          <SectionLabel text="At a Glance"/>
-          <PressCard style={{padding:20}}>
-            {[{label:'Active Projects',value:data.projects.filter(function(p){return p.status==='active';}).length,color:C.accent},{label:'Completed Projects',value:data.projects.filter(function(p){return p.status==='completed';}).length,color:C.success},{label:'Total Crew',value:data.crew.length,color:C.purple},{label:'Scheduled Shifts',value:data.shifts.length,color:C.primary},{label:'Messages',value:data.messages.length,color:C.blue},{label:'Total Invoices',value:data.invoices.length,color:C.inkSub}].map(function(item,i,arr){return(
-              <View key={item.label} style={{flexDirection:'row',alignItems:'center',paddingVertical:13,borderBottomWidth:i<arr.length-1?1:0,borderBottomColor:C.border}}>
-                <View style={{width:8,height:8,borderRadius:4,backgroundColor:item.color,marginRight:14}}/>
-                <Text style={[TY.body,{color:C.inkSub,flex:1}]}>{item.label}</Text>
-                <Text style={[TY.h3,{color:item.color}]}>{item.value}</Text>
               </View>
-            );})}
-          </PressCard>
-        </View>
-      </ScrollView>
-    </SafeAreaView>
-  );
-}
-
-function MoreScreen(){
-  const[editProfile,setEditProfile]=useState(false);
-  const[profile,setProfile]=useState({name:'Ashtyn',company:'CrewDesk Ltd',email:'ashtyn@crewdesk.io',phone:'+44 7700 900000',role:'Executive Producer'});
-  const[notifOn,setNotifOn]=useState(true);
-  const[budgetOn,setBudgetOn]=useState(true);
-  const[darkOn,setDarkOn]=useState(true);
-  const[biometric,setBiometric]=useState(false);
-  function saveProfile(){setEditProfile(false);Alert.alert('Saved','Your profile has been updated.');}
-  const sections=[{title:'Account',items:[{label:'Edit Profile',sub:'Update your name, role and contact',onPress:function(){setEditProfile(true);}},{label:'Security and Privacy',sub:'Password, biometrics, data',onPress:function(){Alert.alert('Security','Manage your security settings.');}},{label:'Billing and Subscription',sub:'CrewDesk Pro GBP49/month',onPress:function(){Alert.alert('Billing','You are on the Pro plan at GBP49/month.');}},{label:'Manage Plan',sub:'Upgrade, downgrade or cancel',onPress:function(){Alert.alert('Plan','Manage your subscription.');}}]},{title:'Workspace',items:[{label:'Company Settings',sub:'Branding, address, tax info',onPress:function(){Alert.alert('Company','Manage your company profile.');}},{label:'Team and Permissions',sub:'Manage access levels and roles',onPress:function(){Alert.alert('Team','Add team members and set permissions.');}},{label:'Integrations',sub:'Slack, Xero, Google, Dropbox',onPress:function(){Alert.alert('Integrations','Connect with your existing tools.');}},{label:'Export Data',sub:'Download as CSV or PDF',onPress:function(){Alert.alert('Export','Exporting your data...');}}]},{title:'Support',items:[{label:'Help Centre',sub:'Guides, FAQs and tutorials',onPress:function(){Alert.alert('Help','Browse our help centre at help.crewdesk.io');}},{label:'Contact Support',sub:'Get help from the team',onPress:function(){Alert.alert('Support','Email: support@crewdesk.io');}},{label:'Send Feedback',sub:'Help us improve CrewDesk',onPress:function(){Alert.alert('Feedback','Thank you! Your feedback matters.');}},{label:'Rate CrewDesk',sub:'Leave a review on the App Store',onPress:function(){Alert.alert('Rate','Thank you for supporting CrewDesk!');}}]}];
-  return(
-    <SafeAreaView style={{flex:1,backgroundColor:C.bg}}>
-      <StatusBar barStyle="light-content" backgroundColor={C.bg}/>
-      <ScrollView contentContainerStyle={{paddingBottom:120}} showsVerticalScrollIndicator={false}>
-        <Header title="Settings" subtitle="ACCOUNT"/>
-        <View style={{paddingHorizontal:20,marginBottom:24}}>
-          <PressCard style={{padding:22}} onPress={function(){setEditProfile(true);}}>
-            <View style={{flexDirection:'row',alignItems:'center'}}>
-              <View style={{width:68,height:68,borderRadius:34,backgroundColor:C.primary+'22',borderWidth:3,borderColor:C.primary+'60',alignItems:'center',justifyContent:'center',marginRight:18}}>
-                <Text style={{color:C.primary,fontSize:26,fontWeight:'900'}}>{profile.name.split(' ').map(function(n){return n[0];}).join('').toUpperCase()}</Text>
-              </View>
-              <View style={{flex:1}}>
-                <Text style={[TY.h2,{color:C.ink}]}>{profile.name}</Text>
-                <Text style={[TY.body,{color:C.inkSub,marginTop:2}]}>{profile.role}</Text>
-                <Text style={[TY.caption,{color:C.inkSub,marginTop:2}]}>{profile.company}</Text>
-                <View style={{marginTop:10,alignSelf:'flex-start'}}><Badge label="Pro Plan" color={C.primary}/></View>
-              </View>
-              <View style={{backgroundColor:C.bgHighlight,borderRadius:100,padding:10,borderWidth:1,borderColor:C.border}}>
-                <Text style={{color:C.inkSub,fontSize:14,fontWeight:'600'}}>{'>'}</Text>
-              </View>
-            </View>
-          </PressCard>
-        </View>
-        <View style={{paddingHorizontal:20,marginBottom:24}}>
-          <SectionLabel text="Preferences"/>
-          <PressCard style={{padding:0,overflow:'hidden'}}>
-            {[{label:'Push Notifications',sub:'Alerts for shifts and messages',val:notifOn,fn:setNotifOn},{label:'Budget Alerts',sub:'Warn when nearing budget limits',val:budgetOn,fn:setBudgetOn},{label:'Dark Mode',sub:'Uses your current system theme',val:darkOn,fn:setDarkOn},{label:'Biometric Login',sub:'Use Face ID or fingerprint',val:biometric,fn:setBiometric}].map(function(pref,i,arr){return(
-              <View key={pref.label} style={{flexDirection:'row',alignItems:'center',paddingHorizontal:20,paddingVertical:14,borderBottomWidth:i<arr.length-1?1:0,borderBottomColor:C.border}}>
-                <View style={{flex:1,marginRight:12}}>
-                  <Text style={[TY.h4,{color:C.ink}]}>{pref.label}</Text>
-                  <Text style={[TY.caption,{color:C.inkSub,marginTop:2}]}>{pref.sub}</Text>
-                </View>
-                <Switch value={pref.val} onValueChange={pref.fn} trackColor={{false:C.bgHighlight,true:C.primary}} thumbColor={pref.val?C.inkDark:C.inkSub}/>
-              </View>
-            );})}
-          </PressCard>
-        </View>
-        {sections.map(function(section){return(
-          <View key={section.title} style={{paddingHorizontal:20,marginBottom:20}}>
-            <SectionLabel text={section.title}/>
-            <PressCard style={{padding:0,overflow:'hidden'}}>
-              {section.items.map(function(item,i,arr){return(
-                <TouchableOpacity key={item.label} onPress={item.onPress} activeOpacity={0.75} style={{flexDirection:'row',alignItems:'center',paddingHorizontal:20,paddingVertical:15,borderBottomWidth:i<arr.length-1?1:0,borderBottomColor:C.border}}>
-                  <View style={{flex:1}}>
-                    <Text style={[TY.h4,{color:C.ink}]}>{item.label}</Text>
-                    <Text style={[TY.caption,{color:C.inkSub,marginTop:2}]}>{item.sub}</Text>
-                  </View>
-                  <Text style={{color:C.inkFaint,fontSize:18,fontWeight:'300'}}>{'>'}</Text>
+              <View style={{ flexDirection:'row', justifyContent:'flex-end', marginTop:8 }}>
+                {!m.read && (
+                  <TouchableOpacity onPress={() => markRead(m.id)} style={{ marginRight:12 }}>
+                    <Text style={{ color:C.teal, fontSize:12, fontWeight:'700' }}>Mark read</Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity onPress={() => delMsg(m)}>
+                  <Text style={{ color:C.red, fontSize:12, fontWeight:'700' }}>Delete</Text>
                 </TouchableOpacity>
-              );})}
-            </PressCard>
-          </View>
-        );})}
-        <View style={{alignItems:'center',paddingTop:8,paddingBottom:4}}>
-          <Text style={[TY.caption,{color:C.inkFaint}]}>CrewDesk v6.0</Text>
-          <Text style={[TY.micro,{color:C.inkFaint,marginTop:4}]}>Built for film, TV and events production</Text>
-        </View>
-      </ScrollView>
-      <Sheet visible={editProfile} onClose={function(){setEditProfile(false);}} title="Edit Profile">
-        <Field label="Full Name" value={profile.name} onChangeText={function(v){setProfile(function(p){return{...p,name:v};});}} placeholder="Your name"/>
-        <Field label="Role" value={profile.role} onChangeText={function(v){setProfile(function(p){return{...p,role:v};});}} placeholder="e.g. Executive Producer"/>
-        <Field label="Company" value={profile.company} onChangeText={function(v){setProfile(function(p){return{...p,company:v};});}} placeholder="Company name"/>
-        <Field label="Email" value={profile.email} onChangeText={function(v){setProfile(function(p){return{...p,email:v};});}} keyboardType="email-address" placeholder="email@example.com"/>
-        <Field label="Phone" value={profile.phone} onChangeText={function(v){setProfile(function(p){return{...p,phone:v};});}} keyboardType="phone-pad" placeholder="+44 7700 000000"/>
-        <PrimaryBtn label="Save Profile" onPress={saveProfile}/>
-      </Sheet>
-    </SafeAreaView>
-  );
-}
-
-const TABS=[{key:'Home',label:'Home',g:'H'},{key:'Projects',label:'Projects',g:'P'},{key:'Crew',label:'Crew',g:'C'},{key:'Schedule',label:'Schedule',g:'S'},{key:'Messages',label:'Msgs',g:'M'},{key:'Invoices',label:'Invoices',g:'I'},{key:'Reports',label:'Reports',g:'R'},{key:'More',label:'More',g:'...'}];
-const TAB_COLORS={Home:C.primary,Projects:C.primary,Crew:C.accent,Schedule:C.accent,Messages:C.punch,Invoices:C.primary,Reports:C.purple,More:'#8896A8'};
-
-function TabBar({active,onSelect,unread}){
-  return(
-    <View style={{position:'absolute',bottom:0,left:0,right:0,backgroundColor:C.bgCard,borderTopWidth:1,borderTopColor:C.border,shadowColor:'#000',shadowOffset:{width:0,height:-6},shadowOpacity:0.4,shadowRadius:24,elevation:24}}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{paddingHorizontal:4,paddingTop:8,paddingBottom:isIOS?28:12}}>
-        {TABS.map(function(tab){
-          var isActive=active===tab.key;
-          var ac=TAB_COLORS[tab.key]||C.inkSub;
-          var hasBadge=tab.key==='Messages'&&unread>0;
-          return(
-            <TouchableOpacity key={tab.key} onPress={function(){onSelect(tab.key);}} style={{alignItems:'center',paddingHorizontal:10,paddingVertical:2,minWidth:64}}>
-              <View style={{width:44,height:32,borderRadius:12,alignItems:'center',justifyContent:'center',backgroundColor:isActive?ac+'20':'transparent',position:'relative'}}>
-                {isActive&&<View style={{position:'absolute',top:-9,left:'50%',width:28,height:3,marginLeft:-14,backgroundColor:ac,borderRadius:2}}/>}
-                <Text style={{color:isActive?ac:C.inkFaint,fontSize:isActive?17:16,fontWeight:'900',lineHeight:22}}>{tab.g}</Text>
-                {hasBadge&&<View style={{position:'absolute',top:-4,right:0,backgroundColor:C.punch,width:16,height:16,borderRadius:8,alignItems:'center',justifyContent:'center',borderWidth:2,borderColor:C.bgCard}}>
-                  <Text style={{color:C.ink,fontSize:8,fontWeight:'900'}}>{unread>9?'9+':unread}</Text>
-                </View>}
               </View>
-              <Text style={{color:isActive?ac:C.inkFaint,fontSize:9,fontWeight:isActive?'800':'500',marginTop:3,letterSpacing:0.3}}>{tab.label}</Text>
+            </TouchableOpacity>
+          );
+        }}
+      />
+
+      <Sheet visible={compose} onClose={() => setCompose(false)} title="New Message">
+        <Field label="From (Crew Member)">
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            {crew.map(c => (
+              <TouchableOpacity key={c.id} onPress={() => setMsgFrom(c.id)}
+                style={{ marginRight:8, paddingHorizontal:10, paddingVertical:6, borderRadius:20,
+                  backgroundColor: msgFrom===c.id ? C.teal : C.muted,
+                  borderWidth:1, borderColor: msgFrom===c.id ? C.teal : 'transparent',
+                  flexDirection:'row', alignItems:'center' }}>
+                <Avatar initials={c.avatar} color={msgFrom===c.id ? C.bg : C.sub} size={18} />
+                <Text style={{ color: msgFrom===c.id ? C.bg : C.sub, fontSize:12, fontWeight:'700', marginLeft:5 }}>{c.name.split(' ')[0]}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </Field>
+        <Field label="Project">
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <TouchableOpacity onPress={() => setMsgProj('')}
+              style={{ marginRight:8, paddingHorizontal:12, paddingVertical:6, borderRadius:20,
+                backgroundColor: msgProj==='' ? C.muted : C.surface, borderWidth:1, borderColor: msgProj==='' ? C.sub : 'transparent' }}>
+              <Text style={{ color: msgProj==='' ? C.text : C.sub, fontSize:12, fontWeight:'700' }}>General</Text>
+            </TouchableOpacity>
+            {projects.map(p => (
+              <TouchableOpacity key={p.id} onPress={() => setMsgProj(p.id)}
+                style={{ marginRight:8, paddingHorizontal:12, paddingVertical:6, borderRadius:20,
+                  backgroundColor: msgProj===p.id ? p.accent : C.muted,
+                  borderWidth:1, borderColor: msgProj===p.id ? p.accent : 'transparent' }}>
+                <Text style={{ color: msgProj===p.id ? C.bg : C.sub, fontSize:12, fontWeight:'700' }}>{p.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </Field>
+        <Field label="Message">
+          <TInput value={msgText} onChangeText={setMsgText} placeholder="Type your message..." multiline />
+        </Field>
+        <Btn label="Send Message" onPress={send} color={C.teal} style={{ marginTop:8 }} />
+      </Sheet>
+    </View>
+  );
+};
+
+
+// ─── INVOICES SCREEN ─────────────────────────────────────────────────────────
+const INV_STATUSES = [
+  { value:'draft',   label:'Draft',   color:C.sub },
+  { value:'sent',    label:'Sent',    color:C.blue },
+  { value:'paid',    label:'Paid',    color:C.green },
+  { value:'overdue', label:'Overdue', color:C.red },
+];
+const INV_FILTER_OPTIONS = [
+  { value:'all',     label:'All',     color:C.sub },
+  { value:'draft',   label:'Draft',   color:C.sub },
+  { value:'sent',    label:'Sent',    color:C.blue },
+  { value:'paid',    label:'Paid',    color:C.green },
+  { value:'overdue', label:'Overdue', color:C.red },
+];
+const emptyInv = () => ({
+  number:'INV-' + new Date().getFullYear() + '-' + String(Date.now()).slice(-3),
+  projectId:'', client:'', amount:'', status:'draft',
+  issueDate: today(), dueDate:'', paidDate:'', notes:'',
+});
+
+const InvoicesScreen = ({ store }) => {
+  const { invoices, projects, addInvoice, updateInvoice, deleteInvoice } = store;
+  const [search, setSearch] = useState('');
+  const [filter, setFilter] = useState('all');
+  const [sheet, setSheet]   = useState(null);
+  const [form, setForm]     = useState(emptyInv());
+
+  const totals = {
+    paid:    invoices.filter(i=>i.status==='paid').reduce((s,i)=>s+i.amount,0),
+    sent:    invoices.filter(i=>i.status==='sent').reduce((s,i)=>s+i.amount,0),
+    overdue: invoices.filter(i=>i.status==='overdue').reduce((s,i)=>s+i.amount,0),
+    draft:   invoices.filter(i=>i.status==='draft').reduce((s,i)=>s+i.amount,0),
+  };
+  const totalAll = Object.values(totals).reduce((s,v)=>s+v,0);
+  const collectionRate = totalAll > 0 ? Math.round((totals.paid / totalAll) * 100) : 0;
+
+  const visible = invoices.filter(i => {
+    if (filter !== 'all' && i.status !== filter) return false;
+    const q = search.toLowerCase();
+    if (!q) return true;
+    return i.number.toLowerCase().includes(q) || i.client.toLowerCase().includes(q);
+  }).sort((a,b) => b.issueDate.localeCompare(a.issueDate));
+
+  const openAdd  = () => { setForm(emptyInv()); setSheet('add'); };
+  const openEdit = (i) => { setForm({ ...i, amount: String(i.amount) }); setSheet(i); };
+  const closeSheet = () => setSheet(null);
+
+  const save = () => {
+    if (!form.number.trim()) { Alert.alert('Required', 'Invoice number is required'); return; }
+    const data = { ...form, amount: Number(form.amount)||0 };
+    if (sheet === 'add') addInvoice(data);
+    else updateInvoice({ ...sheet, ...data });
+    closeSheet();
+  };
+  const del = (i) => {
+    Alert.alert('Delete Invoice', 'Delete ' + i.number + '?', [
+      { text:'Cancel', style:'cancel' },
+      { text:'Delete', style:'destructive', onPress: () => deleteInvoice(i.id) },
+    ]);
+  };
+
+  const statusColor = (s) => ({ draft:C.sub, sent:C.blue, paid:C.green, overdue:C.red }[s] || C.sub);
+  const markAs = (inv, status) => updateInvoice({ ...inv, status, paidDate: status==='paid' ? today() : inv.paidDate });
+
+  return (
+    <View style={{ flex:1, backgroundColor:C.bg }}>
+      <View style={{ paddingTop:56, paddingHorizontal:20, paddingBottom:12 }}>
+        <View style={{ flexDirection:'row', alignItems:'center', justifyContent:'space-between', marginBottom:16 }}>
+          <Text style={{ color:C.text, fontSize:26, fontWeight:'900' }}>Invoices</Text>
+          <TouchableOpacity onPress={openAdd} style={{ backgroundColor:C.green, borderRadius:22, paddingHorizontal:16, paddingVertical:8 }}>
+            <Text style={{ color:C.bg, fontWeight:'800', fontSize:13 }}>+ New</Text>
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom:14 }}>
+          <View style={{ backgroundColor:C.card, borderRadius:14, padding:14, marginRight:10, borderWidth:1, borderColor:C.border, minWidth:120 }}>
+            <Text style={{ color:C.green, fontSize:18, fontWeight:'900' }}>{fmtGBP(totals.paid)}</Text>
+            <Text style={{ color:C.sub, fontSize:11, marginTop:2 }}>Paid</Text>
+          </View>
+          <View style={{ backgroundColor:C.card, borderRadius:14, padding:14, marginRight:10, borderWidth:1, borderColor:C.border, minWidth:120 }}>
+            <Text style={{ color:C.blue, fontSize:18, fontWeight:'900' }}>{fmtGBP(totals.sent)}</Text>
+            <Text style={{ color:C.sub, fontSize:11, marginTop:2 }}>Outstanding</Text>
+          </View>
+          <View style={{ backgroundColor:C.card, borderRadius:14, padding:14, marginRight:10, borderWidth:1, borderColor:C.border, minWidth:120 }}>
+            <Text style={{ color:C.red, fontSize:18, fontWeight:'900' }}>{fmtGBP(totals.overdue)}</Text>
+            <Text style={{ color:C.sub, fontSize:11, marginTop:2 }}>Overdue</Text>
+          </View>
+          <View style={{ backgroundColor:C.card, borderRadius:14, padding:14, borderWidth:1, borderColor:C.border, minWidth:120 }}>
+            <Text style={{ color:C.gold, fontSize:18, fontWeight:'900' }}>{collectionRate}%</Text>
+            <Text style={{ color:C.sub, fontSize:11, marginTop:2 }}>Collected</Text>
+          </View>
+        </ScrollView>
+
+        <View style={{ marginBottom:14 }}>
+          <ProgressBar value={totals.paid} total={totalAll} color={C.green} height={6} />
+        </View>
+
+        <SearchBar value={search} onChange={setSearch} placeholder="Search invoices..." />
+        <StatusPicker value={filter} options={INV_FILTER_OPTIONS} onChange={setFilter} style={{ marginBottom:4 }} />
+      </View>
+
+      <FlatList data={visible} keyExtractor={i => i.id}
+        contentContainerStyle={{ paddingHorizontal:20, paddingBottom:120 }}
+        ListEmptyComponent={<Empty icon="[I]" title="No invoices" sub="Create your first invoice to start tracking payments." action={openAdd} actionLabel="New Invoice" />}
+        renderItem={({ item:inv }) => {
+          const col = statusColor(inv.status);
+          const proj = projects.find(p => p.id === inv.projectId);
+          return (
+            <PressCard onPress={() => openEdit(inv)} style={{ backgroundColor:C.card, marginBottom:10 }}>
+              <View style={{ padding:16 }}>
+                <View style={{ flexDirection:'row', alignItems:'flex-start', justifyContent:'space-between', marginBottom:8 }}>
+                  <View style={{ flex:1 }}>
+                    <Text style={{ color:C.text, fontSize:15, fontWeight:'800' }}>{inv.number}</Text>
+                    <Text style={{ color:C.sub, fontSize:13, marginTop:2 }}>{inv.client}</Text>
+                    {proj && <Text style={{ color:proj.accent, fontSize:11, marginTop:2 }}>{proj.name}</Text>}
+                    <Text style={{ color:C.sub, fontSize:12, marginTop:4 }}>
+                      Issued: {fmtDate(inv.issueDate)}{inv.dueDate ? '  Due: ' + fmtDate(inv.dueDate) : ''}
+                    </Text>
+                    {inv.status === 'paid' && inv.paidDate && (
+                      <Text style={{ color:C.green, fontSize:12, marginTop:2 }}>Paid: {fmtDate(inv.paidDate)}</Text>
+                    )}
+                  </View>
+                  <View style={{ alignItems:'flex-end' }}>
+                    <Text style={{ color:C.text, fontSize:20, fontWeight:'900' }}>{fmtGBP(inv.amount)}</Text>
+                    <Badge label={inv.status} color={col} />
+                  </View>
+                </View>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop:4 }}>
+                  {inv.status !== 'sent' && inv.status !== 'paid' && (
+                    <TouchableOpacity onPress={() => markAs(inv, 'sent')}
+                      style={{ backgroundColor:C.blueBg, borderRadius:20, paddingHorizontal:12, paddingVertical:5,
+                        marginRight:8, borderWidth:1, borderColor:C.blue }}>
+                      <Text style={{ color:C.blue, fontSize:11, fontWeight:'700' }}>Mark Sent</Text>
+                    </TouchableOpacity>
+                  )}
+                  {inv.status !== 'paid' && (
+                    <TouchableOpacity onPress={() => markAs(inv, 'paid')}
+                      style={{ backgroundColor:C.greenBg, borderRadius:20, paddingHorizontal:12, paddingVertical:5,
+                        marginRight:8, borderWidth:1, borderColor:C.green }}>
+                      <Text style={{ color:C.green, fontSize:11, fontWeight:'700' }}>Mark Paid</Text>
+                    </TouchableOpacity>
+                  )}
+                  {inv.status !== 'overdue' && inv.status !== 'paid' && (
+                    <TouchableOpacity onPress={() => markAs(inv, 'overdue')}
+                      style={{ backgroundColor:C.redBg, borderRadius:20, paddingHorizontal:12, paddingVertical:5,
+                        marginRight:8, borderWidth:1, borderColor:C.red }}>
+                      <Text style={{ color:C.red, fontSize:11, fontWeight:'700' }}>Flag Overdue</Text>
+                    </TouchableOpacity>
+                  )}
+                </ScrollView>
+              </View>
+              <Divider />
+              <View style={{ flexDirection:'row' }}>
+                <TouchableOpacity onPress={() => openEdit(inv)} style={{ flex:1, paddingVertical:11, alignItems:'center' }}>
+                  <Text style={{ color:C.gold, fontSize:12, fontWeight:'700' }}>Edit</Text>
+                </TouchableOpacity>
+                <View style={{ width:1, backgroundColor:C.border }} />
+                <TouchableOpacity onPress={() => del(inv)} style={{ flex:1, paddingVertical:11, alignItems:'center' }}>
+                  <Text style={{ color:C.red, fontSize:12, fontWeight:'700' }}>Delete</Text>
+                </TouchableOpacity>
+              </View>
+            </PressCard>
+          );
+        }}
+      />
+
+      <Sheet visible={!!sheet} onClose={closeSheet} title={sheet === 'add' ? 'New Invoice' : 'Edit Invoice'}>
+        <Field label="Invoice Number"><TInput value={form.number} onChangeText={v => setForm(f=>({...f,number:v}))} placeholder="INV-2026-001" /></Field>
+        <Field label="Client"><TInput value={form.client} onChangeText={v => setForm(f=>({...f,client:v}))} placeholder="Client name" /></Field>
+        <Field label="Project">
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <TouchableOpacity onPress={() => setForm(f=>({...f,projectId:''}))}
+              style={{ marginRight:8, paddingHorizontal:12, paddingVertical:6, borderRadius:20,
+                backgroundColor: form.projectId==='' ? C.muted : C.surface,
+                borderWidth:1, borderColor: form.projectId==='' ? C.sub : 'transparent' }}>
+              <Text style={{ color: form.projectId==='' ? C.text : C.sub, fontSize:12, fontWeight:'700' }}>None</Text>
+            </TouchableOpacity>
+            {projects.map(p => (
+              <TouchableOpacity key={p.id} onPress={() => setForm(f=>({...f,projectId:p.id, client:p.client}))}
+                style={{ marginRight:8, paddingHorizontal:12, paddingVertical:6, borderRadius:20,
+                  backgroundColor: form.projectId===p.id ? p.accent : C.muted,
+                  borderWidth:1, borderColor: form.projectId===p.id ? p.accent : 'transparent' }}>
+                <Text style={{ color: form.projectId===p.id ? C.bg : C.sub, fontSize:12, fontWeight:'700' }}>{p.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </Field>
+        <Field label="Amount (GBP)"><TInput value={form.amount} onChangeText={v => setForm(f=>({...f,amount:v}))} placeholder="0" keyboardType="numeric" /></Field>
+        <Field label="Issue Date"><TInput value={form.issueDate} onChangeText={v => setForm(f=>({...f,issueDate:v}))} placeholder="YYYY-MM-DD" /></Field>
+        <Field label="Due Date"><TInput value={form.dueDate} onChangeText={v => setForm(f=>({...f,dueDate:v}))} placeholder="YYYY-MM-DD" /></Field>
+        <Field label="Status"><StatusPicker value={form.status} options={INV_STATUSES} onChange={v => setForm(f=>({...f,status:v}))} /></Field>
+        <Field label="Notes"><TInput value={form.notes} onChangeText={v => setForm(f=>({...f,notes:v}))} placeholder="Payment notes..." multiline /></Field>
+        <Btn label="Save Invoice" onPress={save} style={{ marginTop:8 }} />
+        {sheet !== 'add' && <GhostBtn label="Delete Invoice" onPress={() => { closeSheet(); del(sheet); }} color={C.red} style={{ marginTop:10 }} />}
+      </Sheet>
+    </View>
+  );
+};
+
+
+// ─── REPORTS SCREEN ──────────────────────────────────────────────────────────
+const ReportsScreen = ({ store }) => {
+  const { projects, invoices, crew, shifts } = store;
+
+  const totalBudget = projects.reduce((s,p)=>s+p.budget,0);
+  const totalSpent  = projects.reduce((s,p)=>s+p.spent,0);
+  const totalInv    = invoices.reduce((s,i)=>s+i.amount,0);
+  const totalPaid   = invoices.filter(i=>i.status==='paid').reduce((s,i)=>s+i.amount,0);
+  const totalOverdue = invoices.filter(i=>i.status==='overdue').reduce((s,i)=>s+i.amount,0);
+  const activeProj  = projects.filter(p=>p.status==='active').length;
+  const completedProj = projects.filter(p=>p.status==='completed').length;
+  const activeCrewCount = crew.filter(c=>c.status!=='inactive').length;
+  const upcomingShifts = shifts.filter(s=>s.date >= today()).length;
+
+  return (
+    <ScrollView style={{ flex:1, backgroundColor:C.bg }}
+      contentContainerStyle={{ paddingTop:56, paddingBottom:120 }}>
+      <View style={{ paddingHorizontal:20, marginBottom:24 }}>
+        <Text style={{ color:C.text, fontSize:26, fontWeight:'900', marginBottom:4 }}>Reports</Text>
+        <Text style={{ color:C.sub, fontSize:14 }}>Portfolio performance at a glance</Text>
+      </View>
+
+      <View style={{ paddingHorizontal:20, marginBottom:24 }}>
+        <SectionHdr title="Financial Overview" />
+        <View style={{ backgroundColor:C.card, borderRadius:16, padding:20, borderWidth:1, borderColor:C.border }}>
+          <View style={{ flexDirection:'row', marginBottom:20 }}>
+            <View style={{ flex:1 }}>
+              <Text style={{ color:C.sub, fontSize:11, fontWeight:'700', textTransform:'uppercase', letterSpacing:0.8 }}>Total Budget</Text>
+              <Text style={{ color:C.text, fontSize:24, fontWeight:'900', marginTop:4 }}>{fmtGBP(totalBudget)}</Text>
+            </View>
+            <View style={{ flex:1 }}>
+              <Text style={{ color:C.sub, fontSize:11, fontWeight:'700', textTransform:'uppercase', letterSpacing:0.8 }}>Total Spent</Text>
+              <Text style={{ color: totalSpent/totalBudget > 0.8 ? C.red : C.gold, fontSize:24, fontWeight:'900', marginTop:4 }}>{fmtGBP(totalSpent)}</Text>
+            </View>
+          </View>
+          <ProgressBar value={totalSpent} total={totalBudget} color={totalSpent/totalBudget>0.8?C.red:C.gold} height={10} />
+          <Text style={{ color:C.sub, fontSize:12, marginTop:8, textAlign:'right' }}>
+            {totalBudget > 0 ? Math.round((totalSpent/totalBudget)*100) : 0}% of portfolio budget consumed
+          </Text>
+        </View>
+      </View>
+
+      <View style={{ paddingHorizontal:20, marginBottom:24 }}>
+        <SectionHdr title="Invoice Summary" />
+        <View style={{ backgroundColor:C.card, borderRadius:16, padding:20, borderWidth:1, borderColor:C.border }}>
+          <View style={{ flexDirection:'row', marginBottom:16 }}>
+            <View style={{ flex:1 }}>
+              <Text style={{ color:C.green, fontSize:22, fontWeight:'900' }}>{fmtGBP(totalPaid)}</Text>
+              <Text style={{ color:C.sub, fontSize:12, marginTop:2 }}>Collected</Text>
+            </View>
+            <View style={{ flex:1 }}>
+              <Text style={{ color:C.red, fontSize:22, fontWeight:'900' }}>{fmtGBP(totalOverdue)}</Text>
+              <Text style={{ color:C.sub, fontSize:12, marginTop:2 }}>Overdue</Text>
+            </View>
+            <View style={{ flex:1 }}>
+              <Text style={{ color:C.gold, fontSize:22, fontWeight:'900' }}>
+                {totalInv > 0 ? Math.round((totalPaid/totalInv)*100) : 0}%
+              </Text>
+              <Text style={{ color:C.sub, fontSize:12, marginTop:2 }}>Rate</Text>
+            </View>
+          </View>
+          <ProgressBar value={totalPaid} total={totalInv} color={C.green} height={8} />
+        </View>
+      </View>
+
+      <View style={{ paddingHorizontal:20, marginBottom:24 }}>
+        <SectionHdr title="Project Budget Breakdown" />
+        <View style={{ backgroundColor:C.card, borderRadius:16, padding:20, borderWidth:1, borderColor:C.border }}>
+          {projects.map((p, i) => (
+            <AnimBar key={p.id} value={p.spent} max={p.budget} color={p.accent}
+              label={p.name}
+              subLabel={fmtGBP(p.spent) + ' / ' + fmtGBP(p.budget)}
+              delay={i * 100} />
+          ))}
+        </View>
+      </View>
+
+      <View style={{ paddingHorizontal:20, marginBottom:24 }}>
+        <SectionHdr title="Revenue by Project" />
+        <View style={{ backgroundColor:C.card, borderRadius:16, padding:20, borderWidth:1, borderColor:C.border }}>
+          {projects.map((p, i) => {
+            const projInv = invoices.filter(inv => inv.projectId === p.id).reduce((s,inv)=>s+inv.amount,0);
+            return (
+              <AnimBar key={p.id} value={projInv} max={totalInv || 1} color={p.accent}
+                label={p.name}
+                subLabel={fmtGBP(projInv)}
+                delay={i * 80 + 200} />
+            );
+          })}
+        </View>
+      </View>
+
+      <View style={{ paddingHorizontal:20, marginBottom:24 }}>
+        <SectionHdr title="Portfolio Stats" />
+        <View style={{ flexDirection:'row', marginBottom:10 }}>
+          <View style={{ flex:1, backgroundColor:C.card, borderRadius:14, padding:16, marginRight:10, borderWidth:1, borderColor:C.border }}>
+            <Text style={{ color:C.teal, fontSize:28, fontWeight:'900' }}>{activeProj}</Text>
+            <Text style={{ color:C.text, fontSize:12, fontWeight:'700', marginTop:4 }}>Active</Text>
+            <Text style={{ color:C.sub, fontSize:11 }}>projects</Text>
+          </View>
+          <View style={{ flex:1, backgroundColor:C.card, borderRadius:14, padding:16, borderWidth:1, borderColor:C.border }}>
+            <Text style={{ color:C.green, fontSize:28, fontWeight:'900' }}>{completedProj}</Text>
+            <Text style={{ color:C.text, fontSize:12, fontWeight:'700', marginTop:4 }}>Completed</Text>
+            <Text style={{ color:C.sub, fontSize:11 }}>projects</Text>
+          </View>
+        </View>
+        <View style={{ flexDirection:'row' }}>
+          <View style={{ flex:1, backgroundColor:C.card, borderRadius:14, padding:16, marginRight:10, borderWidth:1, borderColor:C.border }}>
+            <Text style={{ color:C.purple, fontSize:28, fontWeight:'900' }}>{activeCrewCount}</Text>
+            <Text style={{ color:C.text, fontSize:12, fontWeight:'700', marginTop:4 }}>Active crew</Text>
+            <Text style={{ color:C.sub, fontSize:11 }}>across all projects</Text>
+          </View>
+          <View style={{ flex:1, backgroundColor:C.card, borderRadius:14, padding:16, borderWidth:1, borderColor:C.border }}>
+            <Text style={{ color:C.blue, fontSize:28, fontWeight:'900' }}>{upcomingShifts}</Text>
+            <Text style={{ color:C.text, fontSize:12, fontWeight:'700', marginTop:4 }}>Upcoming</Text>
+            <Text style={{ color:C.sub, fontSize:11 }}>shoot days</Text>
+          </View>
+        </View>
+      </View>
+
+      <View style={{ paddingHorizontal:20, marginBottom:24 }}>
+        <SectionHdr title="Crew Rates" />
+        <View style={{ backgroundColor:C.card, borderRadius:16, padding:20, borderWidth:1, borderColor:C.border }}>
+          {crew.map((c, i) => (
+            <AnimBar key={c.id} value={c.rate} max={Math.max(...crew.map(x=>x.rate), 1)}
+              color={ACCENT_OPTIONS[i % ACCENT_OPTIONS.length]}
+              label={c.name + ' - ' + c.role}
+              subLabel={fmtGBP(c.rate) + '/' + c.rateUnit}
+              delay={i * 80 + 400} />
+          ))}
+        </View>
+      </View>
+    </ScrollView>
+  );
+};
+
+// ─── MORE / SETTINGS SCREEN ──────────────────────────────────────────────────
+const MoreScreen = ({ store, navigate }) => {
+  const { projects, crew, invoices, messages } = store;
+  const totalBudget = projects.reduce((s,p)=>s+p.budget,0);
+  const totalPaid   = invoices.filter(i=>i.status==='paid').reduce((s,i)=>s+i.amount,0);
+
+  const MenuItem = ({ icon, label, sub, onPress, color = C.gold }) => (
+    <TouchableOpacity onPress={onPress} style={{ flexDirection:'row', alignItems:'center',
+      backgroundColor:C.card, borderRadius:14, padding:16, marginBottom:8,
+      borderWidth:1, borderColor:C.border }}>
+      <View style={{ width:40, height:40, borderRadius:12, backgroundColor:color+'22',
+        alignItems:'center', justifyContent:'center', marginRight:14 }}>
+        <Text style={{ fontSize:18 }}>{icon}</Text>
+      </View>
+      <View style={{ flex:1 }}>
+        <Text style={{ color:C.text, fontSize:15, fontWeight:'700' }}>{label}</Text>
+        {sub && <Text style={{ color:C.sub, fontSize:12, marginTop:2 }}>{sub}</Text>}
+      </View>
+      <Text style={{ color:C.sub, fontSize:18 }}>{'>'}</Text>
+    </TouchableOpacity>
+  );
+
+  return (
+    <ScrollView style={{ flex:1, backgroundColor:C.bg }}
+      contentContainerStyle={{ paddingTop:56, paddingHorizontal:20, paddingBottom:120 }}>
+      <Text style={{ color:C.text, fontSize:26, fontWeight:'900', marginBottom:4 }}>More</Text>
+      <Text style={{ color:C.sub, fontSize:14, marginBottom:24 }}>Settings and account</Text>
+
+      <View style={{ backgroundColor:C.card, borderRadius:20, padding:20, marginBottom:24,
+        borderWidth:1, borderColor:C.border }}>
+        <View style={{ flexDirection:'row', alignItems:'center', marginBottom:16 }}>
+          <View style={{ width:52, height:52, borderRadius:16, backgroundColor:C.goldBg,
+            alignItems:'center', justifyContent:'center', marginRight:14,
+            borderWidth:2, borderColor:C.gold }}>
+            <Text style={{ color:C.gold, fontSize:22, fontWeight:'900' }}>CD</Text>
+          </View>
+          <View>
+            <Text style={{ color:C.text, fontSize:18, fontWeight:'900' }}>CrewDesk</Text>
+            <Text style={{ color:C.sub, fontSize:13 }}>Professional Crew Management</Text>
+          </View>
+        </View>
+        <View style={{ flexDirection:'row' }}>
+          <View style={{ flex:1 }}>
+            <Text style={{ color:C.gold, fontSize:18, fontWeight:'900' }}>{projects.length}</Text>
+            <Text style={{ color:C.sub, fontSize:11, marginTop:2 }}>Projects</Text>
+          </View>
+          <View style={{ flex:1 }}>
+            <Text style={{ color:C.purple, fontSize:18, fontWeight:'900' }}>{crew.length}</Text>
+            <Text style={{ color:C.sub, fontSize:11, marginTop:2 }}>Crew</Text>
+          </View>
+          <View style={{ flex:1 }}>
+            <Text style={{ color:C.green, fontSize:18, fontWeight:'900' }}>{fmtGBP(totalPaid)}</Text>
+            <Text style={{ color:C.sub, fontSize:11, marginTop:2 }}>Collected</Text>
+          </View>
+          <View style={{ flex:1 }}>
+            <Text style={{ color:C.teal, fontSize:18, fontWeight:'900' }}>{fmtGBP(totalBudget)}</Text>
+            <Text style={{ color:C.sub, fontSize:11, marginTop:2 }}>Budget</Text>
+          </View>
+        </View>
+      </View>
+
+      <Text style={{ color:C.sub, fontSize:11, fontWeight:'700', textTransform:'uppercase',
+        letterSpacing:1, marginBottom:10 }}>Quick Actions</Text>
+      <MenuItem icon="[P]" label="Projects" sub={projects.length + ' projects in portfolio'} onPress={() => navigate('Projects')} color={C.teal} />
+      <MenuItem icon="[C]" label="Crew" sub={crew.length + ' crew members'} onPress={() => navigate('Crew')} color={C.purple} />
+      <MenuItem icon="[S]" label="Schedule" sub="View upcoming shoot days" onPress={() => navigate('Schedule')} color={C.blue} />
+      <MenuItem icon="[I]" label="Invoices" sub="Track payments and billing" onPress={() => navigate('Invoices')} color={C.green} />
+      <MenuItem icon="[R]" label="Reports" sub="Portfolio analytics" onPress={() => navigate('Reports')} color={C.gold} />
+
+      <Text style={{ color:C.sub, fontSize:11, fontWeight:'700', textTransform:'uppercase',
+        letterSpacing:1, marginTop:16, marginBottom:10 }}>App</Text>
+      <View style={{ backgroundColor:C.card, borderRadius:14, padding:16, borderWidth:1, borderColor:C.border, marginBottom:8 }}>
+        <Text style={{ color:C.text, fontSize:14, fontWeight:'700', marginBottom:4 }}>Version</Text>
+        <Text style={{ color:C.sub, fontSize:13 }}>CrewDesk v7.0 - Production Ready</Text>
+      </View>
+      <View style={{ backgroundColor:C.card, borderRadius:14, padding:16, borderWidth:1, borderColor:C.border }}>
+        <Text style={{ color:C.text, fontSize:14, fontWeight:'700', marginBottom:4 }}>Design System</Text>
+        <Text style={{ color:C.sub, fontSize:13 }}>Midnight Navy x Amber Gold x Electric Teal</Text>
+        <View style={{ flexDirection:'row', marginTop:10 }}>
+          {[C.gold, C.teal, C.purple, C.blue, C.green, C.red, C.orange, C.pink].map(col => (
+            <View key={col} style={{ width:20, height:20, borderRadius:10, backgroundColor:col, marginRight:6 }} />
+          ))}
+        </View>
+      </View>
+    </ScrollView>
+  );
+};
+
+// ─── TAB BAR + APP ROOT ───────────────────────────────────────────────────────
+const TABS = [
+  { key:'Home',     label:'Home',     color:C.gold   },
+  { key:'Projects', label:'Projects', color:C.teal   },
+  { key:'Crew',     label:'Crew',     color:C.purple },
+  { key:'Schedule', label:'Schedule', color:C.blue   },
+  { key:'Messages', label:'Messages', color:C.orange },
+  { key:'Invoices', label:'Invoices', color:C.green  },
+  { key:'Reports',  label:'Reports',  color:C.pink   },
+  { key:'More',     label:'More',     color:C.sub    },
+];
+
+const TabBar = ({ active, setActive, unreadMsgs }) => {
+  const scrollRef = useRef(null);
+  const activeIdx = TABS.findIndex(t => t.key === active);
+
+  useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollTo({ x: Math.max(0, activeIdx * 72 - 100), animated:true });
+    }
+  }, [active]);
+
+  return (
+    <View style={{ position:'absolute', bottom:0, left:0, right:0,
+      backgroundColor:C.surface, borderTopWidth:1, borderTopColor:C.border,
+      paddingBottom: Platform.OS === 'ios' ? 24 : 8 }}>
+      <ScrollView ref={scrollRef} horizontal showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal:8, paddingTop:8, paddingBottom:4 }}>
+        {TABS.map((tab) => {
+          const isActive = active === tab.key;
+          return (
+            <TouchableOpacity key={tab.key} onPress={() => setActive(tab.key)}
+              style={{ alignItems:'center', paddingHorizontal:14, paddingVertical:6,
+                minWidth:64, borderRadius:16,
+                backgroundColor: isActive ? tab.color + '18' : 'transparent' }}>
+              {isActive && (
+                <View style={{ position:'absolute', top:0, left:20, right:20, height:3,
+                  backgroundColor:tab.color, borderRadius:2 }} />
+              )}
+              <View style={{ position:'relative' }}>
+                <Text style={{ color: isActive ? tab.color : C.sub,
+                  fontSize:11, fontWeight: isActive ? '800' : '500',
+                  letterSpacing:0.2, marginTop:4 }}>{tab.label}</Text>
+                {tab.key === 'Messages' && unreadMsgs > 0 && (
+                  <View style={{ position:'absolute', top:-4, right:-12, backgroundColor:C.red,
+                    borderRadius:8, minWidth:16, height:16, alignItems:'center', justifyContent:'center',
+                    borderWidth:1.5, borderColor:C.surface }}>
+                    <Text style={{ color:C.text, fontSize:9, fontWeight:'800' }}>{unreadMsgs}</Text>
+                  </View>
+                )}
+              </View>
             </TouchableOpacity>
           );
         })}
       </ScrollView>
     </View>
   );
-}
+};
 
-export default function App(){
-  const[activeTab,setActiveTab]=useState('Home');
-  const{data}=useStore();
-  const unread=data.messages.reduce(function(a,m){return a+(m.unread||0);},0);
-  function nav(screen){setActiveTab(screen);}
-  function render(){
-    if(activeTab==='Home')     return<HomeScreen navigate={nav}/>;
-    if(activeTab==='Projects') return<ProjectsScreen/>;
-    if(activeTab==='Crew')     return<CrewScreen/>;
-    if(activeTab==='Schedule') return<ScheduleScreen/>;
-    if(activeTab==='Messages') return<MessagesScreen/>;
-    if(activeTab==='Invoices') return<InvoicesScreen/>;
-    if(activeTab==='Reports')  return<ReportsScreen/>;
-    if(activeTab==='More')     return<MoreScreen/>;
-    return null;
-  }
-  return(<View style={{flex:1,backgroundColor:C.bg}}>{render()}<TabBar active={activeTab} onSelect={setActiveTab} unread={unread}/></View>);
+export default function App() {
+  const store = useStore();
+  const [active, setActive] = useState('Home');
+  const unreadMsgs = store.messages.filter(m => !m.read).length;
+
+  const navigate = (screen) => setActive(screen);
+
+  const renderScreen = () => {
+    switch (active) {
+      case 'Home':     return <HomeScreen     store={store} navigate={navigate} />;
+      case 'Projects': return <ProjectsScreen store={store} />;
+      case 'Crew':     return <CrewScreen     store={store} />;
+      case 'Schedule': return <ScheduleScreen store={store} />;
+      case 'Messages': return <MessagesScreen store={store} />;
+      case 'Invoices': return <InvoicesScreen store={store} />;
+      case 'Reports':  return <ReportsScreen  store={store} />;
+      case 'More':     return <MoreScreen     store={store} navigate={navigate} />;
+      default:         return <HomeScreen     store={store} navigate={navigate} />;
+    }
+  };
+
+  return (
+    <View style={{ flex:1, backgroundColor:C.bg }}>
+      <StatusBar barStyle="light-content" backgroundColor={C.bg} />
+      {renderScreen()}
+      <TabBar active={active} setActive={setActive} unreadMsgs={unreadMsgs} />
+    </View>
+  );
 }
