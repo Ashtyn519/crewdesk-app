@@ -1,1726 +1,1439 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
-  SafeAreaView, StatusBar, Switch, Alert, FlatList
+  StyleSheet, SafeAreaView, StatusBar, Animated, Dimensions,
+  Modal, Alert, FlatList, KeyboardAvoidingView, Platform,
+  Switch, Pressable, Image
 } from 'react-native';
 
-// ─────────────────────────────────────────────
-// DESIGN SYSTEM — DEPT® × Newsprint × TurboTax
-// Editorial bold, clean white, warm accents
-// ─────────────────────────────────────────────
 const C = {
-  // Backgrounds
-  bg:        '#FAFAF8',
-  bgWarm:    '#F5F3EF',
-  bgInk:     '#0E0E0E',
-  surface:   '#FFFFFF',
-  surfaceAlt:'#F0EEE9',
-
-  // Ink & Type
-  ink:       '#0E0E0E',
-  inkSoft:   '#2A2A2A',
-  inkMid:    '#555550',
-  inkLight:  '#8A8A85',
-  inkGhost:  '#C4C4BC',
-
-  // Borders
-  line:      '#E4E2DC',
-  lineSoft:  '#EDEBE6',
-
-  // Accents
-  punch:     '#FF4D00',   // DEPT® orange
-  punchSoft: '#FFF0EB',
-  electric:  '#0057FF',   // electric blue
-  electricSoft:'#EBF0FF',
-  lime:      '#C8F000',   // DEPT® lime
-  limeSoft:  '#F5FFD6',
-  sage:      '#2D6A4F',
-  sageSoft:  '#E8F5EE',
-  amber:     '#FF8C00',
-  amberSoft: '#FFF4E0',
-  rose:      '#E8003D',
-  roseSoft:  '#FFE8EE',
-
-  // Status
-  green:     '#00875A',
-  greenSoft: '#E3FBF2',
-  red:       '#E8003D',
-  redSoft:   '#FFE8EE',
-  yellow:    '#FF8C00',
-  yellowSoft:'#FFF4E0',
-  blue:      '#0057FF',
-  blueSoft:  '#EBF0FF',
-  purple:    '#6B00FF',
-  purpleSoft:'#F0E8FF',
+  bg:'#0B0F19', bgCard:'#141824', bgElevated:'#1C2235', bgHighlight:'#242A3D', bgSheet:'#F9F7F3',
+  primary:'#F5A623', primarySoft:'#FDF3DC', accent:'#00D4B4', accentSoft:'#D6FBF5',
+  punch:'#FF5C5C', punchSoft:'#FFE8E8', success:'#4ADE80', successSoft:'#D9FCE8',
+  purple:'#A78BFA', purpleSoft:'#EDE9FE', ink:'#FFFFFF', inkMuted:'#8892A4',
+  inkFaint:'#3D4559', inkDark:'#0B0F19', border:'#232A3E', borderLight:'#E8E4DC',
+  shadow:'rgba(0,0,0,0.4)', overlay:'rgba(11,15,25,0.85)',
 };
-
-// ─────────────────────────────────────────────
-// STORE — Centralised data & state management
-// ─────────────────────────────────────────────
-const useStore = () => {
-  const [projects, setProjects] = useState([
-    { id:1, title:'Nike Summer Campaign', client:'Nike EMEA', status:'Active', color:'#FF4D00', crew:8, due:'Mar 15', budget:24000, spent:16800, progress:0.70, lead:'Alex Morgan', desc:'Full campaign shoot for Nike EMEA summer collection. 4-day shoot in Barcelona.' },
-    { id:2, title:'BBC Documentary Series', client:'BBC Studios', status:'Pending', color:'#0057FF', crew:12, due:'Apr 2', budget:85000, spent:12000, progress:0.14, lead:'Jordan Kim', desc:'6-part documentary series on ocean conservation.' },
-    { id:3, title:'Adidas Product Shoot', client:'Adidas UK', status:'Active', color:'#00875A', crew:5, due:'Mar 22', budget:18000, spent:9000, progress:0.50, lead:'Sam Rivera', desc:'Hero product shots for Adidas SS26 catalogue.' },
-    { id:4, title:'Netflix Series BTS', client:'Netflix', status:'Active', color:'#E8003D', crew:15, due:'May 10', budget:120000, spent:45000, progress:0.38, lead:'Morgan Patel', desc:'Behind-the-scenes content for Netflix original series.' },
-    { id:5, title:'Apple Launch Event', client:'Apple Inc', status:'At Risk', color:'#6B00FF', crew:20, due:'Mar 8', budget:200000, spent:185000, progress:0.93, lead:'Quinn Davis', desc:'Global product launch event coverage.' },
-  ]);
-
-  const [crew, setCrew] = useState([
-    { id:1, name:'Alex Morgan', role:'Director', dept:'Production', status:'Available', rate:850, rating:4.9, projects:3, phone:'+44 7700 900001', email:'alex@crewdesk.io', bio:'Award-winning director with 12 years of commercial experience.', color:'#FF4D00' },
-    { id:2, name:'Jordan Kim', role:'Director of Photography', dept:'Camera', status:'On Set', rate:750, rating:4.8, projects:2, phone:'+44 7700 900002', email:'jordan@crewdesk.io', bio:'Cinematographer specialising in documentary and commercial work.', color:'#0057FF' },
-    { id:3, name:'Sam Rivera', role:'Gaffer', dept:'Lighting', status:'Available', rate:620, rating:4.7, projects:4, phone:'+44 7700 900003', email:'sam@crewdesk.io', bio:'Senior gaffer with expertise in both studio and location lighting.', color:'#00875A' },
-    { id:4, name:'Taylor Walsh', role:'Sound Engineer', dept:'Audio', status:'Travelling', rate:580, rating:4.6, projects:2, phone:'+44 7700 900004', email:'taylor@crewdesk.io', bio:'Location sound recordist and post-production audio engineer.', color:'#FF8C00' },
-    { id:5, name:'Morgan Patel', role:'Art Director', dept:'Art', status:'On Set', rate:700, rating:4.9, projects:5, phone:'+44 7700 900005', email:'morgan@crewdesk.io', bio:'Creative art director with background in fashion and lifestyle.', color:'#6B00FF' },
-    { id:6, name:'Casey Chen', role:'Editor', dept:'Post', status:'Available', rate:680, rating:4.7, projects:1, phone:'+44 7700 900006', email:'casey@crewdesk.io', bio:'Offline and online editor, Avid and Premiere certified.', color:'#E8003D' },
-    { id:7, name:'Riley Johnson', role:'Production Assistant', dept:'Production', status:'Available', rate:380, rating:4.5, projects:6, phone:'+44 7700 900007', email:'riley@crewdesk.io', bio:'Experienced PA with strong organisation and logistics skills.', color:'#C8F000' },
-    { id:8, name:'Quinn Davis', role:'Colorist', dept:'Post', status:'Travelling', rate:720, rating:4.8, projects:3, phone:'+44 7700 900008', email:'quinn@crewdesk.io', bio:'Senior colorist with credits on feature films and major campaigns.', color:'#0057FF' },
-  ]);
-
-  const [shifts, setShifts] = useState([
-    { id:1, project:'Nike Campaign', role:'Director', crewId:1, day:'Mon', start:'07:00', end:'18:00', color:'#FF4D00', location:'Barcelona Studio' },
-    { id:2, project:'Nike Campaign', role:'DOP', crewId:2, day:'Mon', start:'06:30', end:'18:00', color:'#0057FF', location:'Barcelona Studio' },
-    { id:3, project:'BBC Docs', role:'Sound Engineer', crewId:4, day:'Tue', start:'08:00', end:'20:00', color:'#00875A', location:'Remote - Scotland' },
-    { id:4, project:'Netflix BTS', role:'Art Director', crewId:5, day:'Wed', start:'09:00', end:'19:00', color:'#E8003D', location:'Pinewood Studios' },
-    { id:5, project:'Apple Event', role:'Colorist', crewId:8, day:'Thu', start:'10:00', end:'22:00', color:'#6B00FF', location:'Apple HQ' },
-    { id:6, project:'Adidas Shoot', role:'Gaffer', crewId:3, day:'Fri', start:'07:00', end:'17:00', color:'#00875A', location:'Shoreditch Studio' },
-  ]);
-
-  const [invoices, setInvoices] = useState([
-    { id:1, number:'INV-2401', client:'Nike EMEA', project:'Nike Summer Campaign', amount:18000, status:'Paid', due:'Feb 28', date:'Feb 1', notes:'50% deposit payment' },
-    { id:2, number:'INV-2402', client:'BBC Studios', project:'BBC Documentary Series', amount:42500, status:'Sent', due:'Mar 20', date:'Feb 15', notes:'Phase 1 production invoice' },
-    { id:3, number:'INV-2403', client:'Adidas UK', project:'Adidas Product Shoot', amount:9000, status:'Overdue', due:'Mar 1', date:'Feb 1', notes:'Pre-production costs' },
-    { id:4, number:'INV-2404', client:'Netflix', project:'Netflix Series BTS', amount:60000, status:'Draft', due:'Apr 1', date:'Mar 1', notes:'Full production invoice' },
-    { id:5, number:'INV-2405', client:'Apple Inc', project:'Apple Launch Event', amount:100000, status:'Paid', due:'Mar 5', date:'Feb 20', notes:'Final payment' },
-  ]);
-
-  const [messages, setMessages] = useState([
-    { id:1, name:'Alex Morgan', role:'Director', avatar:'AM', lastMsg:'Call sheet for tomorrow is ready', time:'2m', unread:3, online:true, color:'#FF4D00' },
-    { id:2, name:'Jordan Kim', role:'DOP', avatar:'JK', lastMsg:'Can we push the 6am call to 7?', time:'14m', unread:1, online:true, color:'#0057FF' },
-    { id:3, name:'Sam Rivera', role:'Gaffer', avatar:'SR', lastMsg:'All lighting rigs are confirmed', time:'1h', unread:0, online:false, color:'#00875A' },
-    { id:4, name:'Morgan Patel', role:'Art Director', avatar:'MP', lastMsg:'Wardrobe options sent to your email', time:'2h', unread:0, online:true, color:'#6B00FF' },
-    { id:5, name:'Casey Chen', role:'Editor', avatar:'CC', lastMsg:'Rough cut is ready for review', time:'3h', unread:0, online:false, color:'#E8003D' },
-  ]);
-
-  const [chatHistory, setChatHistory] = useState({
-    1: [
-      { id:1, sender:'1', text:'Hey, call sheet for tomorrow is ready. Can you approve it?', time:'10:30' },
-      { id:2, sender:'me', text:'Looking at it now, give me 5 mins', time:'10:32' },
-      { id:3, sender:'1', text:'Also the catering order needs confirmation by 3pm', time:'10:33' },
-    ],
-    2: [
-      { id:1, sender:'2', text:'Can we push the 6am call to 7? Traffic is going to be a nightmare', time:'09:15' },
-    ],
-  });
-
-  const [notifications, setNotifications] = useState([
-    { id:1, type:'alert', icon:'⚠️', title:'Apple Event budget exceeded', body:'You are 93% through your budget with 7% of shoot remaining.', time:'Just now', action:'Review Budget', color:'#FF4D00' },
-    { id:2, type:'invoice', icon:'💰', title:'Payment received', body:'Nike EMEA paid INV-2401 — £18,000 landed in your account.', time:'1h ago', action:'View Invoice', color:'#00875A' },
-    { id:3, type:'crew', icon:'👤', title:'Crew confirmed', body:'Alex Morgan confirmed for Nike Campaign shoot on Monday.', time:'2h ago', action:'View Schedule', color:'#0057FF' },
-    { id:4, type:'overdue', icon:'🔔', title:'Invoice overdue', body:'INV-2403 to Adidas UK is now 4 days past due.', time:'3h ago', action:'Send Reminder', color:'#E8003D' },
-    { id:5, type:'message', icon:'💬', title:'3 unread messages', body:'Alex Morgan sent you new messages about the call sheet.', time:'Yesterday', action:'Open Chat', color:'#6B00FF' },
-  ]);
-
-  const [settings, setSettings] = useState({ notifications: true, darkMode: false, biometric: false, emailDigest: true });
-  const [currentUser] = useState({ name: 'Alex Morgan', role: 'Production Manager', initials: 'AM', color: '#FF4D00' });
-
-  // Project CRUD
-  const addProject = (p) => setProjects(prev => [p, ...prev]);
-  const updateProject = (p) => setProjects(prev => prev.map(x => x.id === p.id ? p : x));
-  const deleteProject = (id) => setProjects(prev => prev.filter(x => x.id !== id));
-
-  // Crew CRUD
-  const addCrew = (c) => setCrew(prev => [c, ...prev]);
-  const updateCrew = (c) => setCrew(prev => prev.map(x => x.id === c.id ? c : x));
-  const deleteCrew = (id) => setCrew(prev => prev.filter(x => x.id !== id));
-
-  // Shift CRUD
-  const addShift = (s) => setShifts(prev => [s, ...prev]);
-  const updateShift = (s) => setShifts(prev => prev.map(x => x.id === s.id ? s : x));
-  const deleteShift = (id) => setShifts(prev => prev.filter(x => x.id !== id));
-
-  // Invoice CRUD
-  const addInvoice = (i) => setInvoices(prev => [i, ...prev]);
-  const updateInvoice = (i) => setInvoices(prev => prev.map(x => x.id === i.id ? i : x));
-  const deleteInvoice = (id) => setInvoices(prev => prev.filter(x => x.id !== id));
-
-  // Chat
-  const addChatMessage = (convoId, msg) => {
-    setChatHistory(prev => ({ ...prev, [convoId]: [...(prev[convoId] || []), msg] }));
-    setMessages(prev => prev.map(m => m.id === convoId ? {
-      ...m, lastMsg: msg.text, time: msg.time,
-      unread: msg.sender !== 'me' ? (m.unread || 0) + 1 : 0,
-    } : m));
-  };
-
-  // Notifications
-  const dismissNotification = (id) => setNotifications(prev => prev.filter(n => n.id !== id));
-
-  return {
-    projects, addProject, updateProject, deleteProject,
-    crew, setCrew, addCrew, updateCrew, deleteCrew,
-    shifts, addShift, updateShift, deleteShift,
-    invoices, addInvoice, updateInvoice, deleteInvoice,
-    messages, setMessages,
-    chatHistory, addChatMessage,
-    notifications, dismissNotification,
-    settings, setSettings,
-    currentUser,
-  };
+const TY = {
+  hero:   { fontSize:36, fontWeight:'800', letterSpacing:-1.5, lineHeight:40 },
+  h1:     { fontSize:28, fontWeight:'800', letterSpacing:-1,   lineHeight:34 },
+  h2:     { fontSize:22, fontWeight:'700', letterSpacing:-0.5, lineHeight:28 },
+  h3:     { fontSize:17, fontWeight:'700', letterSpacing:-0.2, lineHeight:22 },
+  label:  { fontSize:11, fontWeight:'700', letterSpacing:1.2,  textTransform:'uppercase' },
+  body:   { fontSize:15, fontWeight:'400', lineHeight:22 },
+  bodyMd: { fontSize:14, fontWeight:'400', lineHeight:20 },
+  caption:{ fontSize:12, fontWeight:'500', lineHeight:16 },
+  mono:   { fontSize:13, fontWeight:'600', fontVariant:['tabular-nums'] },
 };
+const { width: SW, height: SH } = Dimensions.get('window');
+const isIOS = Platform.OS === 'ios';
 
+let _listeners = [];
+const store = {
+  projects: [
+    { id:'p1', title:'Midnight Runner — Feature Film', client:'StudioFX Productions', status:'active', budget:480000, spent:312000, crew:14, startDate:'2026-01-15', endDate:'2026-07-30', location:'London, UK', desc:'A high-octane action thriller filmed across London and Edinburgh.' },
+    { id:'p2', title:'Nova Brand Campaign', client:'Nova Collective', status:'active', budget:95000, spent:41200, crew:6, startDate:'2026-02-01', endDate:'2026-04-15', location:'Manchester, UK', desc:'A 360 brand refresh campaign across OOH, digital and broadcast.' },
+    { id:'p3', title:'Altitude — Documentary', client:'Channel 4', status:'completed', budget:220000, spent:218500, crew:9, startDate:'2025-09-01', endDate:'2026-01-20', location:'Scotland, UK', desc:'Award-winning documentary exploring life above the clouds.' },
+  ],
+  crew: [
+    { id:'c1', name:'Sophia Marlowe', role:'Director of Photography', dept:'Camera', rate:1200, status:'active', phone:'+44 7700 900001', email:'sophia@crewdesk.io', location:'London', skills:['Arri Alexa', 'Lighting', 'Drone'], initials:'SM', color:'#F5A623' },
+    { id:'c2', name:'Marcus Webb', role:'Production Designer', dept:'Art', rate:950, status:'active', phone:'+44 7700 900002', email:'marcus@crewdesk.io', location:'Manchester', skills:['Set Design', 'Concept Art', 'CAD'], initials:'MW', color:'#00D4B4' },
+    { id:'c3', name:'Priya Nair', role:'Sound Supervisor', dept:'Sound', rate:875, status:'onleave', phone:'+44 7700 900003', email:'priya@crewdesk.io', location:'Birmingham', skills:['Boom Operator', 'Pro Tools', 'Foley'], initials:'PN', color:'#A78BFA' },
+    { id:'c4', name:'James Fletcher', role:'1st AC', dept:'Camera', rate:720, status:'active', phone:'+44 7700 900004', email:'james@crewdesk.io', location:'London', skills:['Focus Pull', 'Lens Matching'], initials:'JF', color:'#FF5C5C' },
+    { id:'c5', name:'Aisha Okafor', role:'Gaffer', dept:'Electrical', rate:810, status:'active', phone:'+44 7700 900005', email:'aisha@crewdesk.io', location:'Leeds', skills:['HMI Lighting', 'LED', 'Rigging'], initials:'AO', color:'#4ADE80' },
+  ],
+  shifts: [
+    { id:'s1', title:'Principal Photography Day 12', project:'Midnight Runner', crewNeeded:8, date:'2026-03-10', callTime:'06:00', wrapTime:'18:00', location:'Pinewood Studios Stage 4', status:'confirmed', dept:'Full Crew', notes:'Camera test at 05:30' },
+    { id:'s2', title:'Brand Shoot Day 1', project:'Nova Brand Campaign', crewNeeded:4, date:'2026-03-11', callTime:'08:00', wrapTime:'17:00', location:'ICI Studios Manchester', status:'pending', dept:'Camera + Art', notes:'Client attending' },
+    { id:'s3', title:'VFX Review Session', project:'Midnight Runner', crewNeeded:3, date:'2026-03-12', callTime:'10:00', wrapTime:'16:00', location:'Remote Zoom', status:'confirmed', dept:'Post', notes:'Bring latest cut' },
+  ],
+  messages: [
+    { id:'m1', name:'Sophia Marlowe', initials:'SM', color:'#F5A623', preview:'Can we push call time to 06:30?', time:'09:41', unread:2, msgs:[
+      { id:'msg1', from:'them', text:'Morning! Just checking call time tomorrow?', time:'09:38' },
+      { id:'msg2', from:'them', text:'Can we push call time to 06:30?', time:'09:41' },
+    ]},
+    { id:'m2', name:'Marcus Webb', initials:'MW', color:'#00D4B4', preview:'Set build is on schedule', time:'Yesterday', unread:0, msgs:[
+      { id:'msg1', from:'them', text:'Set build is on schedule', time:'Yesterday' },
+    ]},
+    { id:'m3', name:'Project: Midnight Runner', initials:'MR', color:'#A78BFA', preview:'Budget review at 14:00 today', time:'08:15', unread:1, msgs:[
+      { id:'msg1', from:'me', text:'Reminder: budget review at 14:00 today', time:'08:15' },
+    ]},
+  ],
+  invoices: [
+    { id:'i1', number:'INV-2026-001', client:'StudioFX Productions', project:'Midnight Runner', amount:48000, status:'paid', dueDate:'2026-02-28', issueDate:'2026-02-01', items:[] },
+    { id:'i2', number:'INV-2026-002', client:'Nova Collective', project:'Nova Brand Campaign', amount:18500, status:'pending', dueDate:'2026-03-20', issueDate:'2026-03-01', items:[] },
+    { id:'i3', number:'INV-2026-003', client:'Channel 4', project:'Altitude Documentary', amount:9250, status:'overdue', dueDate:'2026-02-15', issueDate:'2026-01-25', items:[] },
+  ],
+  notifications: [
+    { id:'n1', type:'warning', title:'Budget Alert', body:'Midnight Runner is at 65% of budget with 8 weeks remaining.', action:'Review Budget', read:false, time:'10 min ago' },
+    { id:'n2', type:'success', title:'Invoice Paid', body:'INV-2026-001 48000 from StudioFX Productions has cleared.', action:'View Invoice', read:false, time:'2 hours ago' },
+    { id:'n3', type:'info', title:'New Crew Request', body:'3 crew members have submitted availability for Midnight Runner.', action:'Review Requests', read:true, time:'Yesterday' },
+  ],
+};
+function subscribe(fn) { _listeners.push(fn); return () => { _listeners = _listeners.filter(l => l !== fn); }; }
+function getStore() { return { ...store }; }
+function dispatch(fn) { fn(store); _listeners.forEach(l => l()); }
+function useStore() {
+  const [, setTick] = useState(0);
+  useEffect(() => subscribe(() => setTick(t => t + 1)), []);
+  return { data: getStore(), dispatch };
+}
 
-// ─────────────────────────────────────────────
-// SHARED UI COMPONENTS
-// ─────────────────────────────────────────────
-
-// Status pill — DEPT style: no border, background fill, tight padding
-function StatusPill({ label, color, bg }) {
+function Card({ children, style, onPress, elevated = false }) {
+  const bg = elevated ? C.bgElevated : C.bgCard;
+  if (onPress) {
+    return (
+      <TouchableOpacity activeOpacity={0.82} onPress={onPress}
+        style={[{ backgroundColor:bg, borderRadius:20, borderWidth:1, borderColor:C.border,
+          shadowColor:C.shadow, shadowOffset:{width:0,height:4}, shadowOpacity:1, shadowRadius:16, elevation:8 }, style]}>
+        {children}
+      </TouchableOpacity>
+    );
+  }
   return (
-    <View style={{ backgroundColor: bg || C.surfaceAlt, borderRadius: 20, paddingHorizontal: 10, paddingVertical: 4, alignSelf: 'flex-start' }}>
-      <Text style={{ color: color || C.inkMid, fontSize: 11, fontWeight: '700', letterSpacing: 0.3 }}>{label}</Text>
+    <View style={[{ backgroundColor:bg, borderRadius:20, borderWidth:1, borderColor:C.border,
+      shadowColor:C.shadow, shadowOffset:{width:0,height:4}, shadowOpacity:1, shadowRadius:16, elevation:8 }, style]}>
+      {children}
     </View>
   );
 }
-
-// Avatar — bold initial with colour
-function Avatar({ initials, color, size }) {
-  const s = size || 40;
+function Badge({ label, color = C.primary, textColor = C.inkDark, size = 'md' }) {
+  const pad = size === 'sm' ? { paddingHorizontal:8, paddingVertical:3 } : { paddingHorizontal:12, paddingVertical:5 };
+  const fs  = size === 'sm' ? 10 : 11;
   return (
-    <View style={{ width: s, height: s, borderRadius: s / 2, backgroundColor: color || C.ink, alignItems: 'center', justifyContent: 'center' }}>
-      <Text style={{ color: '#fff', fontSize: s * 0.35, fontWeight: '800', letterSpacing: -0.5 }}>{initials}</Text>
+    <View style={[{ backgroundColor:color, borderRadius:100 }, pad]}>
+      <Text style={{ color:textColor, fontSize:fs, fontWeight:'700', letterSpacing:0.6, textTransform:'uppercase' }}>{label}</Text>
     </View>
   );
 }
-
-// Online dot
-function OnlineDot({ online }) {
-  if (!online) return null;
-  return <View style={{ position: 'absolute', bottom: 1, right: 1, width: 9, height: 9, borderRadius: 5, backgroundColor: C.green, borderWidth: 1.5, borderColor: C.surface }} />;
-}
-
-// Section header — editorial style
-function SectionLabel({ title, action, onAction }) {
+function SectionLabel({ text, right }) {
   return (
-    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', paddingHorizontal: 20, paddingTop: 28, paddingBottom: 10 }}>
-      <Text style={{ fontSize: 11, fontWeight: '800', letterSpacing: 1.5, color: C.inkLight, textTransform: 'uppercase' }}>{title}</Text>
-      {action && (
-        <TouchableOpacity onPress={onAction}>
-          <Text style={{ fontSize: 12, fontWeight: '600', color: C.electric }}>{action}</Text>
+    <View style={{ flexDirection:'row', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
+      <Text style={[TY.label, { color:C.inkMuted }]}>{text}</Text>
+      {right}
+    </View>
+  );
+}
+function EmptyState({ icon, title, body, onAction, actionLabel }) {
+  return (
+    <View style={{ alignItems:'center', paddingVertical:60, paddingHorizontal:32 }}>
+      <Text style={{ fontSize:48, marginBottom:16 }}>{icon}</Text>
+      <Text style={[TY.h3, { color:C.ink, textAlign:'center', marginBottom:8 }]}>{title}</Text>
+      <Text style={[TY.body, { color:C.inkMuted, textAlign:'center', marginBottom:24 }]}>{body}</Text>
+      {onAction && (
+        <TouchableOpacity onPress={onAction}
+          style={{ backgroundColor:C.primary, paddingHorizontal:24, paddingVertical:12, borderRadius:100 }}>
+          <Text style={{ color:C.inkDark, ...TY.h3 }}>{actionLabel}</Text>
         </TouchableOpacity>
       )}
     </View>
   );
 }
-
-// Page header — DEPT editorial bold
-function PageHeader({ title, subtitle, right, left }) {
+function NotifCard({ notif, onDismiss }) {
+  const typeMap = {
+    warning: { color:C.primary, bg:'#1E1A0F', icon:'bolt' },
+    success: { color:C.success, bg:'#0C1A14', icon:'check' },
+    info:    { color:C.accent,  bg:'#0A1A1A', icon:'info' },
+    error:   { color:C.punch,   bg:'#1A0C0C', icon:'alert' },
+  };
+  const t = typeMap[notif.type] || typeMap.info;
   return (
-    <View style={{ backgroundColor: C.surface, borderBottomWidth: 1, borderBottomColor: C.line }}>
-      {left || right ? (
-        <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, paddingTop: 16, paddingBottom: 4 }}>
-          <View style={{ flex: 1 }}>{left}</View>
-          <View>{right}</View>
+    <View style={{ backgroundColor:t.bg, borderRadius:16, borderLeftWidth:4, borderLeftColor:t.color,
+      marginBottom:10, overflow:'hidden', flexDirection:'row' }}>
+      <View style={{ flex:1, padding:14 }}>
+        <View style={{ flexDirection:'row', alignItems:'center', marginBottom:4 }}>
+          <Text style={[TY.h3, { color:C.ink }]}>{notif.title}</Text>
+          {!notif.read && <View style={{ width:7, height:7, borderRadius:4, backgroundColor:t.color, marginLeft:8 }}/>}
         </View>
-      ) : null}
-      <View style={{ paddingHorizontal: 20, paddingBottom: 16, paddingTop: left || right ? 4 : 16 }}>
-        <Text style={{ fontSize: 28, fontWeight: '800', color: C.ink, letterSpacing: -0.8, lineHeight: 32 }}>{title}</Text>
-        {subtitle ? <Text style={{ fontSize: 13, color: C.inkLight, marginTop: 4, fontWeight: '500' }}>{subtitle}</Text> : null}
+        <Text style={[TY.bodyMd, { color:C.inkMuted, marginBottom:8 }]}>{notif.body}</Text>
+        <Text style={{ color:t.color, ...TY.caption, fontWeight:'700' }}>{notif.action} -></Text>
       </View>
+      <TouchableOpacity onPress={onDismiss} style={{ padding:14, justifyContent:'flex-start' }}>
+        <Text style={{ color:C.inkFaint, fontSize:18 }}>x</Text>
+      </TouchableOpacity>
     </View>
   );
 }
-
-// Input field — clean, newspaper editorial style
-function Input({ label, value, onChangeText, placeholder, multiline, keyboardType, style }) {
+function Avatar({ initials, color, size = 44 }) {
   return (
-    <View style={[{ marginBottom: 16 }, style]}>
-      {label ? <Text style={{ fontSize: 11, fontWeight: '800', color: C.inkLight, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 }}>{label}</Text> : null}
+    <View style={{ width:size, height:size, borderRadius:size/2, backgroundColor:color+'33',
+      borderWidth:2, borderColor:color, alignItems:'center', justifyContent:'center' }}>
+      <Text style={{ color, fontSize:size*0.35, fontWeight:'800' }}>{initials}</Text>
+    </View>
+  );
+}
+function statusColor(s) {
+  return s === 'active' || s === 'confirmed' || s === 'paid' ? C.success
+       : s === 'pending' ? C.primary
+       : s === 'overdue' ? C.punch
+       : s === 'completed' ? C.accent
+       : s === 'onleave' ? C.purple
+       : C.inkMuted;
+}
+function statusLabel(s) {
+  return { active:'Active', confirmed:'Confirmed', pending:'Pending', paid:'Paid',
+           overdue:'Overdue', completed:'Completed', onleave:'On Leave' }[s] || s;
+}
+function Field({ label, value, onChangeText, placeholder, keyboardType, multiline, lines }) {
+  const [focused, setFocused] = useState(false);
+  return (
+    <View style={{ marginBottom:16 }}>
+      <Text style={[TY.label, { color:C.inkMuted, marginBottom:6 }]}>{label}</Text>
       <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder || ''}
-        placeholderTextColor={C.inkGhost}
-        multiline={multiline}
-        keyboardType={keyboardType || 'default'}
-        style={{
-          backgroundColor: C.surface,
-          borderWidth: 1.5,
-          borderColor: C.line,
-          borderRadius: 10,
-          padding: 14,
-          color: C.ink,
-          fontSize: 15,
-          fontWeight: '500',
-          minHeight: multiline ? 80 : 48,
-          textAlignVertical: multiline ? 'top' : 'center',
-        }}
+        value={value} onChangeText={onChangeText} placeholder={placeholder}
+        placeholderTextColor={C.inkFaint} keyboardType={keyboardType || 'default'}
+        multiline={multiline} numberOfLines={lines || 1}
+        onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+        style={{ backgroundColor:C.bgHighlight, borderRadius:12, paddingHorizontal:14,
+          paddingVertical:12, color:C.ink, ...TY.body,
+          borderWidth:1.5, borderColor:focused ? C.primary : C.border,
+          minHeight:multiline ? 80 : 48 }}
       />
     </View>
   );
 }
-
-// Primary button — DEPT style: black pill
-function BtnPrimary({ label, onPress, color, textColor, small }) {
+function PrimaryBtn({ label, onPress, color, disabled }) {
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.85} style={{
-      backgroundColor: color || C.ink,
-      borderRadius: 100,
-      paddingHorizontal: small ? 16 : 24,
-      paddingVertical: small ? 9 : 14,
-      alignItems: 'center',
-    }}>
-      <Text style={{ color: textColor || '#fff', fontSize: small ? 12 : 15, fontWeight: '800', letterSpacing: 0.2 }}>{label}</Text>
+    <TouchableOpacity onPress={onPress} disabled={disabled}
+      style={{ backgroundColor:disabled ? C.bgHighlight : (color || C.primary),
+        borderRadius:100, paddingVertical:15, alignItems:'center',
+        shadowColor:color || C.primary, shadowOffset:{width:0,height:6},
+        shadowOpacity:disabled ? 0 : 0.45, shadowRadius:16, elevation:8, opacity:disabled ? 0.5 : 1 }}>
+      <Text style={[TY.h3, { color:disabled ? C.inkMuted : C.inkDark }]}>{label}</Text>
     </TouchableOpacity>
   );
 }
-
-// Ghost button — outlined pill
-function BtnGhost({ label, onPress, color, small }) {
+function Sheet({ visible, onClose, title, children }) {
   return (
-    <TouchableOpacity onPress={onPress} activeOpacity={0.7} style={{
-      borderWidth: 1.5,
-      borderColor: color || C.line,
-      borderRadius: 100,
-      paddingHorizontal: small ? 14 : 20,
-      paddingVertical: small ? 8 : 12,
-      alignItems: 'center',
-    }}>
-      <Text style={{ color: color || C.inkMid, fontSize: small ? 12 : 14, fontWeight: '700' }}>{label}</Text>
-    </TouchableOpacity>
-  );
-}
-
-// Empty state
-function EmptyState({ icon, title, body }) {
-  return (
-    <View style={{ alignItems: 'center', paddingVertical: 60, paddingHorizontal: 40 }}>
-      <Text style={{ fontSize: 40, marginBottom: 14 }}>{icon}</Text>
-      <Text style={{ fontSize: 18, fontWeight: '800', color: C.ink, textAlign: 'center', marginBottom: 8 }}>{title}</Text>
-      {body ? <Text style={{ fontSize: 14, color: C.inkLight, textAlign: 'center', lineHeight: 20 }}>{body}</Text> : null}
-    </View>
-  );
-}
-
-// Progress bar
-function ProgressBar({ value, color, height }) {
-  const h = height || 4;
-  return (
-    <View style={{ height: h, backgroundColor: C.line, borderRadius: h }}>
-      <View style={{ height: h, width: Math.round(value * 100) + '%', backgroundColor: color || C.electric, borderRadius: h }} />
-    </View>
-  );
-}
-
-// TurboTax-style notification card
-function NotifCard({ notif, onDismiss, onAction }) {
-  return (
-    <View style={{
-      backgroundColor: C.surface,
-      borderRadius: 16,
-      marginHorizontal: 16,
-      marginBottom: 8,
-      borderWidth: 1,
-      borderColor: C.line,
-      overflow: 'hidden',
-    }}>
-      <View style={{ width: 4, position: 'absolute', left: 0, top: 0, bottom: 0, backgroundColor: notif.color || C.punch, borderRadius: 2 }} />
-      <View style={{ padding: 14, paddingLeft: 18 }}>
-        <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-          <View style={{ flexDirection: 'row', alignItems: 'flex-start', flex: 1 }}>
-            <Text style={{ fontSize: 20, marginRight: 10, marginTop: 1 }}>{notif.icon}</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={{ fontSize: 14, fontWeight: '800', color: C.ink, marginBottom: 3 }}>{notif.title}</Text>
-              <Text style={{ fontSize: 13, color: C.inkMid, lineHeight: 18 }}>{notif.body}</Text>
-              {notif.action && (
-                <TouchableOpacity onPress={onAction} style={{ marginTop: 10 }}>
-                  <Text style={{ fontSize: 13, fontWeight: '800', color: notif.color || C.electric }}>{notif.action} →</Text>
-                </TouchableOpacity>
-              )}
-            </View>
+    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+      <Pressable style={{ flex:1, backgroundColor:C.overlay, justifyContent:'flex-end' }} onPress={onClose}>
+        <Pressable onPress={() => {}} style={{ backgroundColor:C.bgCard, borderTopLeftRadius:28, borderTopRightRadius:28, paddingBottom:40 }}>
+          <View style={{ alignItems:'center', paddingTop:12, paddingBottom:4 }}>
+            <View style={{ width:40, height:4, backgroundColor:C.border, borderRadius:2 }}/>
           </View>
-          <TouchableOpacity onPress={onDismiss} style={{ paddingLeft: 8 }}>
-            <Text style={{ fontSize: 16, color: C.inkGhost, fontWeight: '600' }}>×</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection:'row', alignItems:'center', justifyContent:'space-between',
+            paddingHorizontal:24, paddingVertical:16, borderBottomWidth:1, borderBottomColor:C.border }}>
+            <Text style={[TY.h2, { color:C.ink }]}>{title}</Text>
+            <TouchableOpacity onPress={onClose}>
+              <Text style={{ color:C.inkMuted, fontSize:22 }}>x</Text>
+            </TouchableOpacity>
+          </View>
+          <KeyboardAvoidingView behavior={isIOS ? 'padding' : undefined}>
+            <ScrollView contentContainerStyle={{ padding:24 }} keyboardShouldPersistTaps="handled">
+              {children}
+            </ScrollView>
+          </KeyboardAvoidingView>
+        </Pressable>
+      </Pressable>
+    </Modal>
+  );
+}
+function Header({ title, subtitle, right }) {
+  return (
+    <View style={{ paddingHorizontal:20, paddingTop:8, paddingBottom:16 }}>
+      <View style={{ flexDirection:'row', alignItems:'flex-end', justifyContent:'space-between' }}>
+        <View style={{ flex:1 }}>
+          {subtitle ? <Text style={[TY.label, { color:C.inkMuted, marginBottom:4 }]}>{subtitle}</Text> : null}
+          <Text style={[TY.h1, { color:C.ink }]}>{title}</Text>
         </View>
+        {right}
       </View>
     </View>
   );
 }
-
-// Helper: project status config
-function statusConfig(s) {
-  const map = {
-    'Active':   { color: C.green,  bg: C.greenSoft,  label: 'Active' },
-    'Pending':  { color: C.blue,   bg: C.blueSoft,   label: 'Pending' },
-    'At Risk':  { color: C.red,    bg: C.redSoft,    label: 'At Risk' },
-    'Complete': { color: C.inkMid, bg: C.surfaceAlt, label: 'Complete' },
-    'Overdue':  { color: C.red,    bg: C.redSoft,    label: 'Overdue' },
-    'Paid':     { color: C.green,  bg: C.greenSoft,  label: 'Paid' },
-    'Sent':     { color: C.blue,   bg: C.blueSoft,   label: 'Sent' },
-    'Draft':    { color: C.inkMid, bg: C.surfaceAlt, label: 'Draft' },
-    'Available':{ color: C.green,  bg: C.greenSoft,  label: 'Available' },
-    'On Set':   { color: C.punch,  bg: C.punchSoft,  label: 'On Set' },
-    'Travelling':{ color: C.amber, bg: C.amberSoft,  label: 'Travelling' },
-  };
-  return map[s] || { color: C.inkMid, bg: C.surfaceAlt, label: s };
+function BackHeader({ title, onBack, right }) {
+  return (
+    <View style={{ flexDirection:'row', alignItems:'center', paddingHorizontal:16, paddingVertical:12,
+      borderBottomWidth:1, borderBottomColor:C.border }}>
+      <TouchableOpacity onPress={onBack}
+        style={{ backgroundColor:C.bgHighlight, borderRadius:100, width:38, height:38,
+          alignItems:'center', justifyContent:'center', marginRight:12 }}>
+        <Text style={{ color:C.ink, fontSize:18 }}>back</Text>
+      </TouchableOpacity>
+      <Text style={[TY.h3, { color:C.ink, flex:1 }]}>{title}</Text>
+      {right}
+    </View>
+  );
+}
+function StatPill({ label, value, color }) {
+  return (
+    <View style={{ backgroundColor:C.bgHighlight, borderRadius:14, padding:14, flex:1, marginHorizontal:4 }}>
+      <Text style={[TY.label, { color:C.inkMuted, marginBottom:6 }]}>{label}</Text>
+      <Text style={[TY.h2, { color:color || C.ink }]}>{value}</Text>
+    </View>
+  );
 }
 
-function fmtMoney(n) {
-  return '£' + Number(n).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 });
-}
-
-
-// ─────────────────────────────────────────────
-// HOME SCREEN
-// ─────────────────────────────────────────────
-function HomeScreen({ store, onNav }) {
-  const { projects, crew, invoices, notifications, dismissNotification, currentUser } = store;
-  const [showNotifs, setShowNotifs] = React.useState(false);
-
-  const activeProjects = projects.filter(p => p.status === 'Active').length;
-  const availCrew = crew.filter(c => c.status === 'Available').length;
-  const totalRevenue = invoices.filter(i => i.status === 'Paid').reduce((a, i) => a + i.amount, 0);
-  const overdueInvoices = invoices.filter(i => i.status === 'Overdue').length;
-  const unreadNotifs = notifications.length;
-  const atRiskProjects = projects.filter(p => p.status === 'At Risk');
-
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-  const firstName = currentUser.name.split(' ')[0];
-
-  if (showNotifs) {
-    return (
-      <View style={{ flex: 1, backgroundColor: C.bg }}>
-        <PageHeader
-          title="Notifications"
-          subtitle={unreadNotifs + ' updates'}
-          left={
-            <TouchableOpacity onPress={() => setShowNotifs(false)}>
-              <Text style={{ fontSize: 13, fontWeight: '700', color: C.electric }}>← Back</Text>
-            </TouchableOpacity>
-          }
-        />
-        <ScrollView contentContainerStyle={{ paddingTop: 8, paddingBottom: 100 }}>
-          {notifications.length === 0 && <EmptyState icon="🎉" title="All clear!" body="No notifications right now." />}
-          {notifications.map(n => (
-            <NotifCard
-              key={n.id}
-              notif={n}
-              onDismiss={() => dismissNotification(n.id)}
-              onAction={() => { dismissNotification(n.id); setShowNotifs(false); }}
-            />
+function HomeScreen({ navigate }) {
+  const { data, dispatch } = useStore();
+  const activeProjects = data.projects.filter(p => p.status === 'active').length;
+  const totalCrew = data.crew.filter(c => c.status === 'active').length;
+  const pendingInv = data.invoices.filter(i => i.status === 'pending' || i.status === 'overdue').length;
+  const unreadNotifs = data.notifications.filter(n => !n.read).length;
+  function dismissNotif(id) {
+    dispatch(s => { s.notifications = s.notifications.filter(n => n.id !== id); });
+  }
+  return (
+    <SafeAreaView style={{ flex:1, backgroundColor:C.bg }}>
+      <StatusBar barStyle="light-content" backgroundColor={C.bg}/>
+      <ScrollView contentContainerStyle={{ paddingBottom:100 }} showsVerticalScrollIndicator={false}>
+        <View style={{ paddingHorizontal:20, paddingTop:20, paddingBottom:24 }}>
+          <Text style={[TY.label, { color:C.primary, marginBottom:8 }]}>CREWDESK</Text>
+          <Text style={[TY.hero, { color:C.ink }]}>Good morning, <Text style={{ color:C.primary }}>Ashtyn</Text></Text>
+          <Text style={[TY.body, { color:C.inkMuted, marginTop:8 }]}>Here is what is happening today.</Text>
+        </View>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ paddingHorizontal:16, paddingBottom:8 }}>
+          {[
+            { label:'ACTIVE PROJECTS', value:activeProjects, color:C.accent, icon:'film' },
+            { label:'CREW ACTIVE', value:totalCrew, color:C.success, icon:'crew' },
+            { label:'PENDING INVOICES', value:pendingInv, color:C.punch, icon:'inv' },
+            { label:'NOTIFICATIONS', value:unreadNotifs, color:C.purple, icon:'bell' },
+          ].map(k => (
+            <Card key={k.label} style={{ marginRight:12, padding:18, width:160 }}>
+              <Text style={[TY.hero, { color:k.color, fontSize:32 }]}>{k.value}</Text>
+              <Text style={[TY.label, { color:C.inkMuted, marginTop:4 }]}>{k.label}</Text>
+            </Card>
           ))}
         </ScrollView>
-      </View>
-    );
-  }
-
-  return (
-    <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <View style={{ backgroundColor: C.surface, borderBottomWidth: 1, borderBottomColor: C.line, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 16 }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-          <View>
-            <Text style={{ fontSize: 12, fontWeight: '700', color: C.inkLight, letterSpacing: 1, textTransform: 'uppercase' }}>{greeting}</Text>
-            <Text style={{ fontSize: 26, fontWeight: '800', color: C.ink, letterSpacing: -0.7, marginTop: 2 }}>{firstName} 👋</Text>
+        {data.notifications.length > 0 && (
+          <View style={{ paddingHorizontal:20, marginTop:24 }}>
+            <SectionLabel text="Notifications"
+              right={
+                <TouchableOpacity onPress={() => dispatch(s => { s.notifications.forEach(n => n.read = true); })}>
+                  <Text style={[TY.caption, { color:C.primary }]}>Mark all read</Text>
+                </TouchableOpacity>
+              }/>
+            {data.notifications.map(n => (
+              <NotifCard key={n.id} notif={n} onDismiss={() => dismissNotif(n.id)}/>
+            ))}
           </View>
-          <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-            <TouchableOpacity onPress={() => setShowNotifs(true)} style={{ position: 'relative', marginRight: 12 }}>
-              <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: C.surfaceAlt, alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ fontSize: 18 }}>🔔</Text>
-              </View>
-              {unreadNotifs > 0 && (
-                <View style={{ position: 'absolute', top: -2, right: -2, backgroundColor: C.punch, borderRadius: 10, minWidth: 18, height: 18, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 4, borderWidth: 2, borderColor: C.surface }}>
-                  <Text style={{ color: '#fff', fontSize: 10, fontWeight: '800' }}>{unreadNotifs}</Text>
+        )}
+        <View style={{ paddingHorizontal:20, marginTop:24 }}>
+          <SectionLabel text="Active Projects"
+            right={
+              <TouchableOpacity onPress={() => navigate('Projects')}>
+                <Text style={[TY.caption, { color:C.primary }]}>View all</Text>
+              </TouchableOpacity>
+            }/>
+          {data.projects.filter(p => p.status === 'active').map(p => {
+            const pct = p.budget > 0 ? Math.round((p.spent / p.budget) * 100) : 0;
+            const barColor = pct > 85 ? C.punch : pct > 60 ? C.primary : C.success;
+            return (
+              <Card key={p.id} style={{ marginBottom:12, padding:20 }} onPress={() => navigate('Projects')}>
+                <View style={{ flexDirection:'row', alignItems:'flex-start', justifyContent:'space-between', marginBottom:12 }}>
+                  <View style={{ flex:1, marginRight:12 }}>
+                    <Text style={[TY.h3, { color:C.ink }]}>{p.title}</Text>
+                    <Text style={[TY.bodyMd, { color:C.inkMuted, marginTop:2 }]}>{p.client}</Text>
+                  </View>
+                  <Badge label={statusLabel(p.status)} color={statusColor(p.status) + '33'} textColor={statusColor(p.status)}/>
                 </View>
-              )}
-            </TouchableOpacity>
-            <Avatar initials={currentUser.initials} color={currentUser.color} size={40} />
-          </View>
+                <View style={{ flexDirection:'row', alignItems:'center', justifyContent:'space-between', marginBottom:8 }}>
+                  <Text style={[TY.caption, { color:C.inkMuted }]}>Budget used</Text>
+                  <Text style={[TY.mono, { color:barColor }]}>{pct}%</Text>
+                </View>
+                <View style={{ height:6, backgroundColor:C.bgHighlight, borderRadius:3 }}>
+                  <View style={{ height:6, width:(pct)+'%', backgroundColor:barColor, borderRadius:3 }}/>
+                </View>
+                <View style={{ flexDirection:'row', marginTop:12 }}>
+                  <Text style={[TY.caption, { color:C.inkMuted }]}>GBP{p.spent.toLocaleString()} / GBP{p.budget.toLocaleString()}</Text>
+                </View>
+              </Card>
+            );
+          })}
         </View>
-      </View>
-
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: 100 }}>
-        {/* KPI Strip */}
-        <View style={{ paddingHorizontal: 16, paddingTop: 16 }}>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 8 }}>
-            {[
-              { label: 'Active Jobs', val: String(activeProjects), icon: '🎬', color: C.electric, bg: C.electricSoft },
-              { label: 'Available Crew', val: String(availCrew), icon: '👥', color: C.green, bg: C.greenSoft },
-              { label: 'Revenue', val: fmtMoney(totalRevenue), icon: '💰', color: C.sage, bg: C.sageSoft },
-              { label: 'Overdue', val: String(overdueInvoices), icon: '⏰', color: C.red, bg: C.redSoft },
-            ].map(k => (
-              <View key={k.label} style={{ backgroundColor: k.bg, borderRadius: 16, padding: 14, marginRight: 10, minWidth: 120 }}>
-                <Text style={{ fontSize: 22 }}>{k.icon}</Text>
-                <Text style={{ fontSize: 22, fontWeight: '800', color: k.color, marginTop: 6, letterSpacing: -0.5 }}>{k.val}</Text>
-                <Text style={{ fontSize: 11, fontWeight: '700', color: k.color, marginTop: 2, opacity: 0.7, textTransform: 'uppercase', letterSpacing: 0.5 }}>{k.label}</Text>
-              </View>
+        <View style={{ paddingHorizontal:20, marginTop:8 }}>
+          <SectionLabel text="Crew on Call"
+            right={
+              <TouchableOpacity onPress={() => navigate('Crew')}>
+                <Text style={[TY.caption, { color:C.primary }]}>View all</Text>
+              </TouchableOpacity>
+            }/>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingBottom:4 }}>
+            {data.crew.filter(c => c.status === 'active').map(c => (
+              <Card key={c.id} style={{ marginRight:12, padding:16, alignItems:'center', width:120 }} onPress={() => navigate('Crew')}>
+                <Avatar initials={c.initials} color={c.color} size={50}/>
+                <Text style={[TY.caption, { color:C.ink, marginTop:10, textAlign:'center', fontWeight:'700' }]}>{c.name.split(' ')[0]}</Text>
+                <Text style={[TY.caption, { color:C.inkMuted, textAlign:'center', marginTop:2 }]}>{c.role.split(' ')[0]}</Text>
+              </Card>
             ))}
           </ScrollView>
         </View>
-
-        {/* At Risk Alert — TurboTax style */}
-        {atRiskProjects.length > 0 && (
-          <View style={{ marginHorizontal: 16, marginTop: 16, backgroundColor: C.redSoft, borderRadius: 14, padding: 14, borderLeftWidth: 4, borderLeftColor: C.red }}>
-            <Text style={{ fontSize: 13, fontWeight: '800', color: C.red, marginBottom: 4 }}>⚠️ Attention needed</Text>
-            {atRiskProjects.map(p => (
-              <TouchableOpacity key={p.id} onPress={() => onNav('projects')} style={{ flexDirection: 'row', alignItems: 'center', marginTop: 4 }}>
-                <Text style={{ fontSize: 13, color: C.red, flex: 1 }}>{p.title} — {Math.round(p.progress * 100)}% budget used</Text>
-                <Text style={{ fontSize: 12, color: C.red, fontWeight: '700' }}>View →</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        )}
-
-        {/* Notifications preview — TurboTax style */}
-        {notifications.slice(0, 2).length > 0 && (
-          <View style={{ marginTop: 16 }}>
-            <SectionLabel title="Updates" action={unreadNotifs > 2 ? 'See all ' + unreadNotifs : 'See all'} onAction={() => setShowNotifs(true)} />
-            {notifications.slice(0, 2).map(n => (
-              <NotifCard key={n.id} notif={n} onDismiss={() => dismissNotification(n.id)} onAction={() => setShowNotifs(true)} />
-            ))}
-          </View>
-        )}
-
-        {/* Active Projects */}
-        <SectionLabel title="Active Projects" action="All projects" onAction={() => onNav('projects')} />
-        {projects.filter(p => p.status === 'Active').slice(0, 3).map(p => {
-          const sc = statusConfig(p.status);
-          return (
-            <TouchableOpacity key={p.id} onPress={() => onNav('projects')} activeOpacity={0.75} style={{
-              backgroundColor: C.surface,
-              marginHorizontal: 16,
-              marginBottom: 10,
-              borderRadius: 16,
-              padding: 16,
-              borderWidth: 1,
-              borderColor: C.line,
-            }}>
-              <View style={{ flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
-                <View style={{ flex: 1, marginRight: 10 }}>
-                  <Text style={{ fontSize: 15, fontWeight: '800', color: C.ink, letterSpacing: -0.3 }} numberOfLines={1}>{p.title}</Text>
-                  <Text style={{ fontSize: 12, color: C.inkLight, marginTop: 2 }}>{p.client}</Text>
-                </View>
-                <StatusPill label={p.status} color={sc.color} bg={sc.bg} />
-              </View>
-              <ProgressBar value={p.progress} color={p.color} height={5} />
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 }}>
-                <Text style={{ fontSize: 12, color: C.inkLight }}>{p.crew} crew · Due {p.due}</Text>
-                <Text style={{ fontSize: 12, fontWeight: '700', color: C.inkMid }}>{Math.round(p.progress * 100)}%</Text>
-              </View>
-            </TouchableOpacity>
-          );
-        })}
-
-        {/* On-Deck Crew */}
-        <SectionLabel title="Available Now" action="All crew" onAction={() => onNav('crew')} />
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 8 }}>
-          {crew.filter(c => c.status === 'Available').map(c => (
-            <TouchableOpacity key={c.id} onPress={() => onNav('crew')} activeOpacity={0.75} style={{
-              backgroundColor: C.surface,
-              borderRadius: 14,
-              padding: 14,
-              marginRight: 10,
-              width: 130,
-              borderWidth: 1,
-              borderColor: C.line,
-              alignItems: 'center',
-            }}>
-              <View style={{ position: 'relative', marginBottom: 8 }}>
-                <Avatar initials={c.name.split(' ').map(n => n[0]).join('')} color={c.color} size={48} />
-                <OnlineDot online={c.status === 'Available'} />
-              </View>
-              <Text style={{ fontSize: 13, fontWeight: '700', color: C.ink, textAlign: 'center' }} numberOfLines={1}>{c.name.split(' ')[0]}</Text>
-              <Text style={{ fontSize: 11, color: C.inkLight, textAlign: 'center', marginTop: 2 }} numberOfLines={1}>{c.role}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-
-        {/* Quick Actions */}
-        <SectionLabel title="Quick Actions" />
-        <View style={{ flexDirection: 'row', paddingHorizontal: 16, flexWrap: 'wrap' }}>
-          {[
-            { label: 'New Project', icon: '🎬', tab: 'projects', color: C.electricSoft },
-            { label: 'Add Crew', icon: '👤', tab: 'crew', color: C.sageSoft },
-            { label: 'Schedule', icon: '📅', tab: 'schedule', color: C.amberSoft },
-            { label: 'New Invoice', icon: '🧾', tab: 'invoices', color: C.punchSoft },
-            { label: 'Messages', icon: '💬', tab: 'messages', color: C.purpleSoft },
-            { label: 'Reports', icon: '📊', tab: 'reports', color: C.greenSoft },
-          ].map((a, i) => (
-            <TouchableOpacity key={a.label} onPress={() => onNav(a.tab)} activeOpacity={0.75} style={{
-              width: '30%',
-              marginRight: i % 3 === 2 ? 0 : '5%',
-              marginBottom: 10,
-              backgroundColor: a.color,
-              borderRadius: 14,
-              padding: 14,
-              alignItems: 'center',
-            }}>
-              <Text style={{ fontSize: 22, marginBottom: 6 }}>{a.icon}</Text>
-              <Text style={{ fontSize: 11, fontWeight: '700', color: C.ink, textAlign: 'center' }}>{a.label}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
-
-// ─────────────────────────────────────────────
-// PROJECTS SCREEN — full CRUD
-// ─────────────────────────────────────────────
-function ProjectForm({ project, onSave, onClose }) {
-  const isEdit = !!project;
-  const colors = [C.punch, C.electric, C.green, C.purple, C.amber, C.rose, C.sage, C.lime];
-  const [title, setTitle] = React.useState(project ? project.title : '');
-  const [client, setClient] = React.useState(project ? project.client : '');
-  const [status, setStatus] = React.useState(project ? project.status : 'Active');
-  const [due, setDue] = React.useState(project ? project.due : '');
-  const [budget, setBudget] = React.useState(project ? String(project.budget) : '');
-  const [lead, setLead] = React.useState(project ? project.lead : '');
-  const [desc, setDesc] = React.useState(project ? project.desc : '');
-  const [color, setColor] = React.useState(project ? project.color : colors[0]);
-  const statuses = ['Active', 'Pending', 'At Risk', 'Complete'];
-
-  const save = () => {
-    if (!title.trim() || !client.trim()) { Alert.alert('Required', 'Title and client name are required.'); return; }
-    onSave({ id: project ? project.id : Date.now(), title: title.trim(), client: client.trim(), status, due: due || 'TBD', budget: parseFloat(budget) || 0, spent: project ? project.spent : 0, progress: project ? project.progress : 0, lead: lead || 'Unassigned', desc: desc.trim(), crew: project ? project.crew : 0, color });
-  };
-
-  return (
-    <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <PageHeader
-        title={isEdit ? 'Edit Project' : 'New Project'}
-        subtitle={isEdit ? project.client : 'Fill in the details below'}
-        left={<TouchableOpacity onPress={onClose}><Text style={{ fontSize: 13, fontWeight: '700', color: C.inkLight }}>Cancel</Text></TouchableOpacity>}
-        right={<BtnPrimary label="Save" onPress={save} small />}
-      />
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 80 }}>
-        <Input label="Project Title *" value={title} onChangeText={setTitle} placeholder="e.g. Nike Summer Campaign" />
-        <Input label="Client Name *" value={client} onChangeText={setClient} placeholder="e.g. Nike EMEA" />
-        <Input label="Lead / Director" value={lead} onChangeText={setLead} placeholder="e.g. Alex Morgan" />
-        <Input label="Due Date" value={due} onChangeText={setDue} placeholder="e.g. Mar 15" />
-        <Input label="Budget (£)" value={budget} onChangeText={setBudget} placeholder="e.g. 24000" keyboardType="decimal-pad" />
-        <Input label="Description" value={desc} onChangeText={setDesc} placeholder="Project brief..." multiline />
-        <Text style={{ fontSize: 11, fontWeight: '800', color: C.inkLight, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10 }}>STATUS</Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 20 }}>
-          {statuses.map(s => {
-            const sc = statusConfig(s);
-            return (
-              <TouchableOpacity key={s} onPress={() => setStatus(s)} style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, marginRight: 8, marginBottom: 8, backgroundColor: status === s ? sc.color : C.surfaceAlt }}>
-                <Text style={{ color: status === s ? '#fff' : C.inkMid, fontSize: 13, fontWeight: '700' }}>{s}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-        <Text style={{ fontSize: 11, fontWeight: '800', color: C.inkLight, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10 }}>COLOUR</Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 10 }}>
-          {colors.map(col => (
-            <TouchableOpacity key={col} onPress={() => setColor(col)} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: col, marginRight: 10, marginBottom: 10, alignItems: 'center', justifyContent: 'center', borderWidth: color === col ? 3 : 0, borderColor: C.ink }}>
-              {color === col && <Text style={{ color: '#fff', fontSize: 14 }}>✓</Text>}
-            </TouchableOpacity>
-          ))}
-        </View>
-      </ScrollView>
-    </View>
-  );
-}
-
-function ProjectDetail({ project, onEdit, onDelete, onClose }) {
-  const sc = statusConfig(project.status);
-  const pctBudget = project.budget > 0 ? project.spent / project.budget : 0;
-  return (
-    <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <View style={{ backgroundColor: project.color, padding: 20, paddingTop: 16 }}>
-        <TouchableOpacity onPress={onClose} style={{ marginBottom: 12 }}>
-          <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, fontWeight: '700' }}>← Back</Text>
-        </TouchableOpacity>
-        <StatusPill label={project.status} color="#fff" bg="rgba(255,255,255,0.25)" />
-        <Text style={{ fontSize: 26, fontWeight: '800', color: '#fff', marginTop: 10, letterSpacing: -0.5, lineHeight: 30 }}>{project.title}</Text>
-        <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)', marginTop: 4 }}>{project.client}</Text>
-      </View>
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 80 }}>
-        {/* Budget card */}
-        <View style={{ backgroundColor: C.surface, borderRadius: 16, padding: 16, marginBottom: 14, borderWidth: 1, borderColor: C.line }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 }}>
-            <View>
-              <Text style={{ fontSize: 11, fontWeight: '700', color: C.inkLight, letterSpacing: 1, textTransform: 'uppercase' }}>Spent</Text>
-              <Text style={{ fontSize: 22, fontWeight: '800', color: pctBudget > 0.9 ? C.red : C.ink, marginTop: 2 }}>{fmtMoney(project.spent)}</Text>
-            </View>
-            <View style={{ alignItems: 'flex-end' }}>
-              <Text style={{ fontSize: 11, fontWeight: '700', color: C.inkLight, letterSpacing: 1, textTransform: 'uppercase' }}>Budget</Text>
-              <Text style={{ fontSize: 22, fontWeight: '800', color: C.ink, marginTop: 2 }}>{fmtMoney(project.budget)}</Text>
-            </View>
-          </View>
-          <ProgressBar value={pctBudget} color={pctBudget > 0.9 ? C.red : project.color} height={6} />
-          <Text style={{ fontSize: 12, color: C.inkLight, marginTop: 6, textAlign: 'right' }}>{Math.round(pctBudget * 100)}% used</Text>
-        </View>
-        {/* Details */}
-        <View style={{ backgroundColor: C.surface, borderRadius: 16, borderWidth: 1, borderColor: C.line, overflow: 'hidden', marginBottom: 14 }}>
-          {[
-            { label: 'Lead', val: project.lead },
-            { label: 'Due Date', val: project.due },
-            { label: 'Crew Size', val: project.crew + ' people' },
-            { label: 'Progress', val: Math.round(project.progress * 100) + '%' },
-          ].map((row, i) => (
-            <View key={row.label} style={{ flexDirection: 'row', justifyContent: 'space-between', padding: 14, borderTopWidth: i > 0 ? 1 : 0, borderTopColor: C.line }}>
-              <Text style={{ fontSize: 14, color: C.inkLight, fontWeight: '500' }}>{row.label}</Text>
-              <Text style={{ fontSize: 14, color: C.ink, fontWeight: '700' }}>{row.val}</Text>
-            </View>
-          ))}
-        </View>
-        {project.desc ? (
-          <View style={{ marginBottom: 20 }}>
-            <Text style={{ fontSize: 11, fontWeight: '800', color: C.inkLight, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>DESCRIPTION</Text>
-            <Text style={{ fontSize: 14, color: C.inkMid, lineHeight: 21 }}>{project.desc}</Text>
-          </View>
-        ) : null}
-        <View style={{ flexDirection: 'row' }}>
-          <View style={{ flex: 1, marginRight: 10 }}><BtnPrimary label="Edit Project" onPress={onEdit} /></View>
-          <BtnGhost label="Delete" onPress={onDelete} color={C.red} />
-        </View>
-      </ScrollView>
-    </View>
-  );
-}
-
-function ProjectsScreen({ store, onNav }) {
-  const { projects, addProject, updateProject, deleteProject } = store;
-  const [filter, setFilter] = React.useState('All');
-  const [showForm, setShowForm] = React.useState(false);
-  const [editProject, setEditProject] = React.useState(null);
-  const [detailProject, setDetailProject] = React.useState(null);
-  const [search, setSearch] = React.useState('');
-  const filters = ['All', 'Active', 'Pending', 'At Risk', 'Complete'];
-
-  const filtered = projects.filter(p => {
-    const mf = filter === 'All' || p.status === filter;
-    const ms = search === '' || p.title.toLowerCase().includes(search.toLowerCase()) || p.client.toLowerCase().includes(search.toLowerCase());
-    return mf && ms;
-  });
-
-  const handleSave = (p) => {
-    if (editProject) updateProject(p); else addProject(p);
-    setShowForm(false); setEditProject(null);
-  };
-
-  const handleDelete = (p) => {
-    Alert.alert('Delete Project', 'Remove ' + p.title + '? This cannot be undone.', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => { deleteProject(p.id); setDetailProject(null); } },
-    ]);
-  };
-
-  if (showForm || editProject) return <ProjectForm project={editProject} onSave={handleSave} onClose={() => { setShowForm(false); setEditProject(null); }} />;
-  if (detailProject) return <ProjectDetail project={detailProject} onEdit={() => { setEditProject(detailProject); setDetailProject(null); }} onDelete={() => handleDelete(detailProject)} onClose={() => setDetailProject(null)} />;
-
-  return (
-    <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <PageHeader
-        title="Projects"
-        subtitle={filtered.length + ' projects'}
-        right={
-          <TouchableOpacity onPress={() => setShowForm(true)} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: C.ink, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ color: '#fff', fontSize: 20, lineHeight: 24, fontWeight: '300' }}>+</Text>
-          </TouchableOpacity>
-        }
-      />
-      <View style={{ backgroundColor: C.surface, borderBottomWidth: 1, borderBottomColor: C.line, paddingHorizontal: 16, paddingVertical: 10 }}>
-        <TextInput
-          value={search}
-          onChangeText={setSearch}
-          placeholder="Search projects..."
-          placeholderTextColor={C.inkGhost}
-          style={{ backgroundColor: C.bgWarm, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: C.ink, fontWeight: '500' }}
-        />
-      </View>
-      <View style={{ backgroundColor: C.surface, borderBottomWidth: 1, borderBottomColor: C.line }}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 10 }}>
-          {filters.map(f => {
-            const sc = statusConfig(f);
-            return (
-              <TouchableOpacity key={f} onPress={() => setFilter(f)} style={{ paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, marginRight: 8, backgroundColor: filter === f ? C.ink : C.bgWarm }}>
-                <Text style={{ color: filter === f ? '#fff' : C.inkMid, fontSize: 13, fontWeight: '700' }}>{f}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
-        {filtered.length === 0 && <EmptyState icon="🎬" title="No projects found" body="Try a different filter or create a new project." />}
-        {filtered.map(p => {
-          const sc = statusConfig(p.status);
-          return (
-            <TouchableOpacity key={p.id} onPress={() => setDetailProject(p)} activeOpacity={0.75} style={{ backgroundColor: C.surface, borderRadius: 18, marginBottom: 12, borderWidth: 1, borderColor: C.line, overflow: 'hidden' }}>
-              <View style={{ height: 5, backgroundColor: p.color }} />
-              <View style={{ padding: 16 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-                  <View style={{ flex: 1, marginRight: 10 }}>
-                    <Text style={{ fontSize: 16, fontWeight: '800', color: C.ink, letterSpacing: -0.3 }}>{p.title}</Text>
-                    <Text style={{ fontSize: 12, color: C.inkLight, marginTop: 3 }}>{p.client} · Due {p.due}</Text>
-                  </View>
-                  <StatusPill label={p.status} color={sc.color} bg={sc.bg} />
-                </View>
-                <ProgressBar value={p.progress} color={p.color} height={5} />
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <Text style={{ fontSize: 12, color: C.inkLight }}>{p.crew} crew · {fmtMoney(p.spent)} of {fmtMoney(p.budget)}</Text>
-                  </View>
-                  <Text style={{ fontSize: 12, fontWeight: '800', color: C.inkMid }}>{Math.round(p.progress * 100)}%</Text>
-                </View>
-              </View>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
-    </View>
-  );
-}
-
-
-// ─────────────────────────────────────────────
-// CREW SCREEN — full CRUD
-// ─────────────────────────────────────────────
-function CrewForm({ member, onSave, onClose }) {
-  const isEdit = !!member;
-  const colors = [C.punch, C.electric, C.green, C.purple, C.amber, C.rose, C.sage];
-  const [name, setName] = React.useState(member ? member.name : '');
-  const [role, setRole] = React.useState(member ? member.role : '');
-  const [dept, setDept] = React.useState(member ? member.dept : '');
-  const [rate, setRate] = React.useState(member ? String(member.rate) : '');
-  const [email, setEmail] = React.useState(member ? member.email : '');
-  const [phone, setPhone] = React.useState(member ? member.phone : '');
-  const [bio, setBio] = React.useState(member ? member.bio : '');
-  const [status, setStatus] = React.useState(member ? member.status : 'Available');
-  const [color, setColor] = React.useState(member ? member.color : colors[0]);
-  const statuses = ['Available', 'On Set', 'Travelling'];
-
-  const save = () => {
-    if (!name.trim() || !role.trim()) { Alert.alert('Required', 'Name and role are required.'); return; }
-    onSave({ id: member ? member.id : Date.now(), name: name.trim(), role: role.trim(), dept: dept || 'General', rate: parseFloat(rate) || 0, email: email.trim(), phone: phone.trim(), bio: bio.trim(), status, color, rating: member ? member.rating : 5.0, projects: member ? member.projects : 0 });
-  };
-
-  return (
-    <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <PageHeader
-        title={isEdit ? 'Edit Crew Member' : 'Add Crew Member'}
-        subtitle={isEdit ? member.role : 'Fill in the details below'}
-        left={<TouchableOpacity onPress={onClose}><Text style={{ fontSize: 13, fontWeight: '700', color: C.inkLight }}>Cancel</Text></TouchableOpacity>}
-        right={<BtnPrimary label="Save" onPress={save} small />}
-      />
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 80 }}>
-        <Input label="Full Name *" value={name} onChangeText={setName} placeholder="e.g. Alex Morgan" />
-        <Input label="Role *" value={role} onChangeText={setRole} placeholder="e.g. Director of Photography" />
-        <Input label="Department" value={dept} onChangeText={setDept} placeholder="e.g. Camera" />
-        <Input label="Day Rate (£)" value={rate} onChangeText={setRate} placeholder="e.g. 750" keyboardType="decimal-pad" />
-        <Input label="Email" value={email} onChangeText={setEmail} placeholder="name@email.com" keyboardType="email-address" />
-        <Input label="Phone" value={phone} onChangeText={setPhone} placeholder="+44 7700 900000" keyboardType="phone-pad" />
-        <Input label="Bio" value={bio} onChangeText={setBio} placeholder="Brief description..." multiline />
-        <Text style={{ fontSize: 11, fontWeight: '800', color: C.inkLight, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10 }}>STATUS</Text>
-        <View style={{ flexDirection: 'row', marginBottom: 20 }}>
-          {statuses.map(s => {
-            const sc = statusConfig(s);
-            return (
-              <TouchableOpacity key={s} onPress={() => setStatus(s)} style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, marginRight: 8, backgroundColor: status === s ? sc.color : C.surfaceAlt }}>
-                <Text style={{ color: status === s ? '#fff' : C.inkMid, fontSize: 13, fontWeight: '700' }}>{s}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-        <Text style={{ fontSize: 11, fontWeight: '800', color: C.inkLight, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10 }}>COLOUR</Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-          {colors.map(col => (
-            <TouchableOpacity key={col} onPress={() => setColor(col)} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: col, marginRight: 10, marginBottom: 10, alignItems: 'center', justifyContent: 'center', borderWidth: color === col ? 3 : 0, borderColor: C.ink }}>
-              {color === col && <Text style={{ color: '#fff', fontSize: 14 }}>✓</Text>}
-            </TouchableOpacity>
-          ))}
-        </View>
-      </ScrollView>
-    </View>
-  );
-}
-
-function CrewDetail({ member, onEdit, onDelete, onClose, onMessage }) {
-  const sc = statusConfig(member.status);
-  return (
-    <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <View style={{ backgroundColor: member.color, padding: 20, paddingTop: 16, alignItems: 'center' }}>
-        <TouchableOpacity onPress={onClose} style={{ alignSelf: 'flex-start', marginBottom: 16 }}>
-          <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, fontWeight: '700' }}>← Back</Text>
-        </TouchableOpacity>
-        <Avatar initials={member.name.split(' ').map(n => n[0]).join('')} color="rgba(255,255,255,0.25)" size={72} />
-        <Text style={{ fontSize: 22, fontWeight: '800', color: '#fff', marginTop: 12, letterSpacing: -0.5 }}>{member.name}</Text>
-        <Text style={{ fontSize: 14, color: 'rgba(255,255,255,0.8)', marginTop: 4 }}>{member.role}</Text>
-        <StatusPill label={member.status} color="#fff" bg="rgba(255,255,255,0.2)" />
-      </View>
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 80 }}>
-        <View style={{ flexDirection: 'row', marginBottom: 14 }}>
-          <View style={{ flex: 1, marginRight: 8 }}><BtnPrimary label="Message" onPress={onMessage} color={member.color} /></View>
-          <View style={{ flex: 1 }}><BtnGhost label="Edit" onPress={onEdit} /></View>
-        </View>
-        <View style={{ backgroundColor: C.surface, borderRadius: 16, borderWidth: 1, borderColor: C.line, overflow: 'hidden', marginBottom: 14 }}>
-          {[
-            { label: 'Department', val: member.dept },
-            { label: 'Day Rate', val: fmtMoney(member.rate) },
-            { label: 'Rating', val: '★ ' + member.rating + ' / 5.0' },
-            { label: 'Projects', val: member.projects + ' completed' },
-            { label: 'Email', val: member.email },
-            { label: 'Phone', val: member.phone },
-          ].map((row, i) => (
-            <View key={row.label} style={{ flexDirection: 'row', justifyContent: 'space-between', padding: 14, borderTopWidth: i > 0 ? 1 : 0, borderTopColor: C.line }}>
-              <Text style={{ fontSize: 14, color: C.inkLight }}>{row.label}</Text>
-              <Text style={{ fontSize: 14, color: C.ink, fontWeight: '700', flex: 1, textAlign: 'right' }} numberOfLines={1}>{row.val}</Text>
-            </View>
-          ))}
-        </View>
-        {member.bio ? (
-          <View style={{ marginBottom: 20 }}>
-            <Text style={{ fontSize: 11, fontWeight: '800', color: C.inkLight, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 8 }}>BIO</Text>
-            <Text style={{ fontSize: 14, color: C.inkMid, lineHeight: 21 }}>{member.bio}</Text>
-          </View>
-        ) : null}
-        <BtnGhost label="Remove from roster" onPress={onDelete} color={C.red} />
-      </ScrollView>
-    </View>
-  );
-}
-
-function CrewScreen({ store, onNav }) {
-  const { crew, addCrew, updateCrew, deleteCrew } = store;
-  const [filter, setFilter] = React.useState('All');
-  const [search, setSearch] = React.useState('');
-  const [showForm, setShowForm] = React.useState(false);
-  const [editMember, setEditMember] = React.useState(null);
-  const [detailMember, setDetailMember] = React.useState(null);
-  const filters = ['All', 'Available', 'On Set', 'Travelling'];
-
-  const filtered = crew.filter(c => {
-    const mf = filter === 'All' || c.status === filter;
-    const ms = search === '' || c.name.toLowerCase().includes(search.toLowerCase()) || c.role.toLowerCase().includes(search.toLowerCase());
-    return mf && ms;
-  });
-
-  const handleSave = (c) => {
-    if (editMember) updateCrew(c); else addCrew(c);
-    setShowForm(false); setEditMember(null);
-  };
-
-  const handleDelete = (c) => {
-    Alert.alert('Remove Crew Member', 'Remove ' + c.name + ' from the roster?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Remove', style: 'destructive', onPress: () => { deleteCrew(c.id); setDetailMember(null); } },
-    ]);
-  };
-
-  if (showForm || editMember) return <CrewForm member={editMember} onSave={handleSave} onClose={() => { setShowForm(false); setEditMember(null); }} />;
-  if (detailMember) return <CrewDetail member={detailMember} onEdit={() => { setEditMember(detailMember); setDetailMember(null); }} onDelete={() => handleDelete(detailMember)} onClose={() => setDetailMember(null)} onMessage={() => { setDetailMember(null); onNav('messages'); }} />;
-
-  return (
-    <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <PageHeader
-        title="Crew"
-        subtitle={filtered.length + ' members'}
-        right={
-          <TouchableOpacity onPress={() => setShowForm(true)} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: C.ink, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ color: '#fff', fontSize: 20, lineHeight: 24, fontWeight: '300' }}>+</Text>
-          </TouchableOpacity>
-        }
-      />
-      <View style={{ backgroundColor: C.surface, borderBottomWidth: 1, borderBottomColor: C.line, paddingHorizontal: 16, paddingVertical: 10 }}>
-        <TextInput value={search} onChangeText={setSearch} placeholder="Search crew..." placeholderTextColor={C.inkGhost} style={{ backgroundColor: C.bgWarm, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: C.ink, fontWeight: '500' }} />
-      </View>
-      <View style={{ backgroundColor: C.surface, borderBottomWidth: 1, borderBottomColor: C.line }}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 10 }}>
-          {filters.map(f => (
-            <TouchableOpacity key={f} onPress={() => setFilter(f)} style={{ paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, marginRight: 8, backgroundColor: filter === f ? C.ink : C.bgWarm }}>
-              <Text style={{ color: filter === f ? '#fff' : C.inkMid, fontSize: 13, fontWeight: '700' }}>{f}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
-        {filtered.length === 0 && <EmptyState icon="👥" title="No crew found" body="Add crew members to your roster." />}
-        {filtered.map(c => {
-          const sc = statusConfig(c.status);
-          return (
-            <TouchableOpacity key={c.id} onPress={() => setDetailMember(c)} activeOpacity={0.75} style={{ backgroundColor: C.surface, borderRadius: 16, marginBottom: 10, borderWidth: 1, borderColor: C.line, padding: 14, flexDirection: 'row', alignItems: 'center' }}>
-              <View style={{ position: 'relative', marginRight: 14 }}>
-                <Avatar initials={c.name.split(' ').map(n => n[0]).join('')} color={c.color} size={50} />
-                <OnlineDot online={c.status === 'Available'} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
-                  <Text style={{ fontSize: 15, fontWeight: '800', color: C.ink }}>{c.name}</Text>
-                  <StatusPill label={c.status} color={sc.color} bg={sc.bg} />
-                </View>
-                <Text style={{ fontSize: 13, color: C.inkLight }}>{c.role} · {c.dept}</Text>
-                <Text style={{ fontSize: 12, color: C.inkLight, marginTop: 3 }}>{fmtMoney(c.rate)}/day · ★ {c.rating}</Text>
-              </View>
-            </TouchableOpacity>
-          );
-        })}
-      </ScrollView>
-    </View>
-  );
-}
-
-
-// ─────────────────────────────────────────────
-// SCHEDULE SCREEN — weekly calendar + CRUD
-// ─────────────────────────────────────────────
-function ShiftForm({ shift, crew, projects, onSave, onClose }) {
-  const isEdit = !!shift;
-  const days = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-  const [selCrew, setSelCrew] = React.useState(shift ? shift.crewId : null);
-  const [selProject, setSelProject] = React.useState(shift ? shift.project : (projects[0] ? projects[0].title : ''));
-  const [selRole, setSelRole] = React.useState(shift ? shift.role : '');
-  const [selDay, setSelDay] = React.useState(shift ? shift.day : 'Mon');
-  const [start, setStart] = React.useState(shift ? shift.start : '08:00');
-  const [end, setEnd] = React.useState(shift ? shift.end : '18:00');
-  const [location, setLocation] = React.useState(shift ? shift.location : '');
-
-  const chosenCrew = crew.find(c => c.id === selCrew);
-
-  const save = () => {
-    if (!selCrew || !selProject) { Alert.alert('Required', 'Please select a crew member and project.'); return; }
-    onSave({ id: shift ? shift.id : Date.now(), crewId: selCrew, project: selProject, role: selRole || (chosenCrew ? chosenCrew.role : 'Crew'), day: selDay, start, end, location, color: chosenCrew ? chosenCrew.color : C.electric });
-  };
-
-  return (
-    <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <PageHeader
-        title={isEdit ? 'Edit Shift' : 'New Shift'}
-        subtitle="Schedule a crew member"
-        left={<TouchableOpacity onPress={onClose}><Text style={{ fontSize: 13, fontWeight: '700', color: C.inkLight }}>Cancel</Text></TouchableOpacity>}
-        right={<BtnPrimary label="Save" onPress={save} small />}
-      />
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 80 }}>
-        <Text style={{ fontSize: 11, fontWeight: '800', color: C.inkLight, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10 }}>DAY</Text>
-        <View style={{ flexDirection: 'row', marginBottom: 20 }}>
-          {days.map(d => (
-            <TouchableOpacity key={d} onPress={() => setSelDay(d)} style={{ flex: 1, paddingVertical: 10, borderRadius: 10, marginRight: 4, backgroundColor: selDay === d ? C.ink : C.surfaceAlt, alignItems: 'center' }}>
-              <Text style={{ color: selDay === d ? '#fff' : C.inkMid, fontSize: 11, fontWeight: '700' }}>{d}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
-        <Text style={{ fontSize: 11, fontWeight: '800', color: C.inkLight, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10 }}>CREW MEMBER</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 20 }}>
-          {crew.map(c => (
-            <TouchableOpacity key={c.id} onPress={() => setSelCrew(c.id)} style={{ alignItems: 'center', marginRight: 14 }}>
-              <View style={{ borderWidth: selCrew === c.id ? 3 : 0, borderColor: c.color, borderRadius: 30, marginBottom: 5 }}>
-                <Avatar initials={c.name.split(' ').map(n => n[0]).join('')} color={selCrew === c.id ? c.color : C.surfaceAlt} size={52} />
-              </View>
-              <Text style={{ fontSize: 10, fontWeight: selCrew === c.id ? '800' : '500', color: selCrew === c.id ? C.ink : C.inkLight, textAlign: 'center' }} numberOfLines={1}>{c.name.split(' ')[0]}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-        <Text style={{ fontSize: 11, fontWeight: '800', color: C.inkLight, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10 }}>PROJECT</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 20 }}>
-          {projects.map(p => (
-            <TouchableOpacity key={p.id} onPress={() => setSelProject(p.title)} style={{ paddingHorizontal: 14, paddingVertical: 9, borderRadius: 20, marginRight: 8, backgroundColor: selProject === p.title ? C.ink : C.surfaceAlt }}>
-              <Text style={{ color: selProject === p.title ? '#fff' : C.inkMid, fontSize: 13, fontWeight: '700' }} numberOfLines={1}>{p.title}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-        <Input label="Role on shoot" value={selRole} onChangeText={setSelRole} placeholder={chosenCrew ? chosenCrew.role : 'e.g. Director'} />
-        <View style={{ flexDirection: 'row' }}>
-          <View style={{ flex: 1, marginRight: 10 }}><Input label="Start Time" value={start} onChangeText={setStart} placeholder="08:00" /></View>
-          <View style={{ flex: 1 }}><Input label="End Time" value={end} onChangeText={setEnd} placeholder="18:00" /></View>
-        </View>
-        <Input label="Location" value={location} onChangeText={setLocation} placeholder="e.g. Pinewood Studios" />
-      </ScrollView>
-    </View>
-  );
-}
-
-function ScheduleScreen({ store, onNav }) {
-  const { shifts, crew, projects, addShift, updateShift, deleteShift } = store;
-  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  const dayLabels = { Mon:'Monday', Tue:'Tuesday', Wed:'Wednesday', Thu:'Thursday', Fri:'Friday', Sat:'Saturday', Sun:'Sunday' };
-  const [activeDay, setActiveDay] = React.useState('Mon');
-  const [showForm, setShowForm] = React.useState(false);
-  const [editShift, setEditShift] = React.useState(null);
-
-  const todayShifts = shifts.filter(s => s.day === activeDay);
-
-  const handleSave = (s) => {
-    if (editShift) updateShift(s); else addShift(s);
-    setShowForm(false); setEditShift(null);
-  };
-
-  const handleDelete = (s) => {
-    Alert.alert('Remove Shift', 'Remove this shift?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Remove', style: 'destructive', onPress: () => deleteShift(s.id) },
-    ]);
-  };
-
-  if (showForm || editShift) return <ShiftForm shift={editShift} crew={crew} projects={projects} onSave={handleSave} onClose={() => { setShowForm(false); setEditShift(null); }} />;
-
-  return (
-    <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <PageHeader
-        title="Schedule"
-        subtitle={todayShifts.length + ' shifts ' + dayLabels[activeDay]}
-        right={
-          <TouchableOpacity onPress={() => setShowForm(true)} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: C.ink, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ color: '#fff', fontSize: 20, lineHeight: 24, fontWeight: '300' }}>+</Text>
-          </TouchableOpacity>
-        }
-      />
-      {/* Day picker strip */}
-      <View style={{ backgroundColor: C.surface, borderBottomWidth: 1, borderBottomColor: C.line, paddingVertical: 10 }}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16 }}>
-          {days.map(d => {
-            const count = shifts.filter(s => s.day === d).length;
-            const isActive = activeDay === d;
-            return (
-              <TouchableOpacity key={d} onPress={() => setActiveDay(d)} style={{ alignItems: 'center', marginRight: 16, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 12, backgroundColor: isActive ? C.ink : 'transparent' }}>
-                <Text style={{ fontSize: 12, fontWeight: '800', color: isActive ? '#fff' : C.inkLight, letterSpacing: 0.5 }}>{d}</Text>
-                {count > 0 && (
-                  <View style={{ marginTop: 4, width: 6, height: 6, borderRadius: 3, backgroundColor: isActive ? C.lime : C.inkGhost }} />
-                )}
-              </TouchableOpacity>
-            );
-          })}
-        </ScrollView>
-      </View>
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
-        {todayShifts.length === 0 && <EmptyState icon="📅" title={"Nothing on " + dayLabels[activeDay]} body="Tap + to schedule a crew member." />}
-        {todayShifts.map(s => {
-          const member = crew.find(c => c.id === s.crewId);
-          return (
-            <View key={s.id} style={{ backgroundColor: C.surface, borderRadius: 16, marginBottom: 10, borderWidth: 1, borderColor: C.line, overflow: 'hidden', flexDirection: 'row' }}>
-              <View style={{ width: 5, backgroundColor: s.color || C.electric }} />
-              <View style={{ flex: 1, padding: 14 }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                    {member && (
-                      <View style={{ marginRight: 10 }}>
-                        <Avatar initials={member.name.split(' ').map(n => n[0]).join('')} color={s.color || C.electric} size={36} />
-                      </View>
-                    )}
-                    <View style={{ flex: 1 }}>
-                      <Text style={{ fontSize: 15, fontWeight: '800', color: C.ink }}>{member ? member.name : 'Unknown'}</Text>
-                      <Text style={{ fontSize: 12, color: C.inkLight, marginTop: 2 }}>{s.role} · {s.project}</Text>
-                    </View>
-                  </View>
-                  <View style={{ flexDirection: 'row' }}>
-                    <TouchableOpacity onPress={() => setEditShift(s)} style={{ padding: 6 }}>
-                      <Text style={{ fontSize: 14, color: C.inkLight }}>✏️</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => handleDelete(s)} style={{ padding: 6 }}>
-                      <Text style={{ fontSize: 14, color: C.inkLight }}>🗑</Text>
-                    </TouchableOpacity>
-                  </View>
-                </View>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', backgroundColor: C.bgWarm, borderRadius: 8, padding: 10 }}>
-                  <Text style={{ fontSize: 13, fontWeight: '700', color: C.ink }}>{s.start} – {s.end}</Text>
-                  {s.location ? <Text style={{ fontSize: 12, color: C.inkLight }} numberOfLines={1}>{s.location}</Text> : null}
-                </View>
-              </View>
-            </View>
-          );
-        })}
-      </ScrollView>
-    </View>
-  );
-}
-
-
-// ─────────────────────────────────────────────
-// MESSAGES SCREEN — real iMessage-style chat
-// ─────────────────────────────────────────────
-function MessagesScreen({ store, onNav }) {
-  const { messages, setMessages, chatHistory, addChatMessage, crew } = store;
-  const [activeConvo, setActiveConvo] = React.useState(null);
-  const [inputText, setInputText] = React.useState('');
-  const [search, setSearch] = React.useState('');
-  const scrollRef = React.useRef(null);
-
-  const filtered = messages.filter(m =>
-    search === '' || m.name.toLowerCase().includes(search.toLowerCase())
-  );
-
-  const openConvo = (m) => {
-    setActiveConvo(m);
-    setMessages(messages.map(msg => msg.id === m.id ? { ...msg, unread: 0 } : msg));
-  };
-
-  const handleSend = () => {
-    if (!inputText.trim() || !activeConvo) return;
-    const newMsg = { id: Date.now(), sender: 'me', text: inputText.trim(), time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
-    addChatMessage(activeConvo.id, newMsg);
-    setInputText('');
-    setTimeout(() => scrollRef.current && scrollRef.current.scrollToEnd({ animated: true }), 100);
-    const replies = ['Got it, on it!', 'Will do.', 'Sounds good.', 'Copy that.', 'Confirmed.', 'I\'ll check and come back to you.'];
-    setTimeout(() => {
-      const reply = { id: Date.now() + 1, sender: String(activeConvo.id), text: replies[Math.floor(Math.random() * replies.length)], time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) };
-      addChatMessage(activeConvo.id, reply);
-    }, 1400);
-  };
-
-  const history = activeConvo ? (chatHistory[activeConvo.id] || []) : [];
-
-  if (activeConvo) {
+function ProjectsScreen() {
+  const { data, dispatch } = useStore();
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [detail, setDetail] = useState(null);
+  const [filter, setFilter] = useState('all');
+  const blank = { title:'', client:'', status:'active', budget:'', spent:'', crew:'', startDate:'', endDate:'', location:'', desc:'' };
+  const [form, setForm] = useState(blank);
+  const filters = ['all','active','pending','completed'];
+  const filtered = data.projects.filter(p => filter === 'all' || p.status === filter);
+  function openNew() { setForm(blank); setEditing(null); setShowForm(true); }
+  function openEdit(p) { setForm({ ...p, budget:String(p.budget), spent:String(p.spent), crew:String(p.crew) }); setEditing(p.id); setShowForm(true); }
+  function save() {
+    if (!form.title.trim()) { Alert.alert('Required', 'Project title is required'); return; }
+    const proj = { ...form, budget:parseFloat(form.budget)||0, spent:parseFloat(form.spent)||0, crew:parseInt(form.crew)||0 };
+    if (editing) {
+      dispatch(s => { const i = s.projects.findIndex(p => p.id === editing); if (i > -1) s.projects[i] = { ...s.projects[i], ...proj }; });
+    } else {
+      dispatch(s => { s.projects.push({ ...proj, id:'p'+Date.now() }); });
+    }
+    setShowForm(false);
+  }
+  function del(id) {
+    Alert.alert('Delete Project', 'This will permanently delete the project.',
+      [{ text:'Cancel', style:'cancel' }, { text:'Delete', style:'destructive', onPress: function() { dispatch(s => { s.projects = s.projects.filter(p => p.id !== id); }); setDetail(null); } }]);
+  }
+  if (detail) {
+    const p = data.projects.find(x => x.id === detail);
+    if (!p) { setDetail(null); return null; }
+    const pct = p.budget > 0 ? Math.round((p.spent / p.budget) * 100) : 0;
+    const barColor = pct > 85 ? C.punch : pct > 60 ? C.primary : C.success;
     return (
-      <View style={{ flex: 1, backgroundColor: C.bg }}>
-        <View style={{ backgroundColor: C.surface, borderBottomWidth: 1, borderBottomColor: C.line, padding: 16, flexDirection: 'row', alignItems: 'center' }}>
-          <TouchableOpacity onPress={() => setActiveConvo(null)} style={{ marginRight: 14 }}>
-            <Text style={{ fontSize: 22, color: C.ink }}>←</Text>
-          </TouchableOpacity>
-          <View style={{ position: 'relative', marginRight: 12 }}>
-            <Avatar initials={activeConvo.avatar} color={activeConvo.color} size={40} />
-            <OnlineDot online={activeConvo.online} />
+      <SafeAreaView style={{ flex:1, backgroundColor:C.bg }}>
+        <BackHeader title={p.title} onBack={() => setDetail(null)}
+          right={
+            <View style={{ flexDirection:'row' }}>
+              <TouchableOpacity onPress={() => { setDetail(null); openEdit(p); }}
+                style={{ backgroundColor:C.bgHighlight, borderRadius:100, paddingHorizontal:14, paddingVertical:7, marginRight:8 }}>
+                <Text style={{ color:C.primary, ...TY.caption, fontWeight:'700' }}>Edit</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => del(p.id)}
+                style={{ backgroundColor:C.punch+'22', borderRadius:100, paddingHorizontal:14, paddingVertical:7 }}>
+                <Text style={{ color:C.punch, ...TY.caption, fontWeight:'700' }}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          }/>
+        <ScrollView contentContainerStyle={{ padding:20, paddingBottom:60 }}>
+          <Card style={{ padding:20, marginBottom:16 }}>
+            <Badge label={statusLabel(p.status)} color={statusColor(p.status)+'33'} textColor={statusColor(p.status)}/>
+            <Text style={[TY.h1, { color:C.ink, marginTop:12 }]}>{p.title}</Text>
+            <Text style={[TY.body, { color:C.inkMuted, marginTop:4 }]}>{p.client}</Text>
+            <Text style={[TY.bodyMd, { color:C.inkMuted, marginTop:12 }]}>{p.desc}</Text>
+          </Card>
+          <View style={{ flexDirection:'row', marginBottom:16 }}>
+            <StatPill label="BUDGET" value={"GBP"+p.budget.toLocaleString()} color={C.primary}/>
+            <StatPill label="SPENT" value={"GBP"+p.spent.toLocaleString()} color={barColor}/>
+            <StatPill label="CREW" value={p.crew} color={C.accent}/>
           </View>
-          <View style={{ flex: 1 }}>
-            <Text style={{ fontSize: 16, fontWeight: '800', color: C.ink }}>{activeConvo.name}</Text>
-            <Text style={{ fontSize: 12, color: activeConvo.online ? C.green : C.inkLight }}>{activeConvo.online ? 'Online' : activeConvo.role}</Text>
-          </View>
-        </View>
-
-        <ScrollView ref={scrollRef} style={{ flex: 1, backgroundColor: C.bg }} contentContainerStyle={{ padding: 16, paddingBottom: 8 }} onContentSizeChange={() => scrollRef.current && scrollRef.current.scrollToEnd({ animated: false })}>
-          {history.length === 0 && <EmptyState icon="💬" title={'Message ' + activeConvo.name} body="Start the conversation." />}
-          {history.map((msg, i) => {
-            const isMe = msg.sender === 'me';
-            return (
-              <View key={msg.id || i} style={{ flexDirection: 'row', justifyContent: isMe ? 'flex-end' : 'flex-start', marginBottom: 8, alignItems: 'flex-end' }}>
-                {!isMe && (
-                  <View style={{ marginRight: 8, marginBottom: 4 }}>
-                    <Avatar initials={activeConvo.avatar} color={activeConvo.color} size={28} />
-                  </View>
-                )}
-                <View style={{ maxWidth: '72%' }}>
-                  <View style={{
-                    backgroundColor: isMe ? C.ink : C.surface,
-                    borderRadius: 18,
-                    borderBottomRightRadius: isMe ? 4 : 18,
-                    borderBottomLeftRadius: isMe ? 18 : 4,
-                    paddingHorizontal: 14,
-                    paddingVertical: 10,
-                    borderWidth: isMe ? 0 : 1,
-                    borderColor: C.line,
-                  }}>
-                    <Text style={{ color: isMe ? '#fff' : C.ink, fontSize: 14, lineHeight: 20, fontWeight: '500' }}>{msg.text}</Text>
-                  </View>
-                  <Text style={{ color: C.inkGhost, fontSize: 10, marginTop: 3, textAlign: isMe ? 'right' : 'left', paddingHorizontal: 4 }}>{msg.time}</Text>
-                </View>
+          <Card style={{ padding:20, marginBottom:16 }}>
+            <Text style={[TY.label, { color:C.inkMuted, marginBottom:10 }]}>Budget Progress</Text>
+            <View style={{ flexDirection:'row', justifyContent:'space-between', marginBottom:8 }}>
+              <Text style={[TY.body, { color:C.ink }]}>{pct}% used</Text>
+              <Text style={[TY.bodyMd, { color:barColor, fontWeight:'700' }]}>GBP{(p.budget - p.spent).toLocaleString()} remaining</Text>
+            </View>
+            <View style={{ height:8, backgroundColor:C.bgHighlight, borderRadius:4 }}>
+              <View style={{ height:8, width:pct+'%', backgroundColor:barColor, borderRadius:4 }}/>
+            </View>
+          </Card>
+          <Card style={{ padding:20 }}>
+            {[
+              { label:'Location', value:p.location },
+              { label:'Start Date', value:p.startDate },
+              { label:'End Date', value:p.endDate },
+            ].map(row => (
+              <View key={row.label} style={{ flexDirection:'row', justifyContent:'space-between', paddingVertical:10,
+                borderBottomWidth:1, borderBottomColor:C.border }}>
+                <Text style={[TY.body, { color:C.inkMuted }]}>{row.label}</Text>
+                <Text style={[TY.body, { color:C.ink, fontWeight:'600' }]}>{row.value}</Text>
               </View>
-            );
-          })}
+            ))}
+          </Card>
         </ScrollView>
-
-        <View style={{ flexDirection: 'row', alignItems: 'center', padding: 12, paddingBottom: 20, backgroundColor: C.surface, borderTopWidth: 1, borderTopColor: C.line }}>
-          <TextInput
-            value={inputText}
-            onChangeText={setInputText}
-            placeholder={'Message ' + activeConvo.name.split(' ')[0] + '...'}
-            placeholderTextColor={C.inkGhost}
-            style={{ flex: 1, backgroundColor: C.bgWarm, borderRadius: 22, paddingHorizontal: 16, paddingVertical: 10, color: C.ink, fontSize: 14, fontWeight: '500', marginRight: 10, borderWidth: 1, borderColor: C.line }}
-            onSubmitEditing={handleSend}
-            returnKeyType="send"
-          />
-          <TouchableOpacity onPress={handleSend} activeOpacity={0.8} style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: inputText.trim() ? C.ink : C.line, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ color: '#fff', fontSize: 18 }}>↑</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
+      </SafeAreaView>
     );
   }
-
-  const totalUnread = messages.reduce((a, m) => a + (m.unread || 0), 0);
-
   return (
-    <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <PageHeader
-        title="Messages"
-        subtitle={totalUnread > 0 ? totalUnread + ' unread' : 'All read'}
+    <SafeAreaView style={{ flex:1, backgroundColor:C.bg }}>
+      <StatusBar barStyle="light-content" backgroundColor={C.bg}/>
+      <Header title="Projects" subtitle="PRODUCTIONS"
         right={
-          <TouchableOpacity
-            onPress={() => {
-              const opts = crew.slice(0, 6).map(function(c) {
-                return { text: c.name, onPress: function() {
-                  const existing = messages.find(function(m) { return m.id === c.id; });
-                  if (existing) { openConvo(existing); }
-                  else {
-                    const nc = { id: c.id, name: c.name, role: c.role, avatar: c.name.split(' ').map(function(n){return n[0];}).join(''), color: c.color || C.electric, lastMsg: '', time: 'Now', unread: 0, online: false };
-                    setMessages([nc, ...messages]);
-                    setTimeout(function(){ openConvo(nc); }, 100);
-                  }
-                }};
-              });
-              Alert.alert('New Message', 'Select a crew member', [...opts, { text: 'Cancel', style: 'cancel' }]);
-            }}
-            style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: C.ink, alignItems: 'center', justifyContent: 'center' }}
-          >
-            <Text style={{ color: '#fff', fontSize: 20, lineHeight: 24, fontWeight: '300' }}>+</Text>
+          <TouchableOpacity onPress={openNew}
+            style={{ backgroundColor:C.primary, borderRadius:100, paddingHorizontal:16, paddingVertical:8 }}>
+            <Text style={[TY.caption, { color:C.inkDark, fontWeight:'700' }]}>+ New</Text>
           </TouchableOpacity>
-        }
-      />
-      <View style={{ backgroundColor: C.surface, borderBottomWidth: 1, borderBottomColor: C.line, paddingHorizontal: 16, paddingVertical: 10 }}>
-        <TextInput value={search} onChangeText={setSearch} placeholder="Search messages..." placeholderTextColor={C.inkGhost} style={{ backgroundColor: C.bgWarm, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: C.ink, fontWeight: '500' }} />
-      </View>
-      <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
-        {filtered.length === 0 && <EmptyState icon="💬" title="No conversations" body="Start a conversation with your crew." />}
-        {filtered.map(m => (
-          <TouchableOpacity key={m.id} onPress={() => openConvo(m)} activeOpacity={0.7} style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: C.lineSoft, backgroundColor: m.unread > 0 ? C.electricSoft : C.surface }}>
-            <View style={{ position: 'relative', marginRight: 12 }}>
-              <Avatar initials={m.avatar} color={m.color} size={48} />
-              <OnlineDot online={m.online} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 3 }}>
-                <Text style={{ color: C.ink, fontSize: 15, fontWeight: m.unread > 0 ? '800' : '600' }}>{m.name}</Text>
-                <Text style={{ color: C.inkGhost, fontSize: 11 }}>{m.time}</Text>
-              </View>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                <Text style={{ color: m.unread > 0 ? C.inkMid : C.inkLight, fontSize: 13, flex: 1, marginRight: 8, fontWeight: m.unread > 0 ? '600' : '400' }} numberOfLines={1}>{m.lastMsg || 'Start a conversation'}</Text>
-                {m.unread > 0 && (
-                  <View style={{ backgroundColor: C.electric, borderRadius: 10, minWidth: 20, height: 20, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 6 }}>
-                    <Text style={{ color: '#fff', fontSize: 11, fontWeight: '800' }}>{m.unread}</Text>
-                  </View>
-                )}
-              </View>
-            </View>
+        }/>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal:20, paddingBottom:12 }}>
+        {filters.map(f => (
+          <TouchableOpacity key={f} onPress={() => setFilter(f)}
+            style={{ backgroundColor:filter===f ? C.primary : C.bgHighlight,
+              borderRadius:100, paddingHorizontal:16, paddingVertical:8, marginRight:8 }}>
+            <Text style={[TY.caption, { color:filter===f ? C.inkDark : C.inkMuted, fontWeight:'700' }]}>
+              {f.charAt(0).toUpperCase()+f.slice(1)}
+            </Text>
           </TouchableOpacity>
         ))}
       </ScrollView>
-    </View>
-  );
-}
-
-
-// ─────────────────────────────────────────────
-// INVOICES SCREEN — full CRUD + status actions
-// ─────────────────────────────────────────────
-function InvoiceForm({ invoice, projects, onSave, onClose }) {
-  const isEdit = !!invoice;
-  const [client, setClient] = React.useState(invoice ? invoice.client : '');
-  const [project, setProject] = React.useState(invoice ? invoice.project : (projects[0] ? projects[0].title : ''));
-  const [amount, setAmount] = React.useState(invoice ? String(invoice.amount) : '');
-  const [status, setStatus] = React.useState(invoice ? invoice.status : 'Draft');
-  const [due, setDue] = React.useState(invoice ? invoice.due : '');
-  const [notes, setNotes] = React.useState(invoice ? invoice.notes || '' : '');
-  const statuses = ['Draft', 'Sent', 'Paid', 'Overdue'];
-
-  const save = () => {
-    if (!client.trim() || !amount.trim()) { Alert.alert('Required', 'Client name and amount are required.'); return; }
-    onSave({ id: invoice ? invoice.id : Date.now(), number: invoice ? invoice.number : 'INV-' + String(Date.now()).slice(-4), client: client.trim(), project: project || 'General', amount: parseFloat(amount) || 0, status, due: due || 'TBD', date: invoice ? invoice.date : new Date().toLocaleDateString(), notes: notes.trim() });
-  };
-
-  return (
-    <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <PageHeader
-        title={isEdit ? 'Edit Invoice' : 'New Invoice'}
-        subtitle={isEdit ? invoice.number : 'Fill in the details'}
-        left={<TouchableOpacity onPress={onClose}><Text style={{ fontSize: 13, fontWeight: '700', color: C.inkLight }}>Cancel</Text></TouchableOpacity>}
-        right={<BtnPrimary label="Save" onPress={save} small />}
-      />
-      <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 80 }}>
-        <Input label="Client Name *" value={client} onChangeText={setClient} placeholder="e.g. Nike EMEA" />
-        <Text style={{ fontSize: 11, fontWeight: '800', color: C.inkLight, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10 }}>PROJECT</Text>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 16 }}>
-          {projects.map(p => (
-            <TouchableOpacity key={p.id} onPress={() => setProject(p.title)} style={{ paddingHorizontal: 14, paddingVertical: 9, borderRadius: 20, marginRight: 8, backgroundColor: project === p.title ? C.ink : C.surfaceAlt }}>
-              <Text style={{ color: project === p.title ? '#fff' : C.inkMid, fontSize: 13, fontWeight: '700' }} numberOfLines={1}>{p.title}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-        <Input label="Amount (£) *" value={amount} onChangeText={setAmount} placeholder="0.00" keyboardType="decimal-pad" />
-        <Input label="Due Date" value={due} onChangeText={setDue} placeholder="e.g. Mar 30" />
-        <Input label="Notes" value={notes} onChangeText={setNotes} placeholder="Optional notes..." multiline />
-        <Text style={{ fontSize: 11, fontWeight: '800', color: C.inkLight, letterSpacing: 1, textTransform: 'uppercase', marginBottom: 10 }}>STATUS</Text>
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap' }}>
-          {statuses.map(s => {
-            const sc = statusConfig(s);
-            return (
-              <TouchableOpacity key={s} onPress={() => setStatus(s)} style={{ paddingHorizontal: 14, paddingVertical: 8, borderRadius: 20, marginRight: 8, marginBottom: 8, backgroundColor: status === s ? sc.color : C.surfaceAlt }}>
-                <Text style={{ color: status === s ? '#fff' : C.inkMid, fontSize: 13, fontWeight: '700' }}>{s}</Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-      </ScrollView>
-    </View>
-  );
-}
-
-function InvoicesScreen({ store, onNav }) {
-  const { invoices, projects, addInvoice, updateInvoice, deleteInvoice } = store;
-  const [filter, setFilter] = React.useState('All');
-  const [showForm, setShowForm] = React.useState(false);
-  const [editInvoice, setEditInvoice] = React.useState(null);
-  const [search, setSearch] = React.useState('');
-
-  const filtered = invoices.filter(i => {
-    const mf = filter === 'All' || i.status === filter;
-    const ms = search === '' || i.client.toLowerCase().includes(search.toLowerCase()) || i.number.toLowerCase().includes(search.toLowerCase());
-    return mf && ms;
-  });
-
-  const totalPaid = invoices.filter(i => i.status === 'Paid').reduce((a, i) => a + i.amount, 0);
-  const totalPending = invoices.filter(i => i.status === 'Sent').reduce((a, i) => a + i.amount, 0);
-  const totalOverdue = invoices.filter(i => i.status === 'Overdue').reduce((a, i) => a + i.amount, 0);
-
-  const handleSave = (inv) => {
-    if (editInvoice) updateInvoice(inv); else addInvoice(inv);
-    setShowForm(false); setEditInvoice(null);
-  };
-
-  const handleDelete = (inv) => {
-    Alert.alert('Delete Invoice', 'Remove ' + inv.number + '?', [
-      { text: 'Cancel', style: 'cancel' },
-      { text: 'Delete', style: 'destructive', onPress: () => deleteInvoice(inv.id) },
-    ]);
-  };
-
-  if (showForm || editInvoice) return <InvoiceForm invoice={editInvoice} projects={projects} onSave={handleSave} onClose={() => { setShowForm(false); setEditInvoice(null); }} />;
-
-  return (
-    <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <PageHeader
-        title="Invoices"
-        subtitle={fmtMoney(totalPaid) + ' collected'}
-        right={
-          <TouchableOpacity onPress={() => setShowForm(true)} style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: C.ink, alignItems: 'center', justifyContent: 'center' }}>
-            <Text style={{ color: '#fff', fontSize: 20, lineHeight: 24, fontWeight: '300' }}>+</Text>
-          </TouchableOpacity>
-        }
-      />
-      {/* Summary strip — TurboTax style */}
-      <View style={{ backgroundColor: C.surface, borderBottomWidth: 1, borderBottomColor: C.line }}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 12 }}>
-          {[
-            { label: 'Collected', val: fmtMoney(totalPaid), color: C.green, bg: C.greenSoft },
-            { label: 'Outstanding', val: fmtMoney(totalPending), color: C.blue, bg: C.blueSoft },
-            { label: 'Overdue', val: fmtMoney(totalOverdue), color: C.red, bg: C.redSoft },
-          ].map(s => (
-            <View key={s.label} style={{ backgroundColor: s.bg, borderRadius: 12, paddingHorizontal: 16, paddingVertical: 10, marginRight: 10, alignItems: 'center', minWidth: 110 }}>
-              <Text style={{ fontSize: 17, fontWeight: '800', color: s.color }}>{s.val}</Text>
-              <Text style={{ fontSize: 11, fontWeight: '700', color: s.color, opacity: 0.7, marginTop: 2, textTransform: 'uppercase', letterSpacing: 0.5 }}>{s.label}</Text>
-            </View>
-          ))}
-        </ScrollView>
-        <View style={{ paddingHorizontal: 16, paddingBottom: 10 }}>
-          <TextInput value={search} onChangeText={setSearch} placeholder="Search invoices..." placeholderTextColor={C.inkGhost} style={{ backgroundColor: C.bgWarm, borderRadius: 10, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, color: C.ink, fontWeight: '500' }} />
-        </View>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingBottom: 10 }}>
-          {['All','Draft','Sent','Paid','Overdue'].map(f => (
-            <TouchableOpacity key={f} onPress={() => setFilter(f)} style={{ paddingHorizontal: 14, paddingVertical: 7, borderRadius: 20, marginRight: 8, backgroundColor: filter === f ? C.ink : C.bgWarm }}>
-              <Text style={{ color: filter === f ? '#fff' : C.inkMid, fontSize: 13, fontWeight: '700' }}>{f}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
-        {filtered.length === 0 && <EmptyState icon="🧾" title="No invoices found" body="Create your first invoice above." />}
-        {filtered.map(inv => {
-          const sc = statusConfig(inv.status);
+      <FlatList data={filtered} keyExtractor={i => i.id}
+        contentContainerStyle={{ paddingHorizontal:20, paddingBottom:100 }}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={<EmptyState icon="film" title="No projects yet" body="Tap to create your first project." onAction={openNew} actionLabel="Create Project"/>}
+        renderItem={({ item: p }) => {
+          const pct = p.budget > 0 ? Math.round((p.spent / p.budget) * 100) : 0;
+          const bc = pct > 85 ? C.punch : pct > 60 ? C.primary : C.success;
           return (
-            <View key={inv.id} style={{ backgroundColor: C.surface, borderRadius: 16, marginBottom: 12, borderWidth: 1, borderColor: inv.status === 'Overdue' ? C.redSoft : C.line, overflow: 'hidden' }}>
-              <View style={{ height: 4, backgroundColor: sc.color }} />
-              <View style={{ padding: 16 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-                  <View style={{ flex: 1 }}>
-                    <Text style={{ fontSize: 16, fontWeight: '800', color: C.ink }}>{inv.client}</Text>
-                    <Text style={{ fontSize: 12, color: C.inkLight, marginTop: 3 }}>{inv.number} · {inv.project}</Text>
-                  </View>
-                  <View style={{ alignItems: 'flex-end' }}>
-                    <Text style={{ fontSize: 20, fontWeight: '800', color: C.ink }}>{fmtMoney(inv.amount)}</Text>
-                    <StatusPill label={inv.status} color={sc.color} bg={sc.bg} />
-                  </View>
+            <Card style={{ marginBottom:14, padding:20 }} onPress={() => setDetail(p.id)}>
+              <View style={{ flexDirection:'row', justifyContent:'space-between', alignItems:'flex-start', marginBottom:12 }}>
+                <View style={{ flex:1, marginRight:10 }}>
+                  <Text style={[TY.h3, { color:C.ink }]}>{p.title}</Text>
+                  <Text style={[TY.bodyMd, { color:C.inkMuted, marginTop:2 }]}>{p.client}</Text>
                 </View>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', backgroundColor: C.bgWarm, borderRadius: 8, padding: 10, marginBottom: 12 }}>
-                  <Text style={{ fontSize: 12, color: C.inkMid }}>Issued: {inv.date}</Text>
-                  <Text style={{ fontSize: 12, fontWeight: '700', color: inv.status === 'Overdue' ? C.red : C.inkMid }}>Due: {inv.due}</Text>
+                <Badge label={statusLabel(p.status)} color={statusColor(p.status)+'33'} textColor={statusColor(p.status)}/>
+              </View>
+              <View style={{ flexDirection:'row', justifyContent:'space-between', marginBottom:6 }}>
+                <Text style={[TY.caption, { color:C.inkMuted }]}>Budget Used</Text>
+                <Text style={[TY.mono, { color:bc }]}>{pct}% GBP{p.spent.toLocaleString()}</Text>
+              </View>
+              <View style={{ height:5, backgroundColor:C.bgHighlight, borderRadius:3 }}>
+                <View style={{ height:5, width:pct+'%', backgroundColor:bc, borderRadius:3 }}/>
+              </View>
+              <View style={{ flexDirection:'row', justifyContent:'space-between', marginTop:10 }}>
+                <Text style={[TY.caption, { color:C.inkMuted }]}>{p.crew} crew</Text>
+                <Text style={[TY.caption, { color:C.inkMuted }]}>{p.location}</Text>
+              </View>
+            </Card>
+          );
+        }}/>
+      <Sheet visible={showForm} onClose={() => setShowForm(false)} title={editing ? 'Edit Project' : 'New Project'}>
+        <Field label="Project Title" value={form.title} onChangeText={v => setForm(f => ({...f,title:v}))} placeholder="e.g. Midnight Runner"/>
+        <Field label="Client" value={form.client} onChangeText={v => setForm(f => ({...f,client:v}))} placeholder="Client name"/>
+        <Field label="Location" value={form.location} onChangeText={v => setForm(f => ({...f,location:v}))} placeholder="e.g. London, UK"/>
+        <View style={{ marginBottom:16 }}>
+          <Text style={[TY.label, { color:C.inkMuted, marginBottom:8 }]}>Status</Text>
+          <View style={{ flexDirection:'row' }}>
+            {['active','pending','completed'].map(s => (
+              <TouchableOpacity key={s} onPress={() => setForm(f => ({...f,status:s}))}
+                style={{ backgroundColor:form.status===s ? C.primary : C.bgHighlight,
+                  borderRadius:100, paddingHorizontal:14, paddingVertical:7, marginRight:8 }}>
+                <Text style={{ color:form.status===s ? C.inkDark : C.inkMuted, ...TY.caption, fontWeight:'700' }}>
+                  {s.charAt(0).toUpperCase()+s.slice(1)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+        <Field label="Budget" value={form.budget} onChangeText={v => setForm(f => ({...f,budget:v}))} placeholder="0" keyboardType="numeric"/>
+        <Field label="Spent" value={form.spent} onChangeText={v => setForm(f => ({...f,spent:v}))} placeholder="0" keyboardType="numeric"/>
+        <Field label="Crew Count" value={form.crew} onChangeText={v => setForm(f => ({...f,crew:v}))} placeholder="0" keyboardType="numeric"/>
+        <Field label="Start Date" value={form.startDate} onChangeText={v => setForm(f => ({...f,startDate:v}))} placeholder="YYYY-MM-DD"/>
+        <Field label="End Date" value={form.endDate} onChangeText={v => setForm(f => ({...f,endDate:v}))} placeholder="YYYY-MM-DD"/>
+        <Field label="Description" value={form.desc} onChangeText={v => setForm(f => ({...f,desc:v}))} placeholder="Brief description..." multiline lines={3}/>
+        <PrimaryBtn label={editing ? 'Save Changes' : 'Create Project'} onPress={save}/>
+        {editing && <TouchableOpacity onPress={() => { setShowForm(false); del(editing); }} style={{ alignItems:'center', marginTop:12 }}>
+          <Text style={{ color:C.punch, ...TY.body }}>Delete this project</Text>
+        </TouchableOpacity>}
+      </Sheet>
+    </SafeAreaView>
+  );
+}
+
+function CrewScreen() {
+  const { data, dispatch } = useStore();
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [detail, setDetail] = useState(null);
+  const [filter, setFilter] = useState('all');
+  const COLORS = [C.primary, C.accent, C.purple, C.punch, C.success];
+  const blank = { name:'', role:'', dept:'', rate:'', status:'active', phone:'', email:'', location:'', skills:'' };
+  const [form, setForm] = useState(blank);
+  const depts = ['all','Camera','Art','Sound','Electrical','Post','Production'];
+  const filtered = data.crew.filter(c => filter === 'all' || c.dept === filter);
+  function openNew() { setForm(blank); setEditing(null); setShowForm(true); }
+  function openEdit(c) { setForm({ ...c, rate:String(c.rate), skills:Array.isArray(c.skills) ? c.skills.join(', ') : c.skills }); setEditing(c.id); setShowForm(true); }
+  function save() {
+    if (!form.name.trim()) { Alert.alert('Required', 'Name is required'); return; }
+    const member = { ...form, rate:parseFloat(form.rate)||0, skills:form.skills.split(',').map(s => s.trim()).filter(Boolean) };
+    if (editing) {
+      dispatch(s => { const i = s.crew.findIndex(c => c.id === editing); if (i > -1) s.crew[i] = { ...s.crew[i], ...member }; });
+    } else {
+      const initials = form.name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2);
+      const color = COLORS[data.crew.length % COLORS.length];
+      dispatch(s => { s.crew.push({ ...member, id:'c'+Date.now(), initials, color }); });
+    }
+    setShowForm(false);
+  }
+  function del(id) {
+    Alert.alert('Remove Crew', 'Remove this crew member?',
+      [{ text:'Cancel', style:'cancel' }, { text:'Remove', style:'destructive', onPress: function() { dispatch(s => { s.crew = s.crew.filter(c => c.id !== id); }); setDetail(null); }}]);
+  }
+  if (detail) {
+    const c = data.crew.find(x => x.id === detail);
+    if (!c) { setDetail(null); return null; }
+    return (
+      <SafeAreaView style={{ flex:1, backgroundColor:C.bg }}>
+        <BackHeader title="Crew Member" onBack={() => setDetail(null)}
+          right={
+            <View style={{ flexDirection:'row' }}>
+              <TouchableOpacity onPress={() => { setDetail(null); openEdit(c); }}
+                style={{ backgroundColor:C.bgHighlight, borderRadius:100, paddingHorizontal:14, paddingVertical:7, marginRight:8 }}>
+                <Text style={{ color:C.primary, ...TY.caption, fontWeight:'700' }}>Edit</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => del(c.id)}
+                style={{ backgroundColor:C.punch+'22', borderRadius:100, paddingHorizontal:14, paddingVertical:7 }}>
+                <Text style={{ color:C.punch, ...TY.caption, fontWeight:'700' }}>Remove</Text>
+              </TouchableOpacity>
+            </View>
+          }/>
+        <ScrollView contentContainerStyle={{ padding:20, paddingBottom:60 }}>
+          <Card style={{ padding:24, marginBottom:16, alignItems:'center' }}>
+            <Avatar initials={c.initials} color={c.color} size={80}/>
+            <Text style={[TY.h1, { color:C.ink, marginTop:16, textAlign:'center' }]}>{c.name}</Text>
+            <Text style={[TY.body, { color:c.color, fontWeight:'600', marginTop:4 }]}>{c.role}</Text>
+            <View style={{ marginTop:12 }}>
+              <Badge label={statusLabel(c.status)} color={statusColor(c.status)+'33'} textColor={statusColor(c.status)}/>
+            </View>
+          </Card>
+          <View style={{ flexDirection:'row', marginBottom:16 }}>
+            <StatPill label="DEPT" value={c.dept} color={C.accent}/>
+            <StatPill label="DAY RATE" value={"GBP"+c.rate} color={C.primary}/>
+          </View>
+          <Card style={{ padding:20, marginBottom:16 }}>
+            <Text style={[TY.label, { color:C.inkMuted, marginBottom:12 }]}>Contact</Text>
+            {[
+              { label:'Phone', value:c.phone },
+              { label:'Email', value:c.email },
+              { label:'Location', value:c.location },
+            ].map(row => (
+              <View key={row.label} style={{ flexDirection:'row', justifyContent:'space-between', paddingVertical:10,
+                borderBottomWidth:1, borderBottomColor:C.border }}>
+                <Text style={[TY.body, { color:C.inkMuted }]}>{row.label}</Text>
+                <Text style={[TY.body, { color:C.ink, fontWeight:'600', flex:1, textAlign:'right' }]}>{row.value}</Text>
+              </View>
+            ))}
+          </Card>
+          {c.skills && c.skills.length > 0 && (
+            <Card style={{ padding:20 }}>
+              <Text style={[TY.label, { color:C.inkMuted, marginBottom:12 }]}>Skills</Text>
+              <View style={{ flexDirection:'row', flexWrap:'wrap' }}>
+                {c.skills.map(sk => (
+                  <View key={sk} style={{ backgroundColor:C.bgHighlight, borderRadius:100,
+                    paddingHorizontal:12, paddingVertical:6, marginRight:8, marginBottom:8 }}>
+                    <Text style={[TY.caption, { color:C.inkMuted }]}>{sk}</Text>
+                  </View>
+                ))}
+              </View>
+            </Card>
+          )}
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+  return (
+    <SafeAreaView style={{ flex:1, backgroundColor:C.bg }}>
+      <StatusBar barStyle="light-content" backgroundColor={C.bg}/>
+      <Header title="Crew" subtitle="TEAM"
+        right={
+          <TouchableOpacity onPress={openNew}
+            style={{ backgroundColor:C.primary, borderRadius:100, paddingHorizontal:16, paddingVertical:8 }}>
+            <Text style={[TY.caption, { color:C.inkDark, fontWeight:'700' }]}>+ Add</Text>
+          </TouchableOpacity>
+        }/>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal:20, paddingBottom:12 }}>
+        {depts.map(d => (
+          <TouchableOpacity key={d} onPress={() => setFilter(d)}
+            style={{ backgroundColor:filter===d ? C.accent : C.bgHighlight,
+              borderRadius:100, paddingHorizontal:14, paddingVertical:7, marginRight:8 }}>
+            <Text style={[TY.caption, { color:filter===d ? C.inkDark : C.inkMuted, fontWeight:'700' }]}>{d}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+      <FlatList data={filtered} keyExtractor={i => i.id}
+        contentContainerStyle={{ paddingHorizontal:20, paddingBottom:100 }}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={<EmptyState icon="crew" title="No crew members" body="Start building your crew." onAction={openNew} actionLabel="Add First Member"/>}
+        renderItem={({ item: c }) => (
+          <Card style={{ marginBottom:12, padding:16 }} onPress={() => setDetail(c.id)}>
+            <View style={{ flexDirection:'row', alignItems:'center' }}>
+              <Avatar initials={c.initials} color={c.color} size={48}/>
+              <View style={{ flex:1, marginLeft:14 }}>
+                <View style={{ flexDirection:'row', alignItems:'center', justifyContent:'space-between' }}>
+                  <Text style={[TY.h3, { color:C.ink }]}>{c.name}</Text>
+                  <Badge label={statusLabel(c.status)} color={statusColor(c.status)+'33'} textColor={statusColor(c.status)} size="sm"/>
                 </View>
-                {inv.notes ? <Text style={{ fontSize: 12, color: C.inkLight, marginBottom: 12, fontStyle: 'italic' }}>{inv.notes}</Text> : null}
-                <View style={{ flexDirection: 'row', borderTopWidth: 1, borderTopColor: C.line, paddingTop: 12 }}>
-                  {inv.status === 'Draft' && <TouchableOpacity onPress={() => updateInvoice({ ...inv, status: 'Sent' })} style={{ flex: 1, alignItems: 'center' }}><Text style={{ fontSize: 13, fontWeight: '700', color: C.electric }}>Send Invoice</Text></TouchableOpacity>}
-                  {inv.status === 'Sent' && <TouchableOpacity onPress={() => updateInvoice({ ...inv, status: 'Paid' })} style={{ flex: 1, alignItems: 'center' }}><Text style={{ fontSize: 13, fontWeight: '700', color: C.green }}>Mark Paid ✓</Text></TouchableOpacity>}
-                  {inv.status === 'Overdue' && <TouchableOpacity onPress={() => Alert.alert('Reminder Sent', 'Payment reminder sent to ' + inv.client + '.')} style={{ flex: 1, alignItems: 'center' }}><Text style={{ fontSize: 13, fontWeight: '700', color: C.red }}>Send Reminder</Text></TouchableOpacity>}
-                  {inv.status === 'Paid' && <View style={{ flex: 1 }}><Text style={{ fontSize: 13, fontWeight: '700', color: C.green, textAlign: 'center' }}>✓ Paid</Text></View>}
-                  <TouchableOpacity onPress={() => setEditInvoice(inv)} style={{ flex: 1, alignItems: 'center' }}><Text style={{ fontSize: 13, fontWeight: '700', color: C.inkLight }}>Edit</Text></TouchableOpacity>
-                  <TouchableOpacity onPress={() => handleDelete(inv)} style={{ flex: 1, alignItems: 'center' }}><Text style={{ fontSize: 13, fontWeight: '700', color: C.red }}>Delete</Text></TouchableOpacity>
+                <Text style={[TY.bodyMd, { color:C.inkMuted, marginTop:2 }]}>{c.role}</Text>
+                <View style={{ flexDirection:'row', marginTop:6 }}>
+                  <Text style={[TY.caption, { color:C.inkMuted, marginRight:12 }]}>{c.dept}</Text>
+                  <Text style={[TY.caption, { color:C.primary }]}>GBP{c.rate}/day</Text>
                 </View>
               </View>
             </View>
-          );
-        })}
-      </ScrollView>
-    </View>
+          </Card>
+        )}/>
+      <Sheet visible={showForm} onClose={() => setShowForm(false)} title={editing ? 'Edit Crew Member' : 'Add Crew Member'}>
+        <Field label="Full Name" value={form.name} onChangeText={v => setForm(f => ({...f,name:v}))} placeholder="e.g. Sophia Marlowe"/>
+        <Field label="Role / Job Title" value={form.role} onChangeText={v => setForm(f => ({...f,role:v}))} placeholder="e.g. Director of Photography"/>
+        <Field label="Department" value={form.dept} onChangeText={v => setForm(f => ({...f,dept:v}))} placeholder="e.g. Camera"/>
+        <Field label="Day Rate" value={form.rate} onChangeText={v => setForm(f => ({...f,rate:v}))} placeholder="0" keyboardType="numeric"/>
+        <View style={{ marginBottom:16 }}>
+          <Text style={[TY.label, { color:C.inkMuted, marginBottom:8 }]}>Status</Text>
+          <View style={{ flexDirection:'row' }}>
+            {['active','onleave','inactive'].map(s => (
+              <TouchableOpacity key={s} onPress={() => setForm(f => ({...f,status:s}))}
+                style={{ backgroundColor:form.status===s ? C.accent : C.bgHighlight,
+                  borderRadius:100, paddingHorizontal:12, paddingVertical:7, marginRight:8 }}>
+                <Text style={{ color:form.status===s ? C.inkDark : C.inkMuted, ...TY.caption, fontWeight:'700' }}>
+                  {s === 'onleave' ? 'On Leave' : s.charAt(0).toUpperCase()+s.slice(1)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+        <Field label="Phone" value={form.phone} onChangeText={v => setForm(f => ({...f,phone:v}))} placeholder="+44 7700 000000" keyboardType="phone-pad"/>
+        <Field label="Email" value={form.email} onChangeText={v => setForm(f => ({...f,email:v}))} placeholder="email@example.com" keyboardType="email-address"/>
+        <Field label="Location" value={form.location} onChangeText={v => setForm(f => ({...f,location:v}))} placeholder="e.g. London"/>
+        <Field label="Skills" value={form.skills} onChangeText={v => setForm(f => ({...f,skills:v}))} placeholder="e.g. Arri Alexa, Drone, Lighting"/>
+        <PrimaryBtn label={editing ? 'Save Changes' : 'Add to Crew'} onPress={save} color={C.accent}/>
+        {editing && <TouchableOpacity onPress={() => { setShowForm(false); del(editing); }} style={{ alignItems:'center', marginTop:12 }}>
+          <Text style={{ color:C.punch, ...TY.body }}>Remove from crew</Text>
+        </TouchableOpacity>}
+      </Sheet>
+    </SafeAreaView>
   );
 }
 
-
-// ─────────────────────────────────────────────
-// REPORTS SCREEN
-// ─────────────────────────────────────────────
-function ReportsScreen({ store, onNav }) {
-  const { projects, invoices, crew } = store;
-  const [period, setPeriod] = React.useState('Month');
-
-  const totalRevenue = invoices.filter(i => i.status === 'Paid').reduce((a, i) => a + i.amount, 0);
-  const totalPending = invoices.filter(i => i.status !== 'Paid').reduce((a, i) => a + i.amount, 0);
-  const activeProjects = projects.filter(p => p.status === 'Active').length;
-  const availCrew = crew.filter(c => c.status === 'Available').length;
-
-  const barData = [
-    { label: 'Oct', val: 28000 },
-    { label: 'Nov', val: 41000 },
-    { label: 'Dec', val: 35000 },
-    { label: 'Jan', val: 52000 },
-    { label: 'Feb', val: 48000 },
-    { label: 'Mar', val: Math.max(totalRevenue, 62000) },
-  ];
-  const maxVal = Math.max(...barData.map(d => d.val));
-
+function ScheduleScreen() {
+  const { data, dispatch } = useStore();
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [selectedDay, setSelectedDay] = useState(0);
+  const blank = { title:'', project:'', date:'', callTime:'', wrapTime:'', location:'', dept:'', crewNeeded:'', status:'pending', notes:'' };
+  const [form, setForm] = useState(blank);
+  const days = Array.from({ length:7 }, (_, i) => {
+    const d = new Date('2026-03-08');
+    d.setDate(d.getDate() + i);
+    return {
+      label: d.toLocaleDateString('en-GB', { weekday:'short' }).toUpperCase(),
+      num: d.getDate(),
+      full: d.toISOString().slice(0,10),
+    };
+  });
+  const selDate = days[selectedDay].full;
+  const todayShifts = data.shifts.filter(s => s.date === selDate);
+  function openNew() { setForm({ ...blank, date:selDate }); setEditing(null); setShowForm(true); }
+  function openEdit(s) { setForm({ ...s, crewNeeded:String(s.crewNeeded) }); setEditing(s.id); setShowForm(true); }
+  function save() {
+    if (!form.title.trim()) { Alert.alert('Required', 'Shift title is required'); return; }
+    const shift = { ...form, crewNeeded:parseInt(form.crewNeeded)||0 };
+    if (editing) {
+      dispatch(s => { const i = s.shifts.findIndex(x => x.id === editing); if (i > -1) s.shifts[i] = { ...s.shifts[i], ...shift }; });
+    } else {
+      dispatch(s => { s.shifts.push({ ...shift, id:'s'+Date.now() }); });
+    }
+    setShowForm(false);
+  }
+  function del(id) {
+    Alert.alert('Delete Shift', 'Delete this shift?',
+      [{ text:'Cancel', style:'cancel' }, { text:'Delete', style:'destructive', onPress: function() { dispatch(s => { s.shifts = s.shifts.filter(x => x.id !== id); }); }}]);
+  }
   return (
-    <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <PageHeader title="Reports" subtitle="Business overview" />
-      <ScrollView contentContainerStyle={{ padding: 16, paddingBottom: 100 }}>
-        {/* Period selector */}
-        <View style={{ flexDirection: 'row', backgroundColor: C.surface, borderRadius: 14, padding: 4, marginBottom: 20, borderWidth: 1, borderColor: C.line }}>
-          {['Week','Month','Quarter','Year'].map(p => (
-            <TouchableOpacity key={p} onPress={() => setPeriod(p)} style={{ flex: 1, paddingVertical: 9, borderRadius: 10, backgroundColor: period === p ? C.ink : 'transparent', alignItems: 'center' }}>
-              <Text style={{ color: period === p ? '#fff' : C.inkMid, fontSize: 13, fontWeight: '700' }}>{p}</Text>
+    <SafeAreaView style={{ flex:1, backgroundColor:C.bg }}>
+      <StatusBar barStyle="light-content" backgroundColor={C.bg}/>
+      <Header title="Schedule" subtitle="PRODUCTION DAYS"
+        right={
+          <TouchableOpacity onPress={openNew}
+            style={{ backgroundColor:C.accent, borderRadius:100, paddingHorizontal:16, paddingVertical:8 }}>
+            <Text style={[TY.caption, { color:C.inkDark, fontWeight:'700' }]}>+ Shift</Text>
+          </TouchableOpacity>
+        }/>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal:16, paddingBottom:16 }}>
+        {days.map((d, i) => {
+          const hasShifts = data.shifts.some(s => s.date === d.full);
+          return (
+            <TouchableOpacity key={i} onPress={() => setSelectedDay(i)}
+              style={{ alignItems:'center', marginRight:8, width:56, paddingVertical:12, borderRadius:16,
+                backgroundColor:i === selectedDay ? C.accent : C.bgCard,
+                borderWidth:1, borderColor:i === selectedDay ? C.accent : C.border }}>
+              <Text style={[TY.label, { color:i === selectedDay ? C.inkDark : C.inkMuted, fontSize:9 }]}>{d.label}</Text>
+              <Text style={[TY.h2, { color:i === selectedDay ? C.inkDark : C.ink, marginTop:4 }]}>{d.num}</Text>
+              {hasShifts && <View style={{ width:5, height:5, borderRadius:3, backgroundColor:i === selectedDay ? C.inkDark : C.primary, marginTop:4 }}/>}
             </TouchableOpacity>
-          ))}
-        </View>
-
-        {/* KPI Grid */}
-        <View style={{ flexDirection: 'row', flexWrap: 'wrap', marginBottom: 6 }}>
-          {[
-            { label: 'Revenue', val: fmtMoney(totalRevenue), icon: '💰', color: C.green, bg: C.greenSoft },
-            { label: 'Pending', val: fmtMoney(totalPending), icon: '⏳', color: C.blue, bg: C.blueSoft },
-            { label: 'Active Jobs', val: String(activeProjects), icon: '🎬', color: C.punch, bg: C.punchSoft },
-            { label: 'Available', val: String(availCrew), icon: '👥', color: C.purple, bg: C.purpleSoft },
-          ].map((k, i) => (
-            <View key={k.label} style={{ width: '48%', backgroundColor: k.bg, borderRadius: 16, padding: 16, marginBottom: 10, marginRight: i % 2 === 0 ? '4%' : 0 }}>
-              <Text style={{ fontSize: 24, marginBottom: 8 }}>{k.icon}</Text>
-              <Text style={{ fontSize: 24, fontWeight: '800', color: k.color, letterSpacing: -0.5 }}>{k.val}</Text>
-              <Text style={{ fontSize: 11, fontWeight: '700', color: k.color, marginTop: 4, opacity: 0.7, textTransform: 'uppercase', letterSpacing: 0.5 }}>{k.label}</Text>
-            </View>
-          ))}
-        </View>
-
-        {/* Revenue Chart */}
-        <View style={{ backgroundColor: C.surface, borderRadius: 18, padding: 18, marginBottom: 16, borderWidth: 1, borderColor: C.line }}>
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
-            <View>
-              <Text style={{ fontSize: 16, fontWeight: '800', color: C.ink }}>Revenue Trend</Text>
-              <Text style={{ fontSize: 12, color: C.inkLight, marginTop: 2 }}>Last 6 months</Text>
-            </View>
-            <Text style={{ fontSize: 20, fontWeight: '800', color: C.green }}>{fmtMoney(totalRevenue)}</Text>
-          </View>
-          <View style={{ flexDirection: 'row', alignItems: 'flex-end', height: 90, marginBottom: 10 }}>
-            {barData.map((d, i) => {
-              const barH = Math.max(8, (d.val / maxVal) * 80);
-              const isLast = i === barData.length - 1;
-              return (
-                <View key={d.label} style={{ flex: 1, alignItems: 'center', justifyContent: 'flex-end' }}>
-                  <View style={{ width: '60%', height: barH, backgroundColor: isLast ? C.ink : C.line, borderRadius: 4, marginBottom: 6 }} />
-                  <Text style={{ color: isLast ? C.ink : C.inkGhost, fontSize: 10, fontWeight: isLast ? '800' : '500' }}>{d.label}</Text>
+          );
+        })}
+      </ScrollView>
+      <ScrollView contentContainerStyle={{ paddingHorizontal:20, paddingBottom:100 }}>
+        <SectionLabel text={selDate + ' — ' + todayShifts.length + ' shift' + (todayShifts.length !== 1 ? 's' : '')}/>
+        {todayShifts.length === 0 ? (
+          <Card style={{ padding:32, alignItems:'center' }}>
+            <Text style={[TY.h3, { color:C.ink, marginBottom:6 }]}>No shifts scheduled</Text>
+            <TouchableOpacity onPress={openNew}
+              style={{ backgroundColor:C.accent, borderRadius:100, paddingHorizontal:20, paddingVertical:10, marginTop:12 }}>
+              <Text style={[TY.caption, { color:C.inkDark, fontWeight:'700' }]}>Schedule a Shift</Text>
+            </TouchableOpacity>
+          </Card>
+        ) : (
+          todayShifts.map(s => (
+            <Card key={s.id} style={{ marginBottom:12, padding:18 }}>
+              <View style={{ flexDirection:'row', justifyContent:'space-between', alignItems:'flex-start', marginBottom:10 }}>
+                <View style={{ flex:1, marginRight:10 }}>
+                  <Text style={[TY.h3, { color:C.ink }]}>{s.title}</Text>
+                  <Text style={[TY.bodyMd, { color:C.inkMuted, marginTop:2 }]}>{s.project}</Text>
                 </View>
+                <Badge label={statusLabel(s.status)} color={statusColor(s.status)+'33'} textColor={statusColor(s.status)}/>
+              </View>
+              <Text style={[TY.caption, { color:C.inkMuted, marginBottom:4 }]}>{s.callTime} to {s.wrapTime} | {s.location}</Text>
+              <Text style={[TY.caption, { color:C.inkMuted }]}>{s.crewNeeded} crew needed | {s.dept}</Text>
+              {s.notes ? <Text style={[TY.caption, { color:C.inkFaint, marginTop:6 }]}>Notes: {s.notes}</Text> : null}
+              <View style={{ flexDirection:'row', marginTop:14 }}>
+                <TouchableOpacity onPress={() => openEdit(s)}
+                  style={{ flex:1, backgroundColor:C.bgHighlight, borderRadius:100, paddingVertical:9, alignItems:'center', marginRight:8 }}>
+                  <Text style={[TY.caption, { color:C.primary, fontWeight:'700' }]}>Edit</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => del(s.id)}
+                  style={{ flex:1, backgroundColor:C.punch+'22', borderRadius:100, paddingVertical:9, alignItems:'center' }}>
+                  <Text style={[TY.caption, { color:C.punch, fontWeight:'700' }]}>Delete</Text>
+                </TouchableOpacity>
+              </View>
+            </Card>
+          ))
+        )}
+        {data.shifts.filter(s => s.date !== selDate).length > 0 && (
+          <View style={{ marginTop:24 }}>
+            <SectionLabel text="All Upcoming"/>
+            {data.shifts.filter(s => s.date !== selDate).slice(0,5).map(s => (
+              <Card key={s.id} style={{ marginBottom:10, padding:14 }}>
+                <View style={{ flexDirection:'row', justifyContent:'space-between', alignItems:'center' }}>
+                  <View style={{ flex:1 }}>
+                    <Text style={[TY.bodyMd, { color:C.ink, fontWeight:'600' }]}>{s.title}</Text>
+                    <Text style={[TY.caption, { color:C.inkMuted, marginTop:2 }]}>{s.date} {s.callTime}</Text>
+                  </View>
+                  <Badge label={statusLabel(s.status)} color={statusColor(s.status)+'33'} textColor={statusColor(s.status)} size="sm"/>
+                </View>
+              </Card>
+            ))}
+          </View>
+        )}
+      </ScrollView>
+      <Sheet visible={showForm} onClose={() => setShowForm(false)} title={editing ? 'Edit Shift' : 'New Shift'}>
+        <Field label="Shift Title" value={form.title} onChangeText={v => setForm(f => ({...f,title:v}))} placeholder="e.g. Principal Photography Day 1"/>
+        <Field label="Project" value={form.project} onChangeText={v => setForm(f => ({...f,project:v}))} placeholder="e.g. Midnight Runner"/>
+        <Field label="Date" value={form.date} onChangeText={v => setForm(f => ({...f,date:v}))} placeholder="YYYY-MM-DD"/>
+        <Field label="Call Time" value={form.callTime} onChangeText={v => setForm(f => ({...f,callTime:v}))} placeholder="e.g. 06:00"/>
+        <Field label="Wrap Time" value={form.wrapTime} onChangeText={v => setForm(f => ({...f,wrapTime:v}))} placeholder="e.g. 18:00"/>
+        <Field label="Location" value={form.location} onChangeText={v => setForm(f => ({...f,location:v}))} placeholder="e.g. Pinewood Studios"/>
+        <Field label="Department" value={form.dept} onChangeText={v => setForm(f => ({...f,dept:v}))} placeholder="e.g. Camera + Art"/>
+        <Field label="Crew Needed" value={form.crewNeeded} onChangeText={v => setForm(f => ({...f,crewNeeded:v}))} placeholder="0" keyboardType="numeric"/>
+        <View style={{ marginBottom:16 }}>
+          <Text style={[TY.label, { color:C.inkMuted, marginBottom:8 }]}>Status</Text>
+          <View style={{ flexDirection:'row' }}>
+            {['pending','confirmed','cancelled'].map(s => (
+              <TouchableOpacity key={s} onPress={() => setForm(f => ({...f,status:s}))}
+                style={{ backgroundColor:form.status===s ? C.accent : C.bgHighlight,
+                  borderRadius:100, paddingHorizontal:12, paddingVertical:7, marginRight:8 }}>
+                <Text style={{ color:form.status===s ? C.inkDark : C.inkMuted, ...TY.caption, fontWeight:'700' }}>
+                  {s.charAt(0).toUpperCase()+s.slice(1)}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+        </View>
+        <Field label="Notes" value={form.notes} onChangeText={v => setForm(f => ({...f,notes:v}))} placeholder="Any notes..." multiline lines={2}/>
+        <PrimaryBtn label={editing ? 'Save Changes' : 'Create Shift'} onPress={save} color={C.accent}/>
+        {editing && <TouchableOpacity onPress={() => { setShowForm(false); del(editing); }} style={{ alignItems:'center', marginTop:12 }}>
+          <Text style={{ color:C.punch, ...TY.body }}>Delete this shift</Text>
+        </TouchableOpacity>}
+      </Sheet>
+    </SafeAreaView>
+  );
+}
+
+function MessagesScreen() {
+  const { data, dispatch } = useStore();
+  const [thread, setThread] = useState(null);
+  const [input, setInput] = useState('');
+  const scrollRef = useRef(null);
+  const AUTO_REPLIES = [
+    'Sounds good, I will be there!',
+    'Can we push back 30 minutes?',
+    'On my way now.',
+    'Confirmed',
+    'I will send over the files shortly.',
+    'Great see you on set.',
+    'Let me check and get back to you.',
+  ];
+  function sendMsg() {
+    if (!input.trim()) return;
+    const txt = input.trim();
+    setInput('');
+    dispatch(function(s) {
+      var conv = s.messages.find(function(m) { return m.id === thread; });
+      if (!conv) return;
+      conv.msgs.push({ id:'msg'+Date.now(), from:'me', text:txt, time:'Now' });
+      conv.preview = txt;
+      conv.time = 'Now';
+    });
+    setTimeout(function() {
+      var reply = AUTO_REPLIES[Math.floor(Math.random() * AUTO_REPLIES.length)];
+      dispatch(function(s) {
+        var conv = s.messages.find(function(m) { return m.id === thread; });
+        if (!conv) return;
+        conv.msgs.push({ id:'msg'+Date.now()+'r', from:'them', text:reply, time:'Now' });
+        conv.preview = reply;
+      });
+    }, 1200);
+  }
+  function newConvo() {
+    Alert.alert('New Message', 'Start new conversation?', [
+      { text:'Cancel', style:'cancel' },
+      { text:'Create', onPress: function() {
+        var id = 'm'+Date.now();
+        dispatch(function(s) {
+          s.messages.unshift({ id:id, name:'New Contact', initials:'NC', color:C.accent, preview:'New conversation', time:'Now', unread:0, msgs:[] });
+        });
+        setThread(id);
+      }}
+    ]);
+  }
+  if (thread) {
+    var conv = data.messages.find(function(m) { return m.id === thread; });
+    if (!conv) { setThread(null); return null; }
+    dispatch(function(s) {
+      var c = s.messages.find(function(m) { return m.id === thread; });
+      if (c) c.unread = 0;
+    });
+    return (
+      <SafeAreaView style={{ flex:1, backgroundColor:C.bg }}>
+        <BackHeader title={conv.name} onBack={function() { setThread(null); }}
+          right={<Avatar initials={conv.initials} color={conv.color} size={36}/>}/>
+        <KeyboardAvoidingView style={{ flex:1 }} behavior={isIOS ? 'padding' : undefined}>
+          <ScrollView ref={scrollRef} contentContainerStyle={{ padding:16, paddingBottom:20 }}
+            onContentSizeChange={function() { if (scrollRef.current) scrollRef.current.scrollToEnd({ animated:true }); }}>
+            {conv.msgs.length === 0 && (
+              <View style={{ alignItems:'center', paddingVertical:40 }}>
+                <Avatar initials={conv.initials} color={conv.color} size={64}/>
+                <Text style={[TY.h3, { color:C.ink, marginTop:16 }]}>{conv.name}</Text>
+                <Text style={[TY.body, { color:C.inkMuted, marginTop:4 }]}>Start the conversation</Text>
+              </View>
+            )}
+            {conv.msgs.map(function(m) {
+              var isMe = m.from === 'me';
+              return (
+                <View key={m.id} style={{ flexDirection:'row', justifyContent:isMe ? 'flex-end' : 'flex-start', marginBottom:8 }}>
+                  <View style={{ maxWidth:'72%' }}>
+                    <View style={{ backgroundColor:isMe ? C.primary : C.bgElevated,
+                      borderRadius:18, borderBottomRightRadius:isMe ? 4 : 18, borderBottomLeftRadius:isMe ? 18 : 4,
+                      paddingHorizontal:14, paddingVertical:10 }}>
+                      <Text style={{ color:isMe ? C.inkDark : C.ink, ...TY.body }}>{m.text}</Text>
+                    </View>
+                    <Text style={[TY.caption, { color:C.inkFaint, marginTop:3, textAlign:isMe ? 'right' : 'left' }]}>{m.time}</Text>
+                  </View>
+                </View>
+              );
+            })}
+          </ScrollView>
+          <View style={{ flexDirection:'row', alignItems:'center', paddingHorizontal:12, paddingVertical:8,
+            borderTopWidth:1, borderTopColor:C.border, backgroundColor:C.bgCard }}>
+            <TextInput value={input} onChangeText={setInput} placeholder="Message..."
+              placeholderTextColor={C.inkFaint}
+              style={{ flex:1, backgroundColor:C.bgHighlight, borderRadius:22, paddingHorizontal:16,
+                paddingVertical:10, color:C.ink, ...TY.body, marginRight:10 }}
+              onSubmitEditing={sendMsg}/>
+            <TouchableOpacity onPress={sendMsg}
+              style={{ backgroundColor:input.trim() ? C.primary : C.bgHighlight,
+                width:42, height:42, borderRadius:21, alignItems:'center', justifyContent:'center' }}>
+              <Text style={{ color:input.trim() ? C.inkDark : C.inkFaint, fontSize:18 }}>up</Text>
+            </TouchableOpacity>
+          </View>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    );
+  }
+  return (
+    <SafeAreaView style={{ flex:1, backgroundColor:C.bg }}>
+      <StatusBar barStyle="light-content" backgroundColor={C.bg}/>
+      <Header title="Messages" subtitle="INBOX"
+        right={
+          <TouchableOpacity onPress={newConvo}
+            style={{ backgroundColor:C.primary, borderRadius:100, paddingHorizontal:16, paddingVertical:8 }}>
+            <Text style={[TY.caption, { color:C.inkDark, fontWeight:'700' }]}>+ New</Text>
+          </TouchableOpacity>
+        }/>
+      <FlatList data={data.messages} keyExtractor={function(i) { return i.id; }}
+        contentContainerStyle={{ paddingHorizontal:20, paddingBottom:100 }}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={<EmptyState icon="chat" title="No messages" body="Start a conversation with your crew." onAction={newConvo} actionLabel="New Message"/>}
+        renderItem={function({ item: m }) {
+          return (
+            <TouchableOpacity onPress={function() { setThread(m.id); }} activeOpacity={0.85}
+              style={{ flexDirection:'row', alignItems:'center', paddingVertical:14,
+                borderBottomWidth:1, borderBottomColor:C.border }}>
+              <View style={{ position:'relative', marginRight:14 }}>
+                <Avatar initials={m.initials} color={m.color} size={50}/>
+                {m.unread > 0 && (
+                  <View style={{ position:'absolute', top:-2, right:-2, backgroundColor:C.punch,
+                    width:18, height:18, borderRadius:9, alignItems:'center', justifyContent:'center',
+                    borderWidth:2, borderColor:C.bg }}>
+                    <Text style={{ color:C.ink, fontSize:10, fontWeight:'800' }}>{m.unread}</Text>
+                  </View>
+                )}
+              </View>
+              <View style={{ flex:1 }}>
+                <View style={{ flexDirection:'row', justifyContent:'space-between', marginBottom:3 }}>
+                  <Text style={[TY.h3, { color:C.ink }]}>{m.name}</Text>
+                  <Text style={[TY.caption, { color:C.inkMuted }]}>{m.time}</Text>
+                </View>
+                <Text style={[TY.bodyMd, { color:m.unread > 0 ? C.inkMuted : C.inkFaint }]} numberOfLines={1}>{m.preview}</Text>
+              </View>
+            </TouchableOpacity>
+          );
+        }}/>
+    </SafeAreaView>
+  );
+}
+
+function InvoicesScreen() {
+  const { data, dispatch } = useStore();
+  const [showForm, setShowForm] = useState(false);
+  const [editing, setEditing] = useState(null);
+  const [detail, setDetail] = useState(null);
+  const [filter, setFilter] = useState('all');
+  const blank = { number:'', client:'', project:'', amount:'', status:'pending', dueDate:'', issueDate:'', items:[] };
+  const [form, setForm] = useState(blank);
+  const total = data.invoices.reduce(function(a, i) { return a + i.amount; }, 0);
+  const paid = data.invoices.filter(function(i) { return i.status === 'paid'; }).reduce(function(a, i) { return a + i.amount; }, 0);
+  const outstanding = data.invoices.filter(function(i) { return i.status !== 'paid'; }).reduce(function(a, i) { return a + i.amount; }, 0);
+  const filters = ['all','pending','paid','overdue'];
+  const filtered = data.invoices.filter(function(i) { return filter === 'all' || i.status === filter; });
+  function openNew() {
+    var num = 'INV-2026-' + String(data.invoices.length + 1).padStart(3,'0');
+    setForm({ ...blank, number:num, issueDate:new Date().toISOString().slice(0,10) });
+    setEditing(null); setShowForm(true);
+  }
+  function openEdit(inv) { setForm({ ...inv, amount:String(inv.amount) }); setEditing(inv.id); setShowForm(true); }
+  function save() {
+    if (!form.client.trim()) { Alert.alert('Required', 'Client name is required'); return; }
+    var inv = { ...form, amount:parseFloat(form.amount)||0 };
+    if (editing) {
+      dispatch(function(s) { var i = s.invoices.findIndex(function(x) { return x.id === editing; }); if (i > -1) s.invoices[i] = { ...s.invoices[i], ...inv }; });
+    } else {
+      dispatch(function(s) { s.invoices.push({ ...inv, id:'i'+Date.now(), items:[] }); });
+    }
+    setShowForm(false);
+  }
+  function del(id) {
+    Alert.alert('Delete Invoice', 'Delete this invoice?',
+      [{ text:'Cancel', style:'cancel' }, { text:'Delete', style:'destructive', onPress: function() { dispatch(function(s) { s.invoices = s.invoices.filter(function(i) { return i.id !== id; }); }); setDetail(null); } }]);
+  }
+  function markPaid(id) { dispatch(function(s) { var inv = s.invoices.find(function(i) { return i.id === id; }); if (inv) inv.status = 'paid'; }); }
+  function sendReminder(inv) { Alert.alert('Reminder Sent', 'Payment reminder sent to ' + inv.client + '.'); }
+  if (detail) {
+    var inv = data.invoices.find(function(i) { return i.id === detail; });
+    if (!inv) { setDetail(null); return null; }
+    return (
+      <SafeAreaView style={{ flex:1, backgroundColor:C.bg }}>
+        <BackHeader title={inv.number} onBack={function() { setDetail(null); }}
+          right={
+            <View style={{ flexDirection:'row' }}>
+              <TouchableOpacity onPress={function() { setDetail(null); openEdit(inv); }}
+                style={{ backgroundColor:C.bgHighlight, borderRadius:100, paddingHorizontal:14, paddingVertical:7, marginRight:8 }}>
+                <Text style={{ color:C.primary, ...TY.caption, fontWeight:'700' }}>Edit</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={function() { del(inv.id); }}
+                style={{ backgroundColor:C.punch+'22', borderRadius:100, paddingHorizontal:14, paddingVertical:7 }}>
+                <Text style={{ color:C.punch, ...TY.caption, fontWeight:'700' }}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          }/>
+        <ScrollView contentContainerStyle={{ padding:20, paddingBottom:60 }}>
+          <Card style={{ padding:24, marginBottom:16 }}>
+            <View style={{ flexDirection:'row', justifyContent:'space-between', alignItems:'flex-start', marginBottom:16 }}>
+              <View>
+                <Text style={[TY.label, { color:C.inkMuted }]}>Amount</Text>
+                <Text style={[TY.hero, { color:C.primary, fontSize:40 }]}>GBP{inv.amount.toLocaleString()}</Text>
+              </View>
+              <Badge label={statusLabel(inv.status)} color={statusColor(inv.status)+'33'} textColor={statusColor(inv.status)}/>
+            </View>
+            <Text style={[TY.h3, { color:C.ink }]}>{inv.client}</Text>
+            <Text style={[TY.body, { color:C.inkMuted }]}>{inv.project}</Text>
+          </Card>
+          <Card style={{ padding:20, marginBottom:16 }}>
+            {[
+              { label:'Invoice No.', value:inv.number },
+              { label:'Issue Date', value:inv.issueDate },
+              { label:'Due Date', value:inv.dueDate },
+            ].map(function(row) {
+              return (
+                <View key={row.label} style={{ flexDirection:'row', justifyContent:'space-between', paddingVertical:10,
+                  borderBottomWidth:1, borderBottomColor:C.border }}>
+                  <Text style={[TY.body, { color:C.inkMuted }]}>{row.label}</Text>
+                  <Text style={[TY.body, { color:C.ink, fontWeight:'600' }]}>{row.value}</Text>
+                </View>
+              );
+            })}
+          </Card>
+          <View style={{ flexDirection:'row', marginBottom:10 }}>
+            {inv.status !== 'paid' && (
+              <TouchableOpacity onPress={function() { markPaid(inv.id); }} style={{ flex:1, marginRight:8 }}>
+                <PrimaryBtn label="Mark as Paid" color={C.success}/>
+              </TouchableOpacity>
+            )}
+            <TouchableOpacity onPress={function() { sendReminder(inv); }} style={{ flex:1 }}>
+              <PrimaryBtn label="Send Reminder" color={C.accent}/>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+  return (
+    <SafeAreaView style={{ flex:1, backgroundColor:C.bg }}>
+      <StatusBar barStyle="light-content" backgroundColor={C.bg}/>
+      <Header title="Invoices" subtitle="BILLING"
+        right={
+          <TouchableOpacity onPress={openNew}
+            style={{ backgroundColor:C.primary, borderRadius:100, paddingHorizontal:16, paddingVertical:8 }}>
+            <Text style={[TY.caption, { color:C.inkDark, fontWeight:'700' }]}>+ Invoice</Text>
+          </TouchableOpacity>
+        }/>
+      <View style={{ flexDirection:'row', paddingHorizontal:16, paddingBottom:16 }}>
+        <StatPill label="TOTAL" value={"GBP"+Math.round(total/1000)+"k"} color={C.ink}/>
+        <StatPill label="PAID" value={"GBP"+Math.round(paid/1000)+"k"} color={C.success}/>
+        <StatPill label="OUTSTANDING" value={"GBP"+Math.round(outstanding/1000)+"k"} color={C.punch}/>
+      </View>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal:20, paddingBottom:12 }}>
+        {filters.map(function(f) {
+          return (
+            <TouchableOpacity key={f} onPress={function() { setFilter(f); }}
+              style={{ backgroundColor:filter===f ? C.primary : C.bgHighlight,
+                borderRadius:100, paddingHorizontal:16, paddingVertical:8, marginRight:8 }}>
+              <Text style={[TY.caption, { color:filter===f ? C.inkDark : C.inkMuted, fontWeight:'700' }]}>
+                {f.charAt(0).toUpperCase()+f.slice(1)}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
+      </ScrollView>
+      <FlatList data={filtered} keyExtractor={function(i) { return i.id; }}
+        contentContainerStyle={{ paddingHorizontal:20, paddingBottom:100 }}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={<EmptyState icon="invoice" title="No invoices" body="Create your first invoice." onAction={openNew} actionLabel="Create Invoice"/>}
+        renderItem={function({ item: inv }) {
+          return (
+            <Card style={{ marginBottom:12, padding:18 }} onPress={function() { setDetail(inv.id); }}>
+              <View style={{ flexDirection:'row', justifyContent:'space-between', alignItems:'flex-start', marginBottom:10 }}>
+                <View style={{ flex:1, marginRight:10 }}>
+                  <Text style={[TY.h3, { color:C.ink }]}>{inv.number}</Text>
+                  <Text style={[TY.bodyMd, { color:C.inkMuted, marginTop:2 }]}>{inv.client}</Text>
+                </View>
+                <Badge label={statusLabel(inv.status)} color={statusColor(inv.status)+'33'} textColor={statusColor(inv.status)}/>
+              </View>
+              <View style={{ flexDirection:'row', justifyContent:'space-between', alignItems:'center' }}>
+                <Text style={[TY.h2, { color:inv.status === 'paid' ? C.success : inv.status === 'overdue' ? C.punch : C.primary }]}>
+                  GBP{inv.amount.toLocaleString()}
+                </Text>
+                <Text style={[TY.caption, { color:C.inkMuted }]}>Due {inv.dueDate}</Text>
+              </View>
+              {inv.status === 'overdue' && (
+                <View style={{ marginTop:10, backgroundColor:C.punch+'22', borderRadius:8, padding:8 }}>
+                  <Text style={[TY.caption, { color:C.punch, fontWeight:'700' }]}>Overdue - Send reminder?</Text>
+                </View>
+              )}
+            </Card>
+          );
+        }}/>
+      <Sheet visible={showForm} onClose={function() { setShowForm(false); }} title={editing ? 'Edit Invoice' : 'New Invoice'}>
+        <Field label="Invoice Number" value={form.number} onChangeText={function(v) { setForm(function(f) { return {...f,number:v}; }); }} placeholder="INV-2026-001"/>
+        <Field label="Client" value={form.client} onChangeText={function(v) { setForm(function(f) { return {...f,client:v}; }); }} placeholder="Client name"/>
+        <Field label="Project" value={form.project} onChangeText={function(v) { setForm(function(f) { return {...f,project:v}; }); }} placeholder="Project name"/>
+        <Field label="Amount" value={form.amount} onChangeText={function(v) { setForm(function(f) { return {...f,amount:v}; }); }} placeholder="0" keyboardType="numeric"/>
+        <View style={{ marginBottom:16 }}>
+          <Text style={[TY.label, { color:C.inkMuted, marginBottom:8 }]}>Status</Text>
+          <View style={{ flexDirection:'row' }}>
+            {['pending','paid','overdue'].map(function(s) {
+              return (
+                <TouchableOpacity key={s} onPress={function() { setForm(function(f) { return {...f,status:s}; }); }}
+                  style={{ backgroundColor:form.status===s ? C.primary : C.bgHighlight,
+                    borderRadius:100, paddingHorizontal:14, paddingVertical:7, marginRight:8 }}>
+                  <Text style={{ color:form.status===s ? C.inkDark : C.inkMuted, ...TY.caption, fontWeight:'700' }}>
+                    {s.charAt(0).toUpperCase()+s.slice(1)}
+                  </Text>
+                </TouchableOpacity>
               );
             })}
           </View>
         </View>
-
-        {/* Project Status Breakdown */}
-        <View style={{ backgroundColor: C.surface, borderRadius: 18, padding: 18, marginBottom: 16, borderWidth: 1, borderColor: C.line }}>
-          <Text style={{ fontSize: 16, fontWeight: '800', color: C.ink, marginBottom: 16 }}>Project Status</Text>
-          {['Active','Pending','At Risk','Complete'].map(s => {
-            const count = projects.filter(p => p.status === s).length;
-            const pct = projects.length > 0 ? count / projects.length : 0;
-            const sc = statusConfig(s);
-            return (
-              <View key={s} style={{ marginBottom: 14 }}>
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 }}>
-                  <Text style={{ fontSize: 13, fontWeight: '600', color: C.ink }}>{s}</Text>
-                  <Text style={{ fontSize: 13, fontWeight: '800', color: sc.color }}>{count}</Text>
-                </View>
-                <ProgressBar value={pct} color={sc.color} height={6} />
-              </View>
-            );
-          })}
-        </View>
-
-        {/* Top Projects by Budget */}
-        <View style={{ backgroundColor: C.surface, borderRadius: 18, padding: 18, marginBottom: 16, borderWidth: 1, borderColor: C.line }}>
-          <Text style={{ fontSize: 16, fontWeight: '800', color: C.ink, marginBottom: 16 }}>Budget Utilisation</Text>
-          {projects.slice(0, 4).map(p => (
-            <View key={p.id} style={{ marginBottom: 14 }}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginBottom: 5 }}>
-                <Text style={{ fontSize: 13, fontWeight: '600', color: C.ink, flex: 1, marginRight: 10 }} numberOfLines={1}>{p.title}</Text>
-                <Text style={{ fontSize: 13, fontWeight: '800', color: p.progress > 0.9 ? C.red : C.inkMid }}>{Math.round(p.progress * 100)}%</Text>
-              </View>
-              <ProgressBar value={p.progress} color={p.progress > 0.9 ? C.red : p.color} height={6} />
-            </View>
-          ))}
-        </View>
-
-        {/* Invoice Summary */}
-        <View style={{ backgroundColor: C.surface, borderRadius: 18, padding: 18, borderWidth: 1, borderColor: C.line }}>
-          <Text style={{ fontSize: 16, fontWeight: '800', color: C.ink, marginBottom: 16 }}>Invoice Summary</Text>
-          {['Paid','Sent','Draft','Overdue'].map(s => {
-            const total = invoices.filter(i => i.status === s).reduce((a, i) => a + i.amount, 0);
-            const count = invoices.filter(i => i.status === s).length;
-            const sc = statusConfig(s);
-            return (
-              <View key={s} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: C.lineSoft }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                  <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: sc.color, marginRight: 10 }} />
-                  <Text style={{ fontSize: 14, color: C.ink, fontWeight: '600' }}>{s}</Text>
-                </View>
-                <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={{ fontSize: 14, fontWeight: '800', color: sc.color }}>{fmtMoney(total)}</Text>
-                  <Text style={{ fontSize: 11, color: C.inkLight }}>{count} invoice{count !== 1 ? 's' : ''}</Text>
-                </View>
-              </View>
-            );
-          })}
-        </View>
-      </ScrollView>
-    </View>
+        <Field label="Issue Date" value={form.issueDate} onChangeText={function(v) { setForm(function(f) { return {...f,issueDate:v}; }); }} placeholder="YYYY-MM-DD"/>
+        <Field label="Due Date" value={form.dueDate} onChangeText={function(v) { setForm(function(f) { return {...f,dueDate:v}; }); }} placeholder="YYYY-MM-DD"/>
+        <PrimaryBtn label={editing ? 'Save Changes' : 'Create Invoice'} onPress={save}/>
+        {editing && <TouchableOpacity onPress={function() { setShowForm(false); del(editing); }} style={{ alignItems:'center', marginTop:12 }}>
+          <Text style={{ color:C.punch, ...TY.body }}>Delete this invoice</Text>
+        </TouchableOpacity>}
+      </Sheet>
+    </SafeAreaView>
   );
 }
 
-// ─────────────────────────────────────────────
-// MORE / SETTINGS SCREEN
-// ─────────────────────────────────────────────
-function MoreScreen({ store, onNav }) {
-  const { settings, setSettings, currentUser } = store;
-  const [notifOn, setNotifOn] = React.useState(settings.notifications);
-  const [emailOn, setEmailOn] = React.useState(settings.emailDigest);
-  const [biometricOn, setBiometricOn] = React.useState(settings.biometric);
-
-  const toggle = (key, val, setter) => {
-    setter(val);
-    setSettings({ ...settings, [key]: val });
-  };
-
-  const Row = ({ icon, label, sublabel, right, onPress, danger }) => (
-    <TouchableOpacity onPress={onPress || (() => {})} activeOpacity={onPress ? 0.7 : 1} style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 20, paddingVertical: 14, borderBottomWidth: 1, borderBottomColor: C.line }}>
-      <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: danger ? C.redSoft : C.bgWarm, alignItems: 'center', justifyContent: 'center', marginRight: 14 }}>
-        <Text style={{ fontSize: 18 }}>{icon}</Text>
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text style={{ fontSize: 15, fontWeight: '700', color: danger ? C.red : C.ink }}>{label}</Text>
-        {sublabel ? <Text style={{ fontSize: 12, color: C.inkLight, marginTop: 2 }}>{sublabel}</Text> : null}
-      </View>
-      {right !== undefined ? right : (onPress ? <Text style={{ color: C.inkGhost, fontSize: 18, fontWeight: '300' }}>›</Text> : null)}
-    </TouchableOpacity>
-  );
-
+function ReportsScreen() {
+  const { data } = useStore();
+  const totalBudget = data.projects.reduce(function(a, p) { return a + p.budget; }, 0);
+  const totalSpent = data.projects.reduce(function(a, p) { return a + p.spent; }, 0);
+  const invoiceRevenue = data.invoices.filter(function(i) { return i.status === 'paid'; }).reduce(function(a, i) { return a + i.amount; }, 0);
+  const crewActive = data.crew.filter(function(c) { return c.status === 'active'; }).length;
+  const maxBudget = Math.max.apply(null, data.projects.map(function(p) { return p.budget; })) || 1;
+  const barColors = [C.primary, C.accent, C.purple, C.success, C.punch];
+  const deptBreakdown = data.crew.reduce(function(acc, c) { acc[c.dept] = (acc[c.dept] || 0) + 1; return acc; }, {});
+  const deptEntries = Object.entries(deptBreakdown);
   return (
-    <View style={{ flex: 1, backgroundColor: C.bg }}>
-      <PageHeader title="More" subtitle="Settings & account" />
-      <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
-        {/* Profile card */}
-        <View style={{ margin: 16, backgroundColor: C.surface, borderRadius: 18, padding: 18, flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: C.line }}>
-          <Avatar initials={currentUser.initials} color={currentUser.color} size={56} />
-          <View style={{ flex: 1, marginLeft: 14 }}>
-            <Text style={{ fontSize: 18, fontWeight: '800', color: C.ink }}>{currentUser.name}</Text>
-            <Text style={{ fontSize: 13, color: C.inkLight, marginTop: 2 }}>{currentUser.role}</Text>
-            <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 6 }}>
-              <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: C.green, marginRight: 6 }} />
-              <Text style={{ fontSize: 11, fontWeight: '700', color: C.green }}>Active</Text>
-            </View>
+    <SafeAreaView style={{ flex:1, backgroundColor:C.bg }}>
+      <StatusBar barStyle="light-content" backgroundColor={C.bg}/>
+      <ScrollView contentContainerStyle={{ paddingBottom:100 }}>
+        <Header title="Reports" subtitle="ANALYTICS"/>
+        <View style={{ paddingHorizontal:16, marginBottom:24 }}>
+          <View style={{ flexDirection:'row', marginBottom:8 }}>
+            <StatPill label="TOTAL BUDGET" value={"GBP"+Math.round(totalBudget/1000)+"k"} color={C.primary}/>
+            <StatPill label="TOTAL SPENT" value={"GBP"+Math.round(totalSpent/1000)+"k"} color={totalSpent/totalBudget > 0.8 ? C.punch : C.accent}/>
           </View>
-          <TouchableOpacity onPress={() => Alert.alert('Edit Profile', 'Profile editing coming soon.')}>
-            <Text style={{ fontSize: 13, fontWeight: '700', color: C.electric }}>Edit</Text>
-          </TouchableOpacity>
+          <View style={{ flexDirection:'row' }}>
+            <StatPill label="REVENUE EARNED" value={"GBP"+Math.round(invoiceRevenue/1000)+"k"} color={C.success}/>
+            <StatPill label="CREW ON SET" value={crewActive} color={C.purple}/>
+          </View>
         </View>
-
-        <Text style={{ fontSize: 11, fontWeight: '800', color: C.inkLight, letterSpacing: 1.5, textTransform: 'uppercase', paddingHorizontal: 20, paddingTop: 8, paddingBottom: 6 }}>NOTIFICATIONS</Text>
-        <View style={{ backgroundColor: C.surface, borderTopWidth: 1, borderTopColor: C.line }}>
-          <Row icon="🔔" label="Push Notifications" sublabel="Shifts, messages & alerts" right={<Switch value={notifOn} onValueChange={v => toggle('notifications', v, setNotifOn)} trackColor={{ false: C.line, true: C.ink }} thumbColor="#fff" />} />
-          <Row icon="📧" label="Email Digest" sublabel="Daily summary" right={<Switch value={emailOn} onValueChange={v => toggle('emailDigest', v, setEmailOn)} trackColor={{ false: C.line, true: C.ink }} thumbColor="#fff" />} />
-          <Row icon="🔐" label="Biometric Lock" sublabel="Face ID / Fingerprint" right={<Switch value={biometricOn} onValueChange={v => toggle('biometric', v, setBiometricOn)} trackColor={{ false: C.line, true: C.ink }} thumbColor="#fff" />} />
+        <View style={{ paddingHorizontal:20, marginBottom:24 }}>
+          <SectionLabel text="Budget by Project"/>
+          <Card style={{ padding:20 }}>
+            {data.projects.map(function(p, i) {
+              var pct = p.budget > 0 ? Math.round((p.spent / p.budget) * 100) : 0;
+              var barW = (p.budget / maxBudget) * 100;
+              var color = barColors[i % barColors.length];
+              return (
+                <View key={p.id} style={{ marginBottom:16 }}>
+                  <View style={{ flexDirection:'row', justifyContent:'space-between', marginBottom:6 }}>
+                    <Text style={[TY.bodyMd, { color:C.ink, fontWeight:'600', flex:1 }]} numberOfLines={1}>{p.title}</Text>
+                    <Text style={[TY.mono, { color:color, marginLeft:8 }]}>GBP{Math.round(p.budget/1000)}k</Text>
+                  </View>
+                  <View style={{ height:10, backgroundColor:C.bgHighlight, borderRadius:5 }}>
+                    <View style={{ height:10, width:barW+'%', backgroundColor:color, borderRadius:5 }}/>
+                  </View>
+                  <View style={{ flexDirection:'row', justifyContent:'space-between', marginTop:4 }}>
+                    <Text style={[TY.caption, { color:C.inkMuted }]}>Spent: GBP{Math.round(p.spent/1000)}k</Text>
+                    <Text style={[TY.caption, { color:pct > 85 ? C.punch : C.inkMuted }]}>{pct}% used</Text>
+                  </View>
+                </View>
+              );
+            })}
+          </Card>
         </View>
-
-        <Text style={{ fontSize: 11, fontWeight: '800', color: C.inkLight, letterSpacing: 1.5, textTransform: 'uppercase', paddingHorizontal: 20, paddingTop: 20, paddingBottom: 6 }}>WORKSPACE</Text>
-        <View style={{ backgroundColor: C.surface, borderTopWidth: 1, borderTopColor: C.line }}>
-          <Row icon="🏢" label="Company Settings" sublabel="Name, logo, timezone" onPress={() => Alert.alert('Company Settings', 'Manage your workspace.')} />
-          <Row icon="🔗" label="Integrations" sublabel="Slack, QuickBooks, Google" onPress={() => Alert.alert('Integrations', 'Connect your tools.')} />
-          <Row icon="💾" label="Export Data" sublabel="CSV & PDF reports" onPress={() => Alert.alert('Export', 'Choose your export format.')} />
+        <View style={{ paddingHorizontal:20, marginBottom:24 }}>
+          <SectionLabel text="Invoice Status"/>
+          <View style={{ flexDirection:'row' }}>
+            {[
+              { label:'Paid', count:data.invoices.filter(function(i) { return i.status==='paid'; }).length, color:C.success },
+              { label:'Pending', count:data.invoices.filter(function(i) { return i.status==='pending'; }).length, color:C.primary },
+              { label:'Overdue', count:data.invoices.filter(function(i) { return i.status==='overdue'; }).length, color:C.punch },
+            ].map(function(item) {
+              return (
+                <Card key={item.label} style={{ flex:1, marginHorizontal:4, padding:16, alignItems:'center' }}>
+                  <Text style={[TY.hero, { color:item.color, fontSize:28 }]}>{item.count}</Text>
+                  <Text style={[TY.label, { color:C.inkMuted, marginTop:4 }]}>{item.label}</Text>
+                </Card>
+              );
+            })}
+          </View>
         </View>
-
-        <Text style={{ fontSize: 11, fontWeight: '800', color: C.inkLight, letterSpacing: 1.5, textTransform: 'uppercase', paddingHorizontal: 20, paddingTop: 20, paddingBottom: 6 }}>SUPPORT</Text>
-        <View style={{ backgroundColor: C.surface, borderTopWidth: 1, borderTopColor: C.line }}>
-          <Row icon="📚" label="Help Centre" onPress={() => Alert.alert('Help Centre', 'Documentation and guides.')} />
-          <Row icon="💬" label="Contact Support" onPress={() => Alert.alert('Support', 'support@crewdesk.app')} />
-          <Row icon="⭐" label="Rate CrewDesk" onPress={() => Alert.alert('Thank you!', 'We appreciate your support.')} />
-          <Row icon="📱" label="Version" sublabel="v3.0.0" right={<Text style={{ fontSize: 12, color: C.inkLight }}>Latest</Text>} />
+        <View style={{ paddingHorizontal:20, marginBottom:24 }}>
+          <SectionLabel text="Crew by Department"/>
+          <Card style={{ padding:20 }}>
+            {deptEntries.map(function(entry, i) {
+              var dept = entry[0]; var count = entry[1];
+              var pct = data.crew.length > 0 ? Math.round((count / data.crew.length) * 100) : 0;
+              var color = barColors[i % barColors.length];
+              return (
+                <View key={dept} style={{ marginBottom:14 }}>
+                  <View style={{ flexDirection:'row', justifyContent:'space-between', marginBottom:5 }}>
+                    <Text style={[TY.body, { color:C.ink, fontWeight:'600' }]}>{dept}</Text>
+                    <Text style={[TY.mono, { color:color }]}>{count} crew</Text>
+                  </View>
+                  <View style={{ height:8, backgroundColor:C.bgHighlight, borderRadius:4 }}>
+                    <View style={{ height:8, width:pct+'%', backgroundColor:color, borderRadius:4 }}/>
+                  </View>
+                </View>
+              );
+            })}
+          </Card>
         </View>
-
-        <View style={{ height: 1, backgroundColor: C.line, marginTop: 20 }} />
-        <View style={{ backgroundColor: C.surface, borderTopWidth: 1, borderTopColor: C.line }}>
-          <Row icon="🚪" label="Sign Out" danger onPress={() => Alert.alert('Sign Out', 'Are you sure you want to sign out?', [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Sign Out', style: 'destructive', onPress: () => Alert.alert('Signed out', 'See you soon!') },
-          ])} />
+        <View style={{ paddingHorizontal:20 }}>
+          <SectionLabel text="At a Glance"/>
+          <Card style={{ padding:20 }}>
+            {[
+              { label:'Active Projects', value:data.projects.filter(function(p) { return p.status==='active'; }).length, color:C.accent },
+              { label:'Completed Projects', value:data.projects.filter(function(p) { return p.status==='completed'; }).length, color:C.success },
+              { label:'Total Crew', value:data.crew.length, color:C.purple },
+              { label:'Scheduled Shifts', value:data.shifts.length, color:C.primary },
+              { label:'Messages', value:data.messages.length, color:C.accent },
+            ].map(function(item) {
+              return (
+                <View key={item.label} style={{ flexDirection:'row', alignItems:'center', paddingVertical:10,
+                  borderBottomWidth:1, borderBottomColor:C.border }}>
+                  <Text style={[TY.body, { color:C.inkMuted, flex:1 }]}>{item.label}</Text>
+                  <Text style={[TY.h3, { color:item.color }]}>{item.value}</Text>
+                </View>
+              );
+            })}
+          </Card>
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
-
-// ─────────────────────────────────────────────
-// TAB BAR + SECONDARY NAV
-// ─────────────────────────────────────────────
-const PRIMARY_TABS = [
-  { key:'home',      label:'Home',     icon:'⚡' },
-  { key:'projects',  label:'Projects', icon:'🎬' },
-  { key:'crew',      label:'Crew',     icon:'👥' },
-  { key:'schedule',  label:'Schedule', icon:'📅' },
-  { key:'messages',  label:'Messages', icon:'💬' },
-];
-
-const SECONDARY_TABS = [
-  { key:'invoices',  label:'Invoices', icon:'🧾' },
-  { key:'reports',   label:'Reports',  icon:'📊' },
-  { key:'more',      label:'More',     icon:'⚙️' },
-];
-
-function TabBar({ active, onTab, unreadMessages }) {
+function MoreScreen() {
+  const { data, dispatch } = useStore();
+  const [editProfile, setEditProfile] = useState(false);
+  const [profile, setProfile] = useState({ name:'Ashtyn', company:'CrewDesk Ltd', email:'ashtyn@crewdesk.io', phone:'+44 7700 900000' });
+  const [notifications, setNotifications] = useState(true);
+  const [budgetAlerts, setBudgetAlerts] = useState(true);
+  const [darkMode, setDarkMode] = useState(true);
+  function saveProfile() { setEditProfile(false); Alert.alert('Saved', 'Profile updated successfully.'); }
+  const menuItems = [
+    { section:'Account', items:[
+      { icon:'person', label:'Edit Profile', onPress:function() { setEditProfile(true); } },
+      { icon:'lock', label:'Security and Privacy', onPress:function() { Alert.alert('Security', 'Manage your account security.'); } },
+      { icon:'card', label:'Billing and Subscription', onPress:function() { Alert.alert('Billing', 'CrewDesk Pro GBP49/month'); } },
+    ]},
+    { section:'Workspace', items:[
+      { icon:'building', label:'Company Settings', onPress:function() { Alert.alert('Company', 'Manage company details.'); } },
+      { icon:'team', label:'Team and Permissions', onPress:function() { Alert.alert('Team', 'Manage team access and roles.'); } },
+      { icon:'link', label:'Integrations', onPress:function() { Alert.alert('Integrations', 'Connect Slack, Xero, Google and more.'); } },
+    ]},
+    { section:'Support', items:[
+      { icon:'chat', label:'Contact Support', onPress:function() { Alert.alert('Support', 'Email: support@crewdesk.io'); } },
+      { icon:'book', label:'Help Centre', onPress:function() { Alert.alert('Help', 'Browse guides and tutorials.'); } },
+      { icon:'star', label:'Rate CrewDesk', onPress:function() { Alert.alert('Rate', 'Thank you! Your review helps us grow.'); } },
+    ]},
+  ];
   return (
-    <View style={{ backgroundColor: C.surface, borderTopWidth: 1, borderTopColor: C.line, paddingBottom: 8, paddingTop: 8, flexDirection: 'row' }}>
-      {PRIMARY_TABS.map(t => {
-        const isActive = active === t.key;
-        const badge = t.key === 'messages' && unreadMessages > 0;
-        return (
-          <TouchableOpacity key={t.key} onPress={() => onTab(t.key)} style={{ flex: 1, alignItems: 'center', paddingVertical: 4 }} activeOpacity={0.7}>
-            <View style={{ position: 'relative' }}>
-              <Text style={{ fontSize: 22, opacity: isActive ? 1 : 0.4 }}>{t.icon}</Text>
-              {badge && (
-                <View style={{ position: 'absolute', top: -3, right: -5, backgroundColor: C.punch, borderRadius: 8, minWidth: 16, height: 16, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3, borderWidth: 1.5, borderColor: C.surface }}>
-                  <Text style={{ color: '#fff', fontSize: 9, fontWeight: '800' }}>{unreadMessages}</Text>
+    <SafeAreaView style={{ flex:1, backgroundColor:C.bg }}>
+      <StatusBar barStyle="light-content" backgroundColor={C.bg}/>
+      <ScrollView contentContainerStyle={{ paddingBottom:100 }}>
+        <Header title="Settings" subtitle="ACCOUNT"/>
+        <View style={{ paddingHorizontal:20, marginBottom:24 }}>
+          <Card style={{ padding:20 }}>
+            <View style={{ flexDirection:'row', alignItems:'center' }}>
+              <View style={{ width:64, height:64, borderRadius:32, backgroundColor:C.primary+'33',
+                borderWidth:3, borderColor:C.primary, alignItems:'center', justifyContent:'center', marginRight:16 }}>
+                <Text style={{ color:C.primary, fontSize:24, fontWeight:'800' }}>
+                  {profile.name.split(' ').map(function(n) { return n[0]; }).join('').toUpperCase()}
+                </Text>
+              </View>
+              <View style={{ flex:1 }}>
+                <Text style={[TY.h2, { color:C.ink }]}>{profile.name}</Text>
+                <Text style={[TY.body, { color:C.inkMuted }]}>{profile.company}</Text>
+                <View style={{ marginTop:6 }}>
+                  <Badge label="Pro" color={C.primary} textColor={C.inkDark} size="sm"/>
                 </View>
-              )}
+              </View>
+              <TouchableOpacity onPress={function() { setEditProfile(true); }}
+                style={{ backgroundColor:C.bgHighlight, borderRadius:100, paddingHorizontal:14, paddingVertical:7 }}>
+                <Text style={[TY.caption, { color:C.primary, fontWeight:'700' }]}>Edit</Text>
+              </TouchableOpacity>
             </View>
-            <Text style={{ color: isActive ? C.ink : C.inkGhost, fontSize: 10, marginTop: 3, fontWeight: isActive ? '800' : '500', letterSpacing: 0.2 }}>{t.label}</Text>
-            {isActive && <View style={{ width: 20, height: 2.5, backgroundColor: C.ink, borderRadius: 2, marginTop: 2 }} />}
-          </TouchableOpacity>
-        );
-      })}
-    </View>
+          </Card>
+        </View>
+        <View style={{ paddingHorizontal:20, marginBottom:24 }}>
+          <SectionLabel text="Preferences"/>
+          <Card style={{ padding:0, overflow:'hidden' }}>
+            {[
+              { label:'Push Notifications', value:notifications, onChange:setNotifications },
+              { label:'Budget Alerts', value:budgetAlerts, onChange:setBudgetAlerts },
+              { label:'Dark Mode', value:darkMode, onChange:setDarkMode },
+            ].map(function(pref, idx) {
+              return (
+                <View key={pref.label} style={{ flexDirection:'row', alignItems:'center', justifyContent:'space-between',
+                  paddingHorizontal:20, paddingVertical:16,
+                  borderBottomWidth:idx < 2 ? 1 : 0, borderBottomColor:C.border }}>
+                  <Text style={[TY.body, { color:C.ink }]}>{pref.label}</Text>
+                  <Switch value={pref.value} onValueChange={pref.onChange}
+                    trackColor={{ false:C.bgHighlight, true:C.primary }}
+                    thumbColor={pref.value ? C.inkDark : C.inkMuted}/>
+                </View>
+              );
+            })}
+          </Card>
+        </View>
+        {menuItems.map(function(section) {
+          return (
+            <View key={section.section} style={{ paddingHorizontal:20, marginBottom:20 }}>
+              <SectionLabel text={section.section}/>
+              <Card style={{ padding:0, overflow:'hidden' }}>
+                {section.items.map(function(item, idx) {
+                  return (
+                    <TouchableOpacity key={item.label} onPress={item.onPress}
+                      style={{ flexDirection:'row', alignItems:'center', paddingHorizontal:20, paddingVertical:16,
+                        borderBottomWidth:idx < section.items.length - 1 ? 1 : 0, borderBottomColor:C.border }}>
+                      <Text style={[TY.body, { color:C.ink, flex:1 }]}>{item.label}</Text>
+                      <Text style={{ color:C.inkFaint, fontSize:16 }}>></Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </Card>
+            </View>
+          );
+        })}
+        <Text style={[TY.caption, { color:C.inkFaint, textAlign:'center', marginTop:8 }]}>CrewDesk v5.0 - Built for the industry</Text>
+      </ScrollView>
+      <Sheet visible={editProfile} onClose={function() { setEditProfile(false); }} title="Edit Profile">
+        <Field label="Full Name" value={profile.name} onChangeText={function(v) { setProfile(function(p) { return {...p,name:v}; }); }} placeholder="Your name"/>
+        <Field label="Company" value={profile.company} onChangeText={function(v) { setProfile(function(p) { return {...p,company:v}; }); }} placeholder="Company name"/>
+        <Field label="Email" value={profile.email} onChangeText={function(v) { setProfile(function(p) { return {...p,email:v}; }); }} placeholder="email@example.com" keyboardType="email-address"/>
+        <Field label="Phone" value={profile.phone} onChangeText={function(v) { setProfile(function(p) { return {...p,phone:v}; }); }} placeholder="+44 7700 000000" keyboardType="phone-pad"/>
+        <PrimaryBtn label="Save Profile" onPress={saveProfile}/>
+      </Sheet>
+    </SafeAreaView>
   );
 }
 
-function SecondaryBar({ active, onTab }) {
+const TABS = [
+  { key:'Home', label:'Home', icon:'H' },
+  { key:'Projects', label:'Projects', icon:'P' },
+  { key:'Crew', label:'Crew', icon:'C' },
+  { key:'Schedule', label:'Schedule', icon:'S' },
+  { key:'Messages', label:'Msgs', icon:'M' },
+  { key:'Invoices', label:'Invoices', icon:'I' },
+  { key:'Reports', label:'Reports', icon:'R' },
+  { key:'More', label:'More', icon:'...' },
+];
+function TabBar({ active, onSelect, unread }) {
   return (
-    <View style={{ backgroundColor: C.surface, borderBottomWidth: 1, borderBottomColor: C.line }}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 8 }}>
-        {SECONDARY_TABS.map(t => {
-          const isActive = active === t.key;
+    <View style={{ position:'absolute', bottom:0, left:0, right:0, backgroundColor:C.bgCard,
+      borderTopWidth:1, borderTopColor:C.border,
+      shadowColor:C.shadow, shadowOffset:{width:0,height:-4}, shadowOpacity:1, shadowRadius:20, elevation:20 }}>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ paddingHorizontal:8, paddingVertical:8 }}>
+        {TABS.map(function(tab) {
+          var isActive = active === tab.key;
+          var hasUnread = tab.key === 'Messages' && unread > 0;
           return (
-            <TouchableOpacity key={t.key} onPress={() => onTab(t.key)} style={{ flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, marginRight: 8, backgroundColor: isActive ? C.ink : C.bgWarm }} activeOpacity={0.7}>
-              <Text style={{ fontSize: 15, marginRight: 6 }}>{t.icon}</Text>
-              <Text style={{ color: isActive ? '#fff' : C.inkMid, fontSize: 13, fontWeight: '700' }}>{t.label}</Text>
+            <TouchableOpacity key={tab.key} onPress={function() { onSelect(tab.key); }}
+              style={{ alignItems:'center', paddingHorizontal:10, paddingVertical:6, minWidth:68, position:'relative' }}>
+              {isActive && (
+                <View style={{ position:'absolute', top:0, left:12, right:12, height:2,
+                  backgroundColor:C.primary, borderRadius:1 }}/>
+              )}
+              <View style={{ position:'relative' }}>
+                <View style={{ width:36, height:36, borderRadius:18,
+                  backgroundColor:isActive ? C.primary+'22' : 'transparent',
+                  alignItems:'center', justifyContent:'center' }}>
+                  <Text style={{ color:isActive ? C.primary : C.inkMuted, fontSize:16, fontWeight:'700' }}>{tab.icon}</Text>
+                </View>
+                {hasUnread && (
+                  <View style={{ position:'absolute', top:-3, right:-5, backgroundColor:C.punch,
+                    width:14, height:14, borderRadius:7, alignItems:'center', justifyContent:'center',
+                    borderWidth:1.5, borderColor:C.bgCard }}>
+                    <Text style={{ color:C.ink, fontSize:8, fontWeight:'800' }}>{unread}</Text>
+                  </View>
+                )}
+              </View>
+              <Text style={{ color:isActive ? C.primary : C.inkMuted, fontSize:10,
+                fontWeight:isActive ? '700' : '500', marginTop:2, letterSpacing:0.2 }}>{tab.label}</Text>
             </TouchableOpacity>
           );
         })}
@@ -1728,38 +1441,26 @@ function SecondaryBar({ active, onTab }) {
     </View>
   );
 }
-
-// ─────────────────────────────────────────────
-// MAIN APP
-// ─────────────────────────────────────────────
 export default function App() {
-  const store = useStore();
-  const [activeTab, setActiveTab] = React.useState('home');
-  const unreadMessages = store.messages.reduce((a, m) => a + (m.unread || 0), 0);
-  const isSecondary = ['invoices','reports','more'].includes(activeTab);
-
-  const renderScreen = () => {
-    switch (activeTab) {
-      case 'home':     return <HomeScreen     store={store} onNav={setActiveTab} />;
-      case 'projects': return <ProjectsScreen store={store} onNav={setActiveTab} />;
-      case 'crew':     return <CrewScreen     store={store} onNav={setActiveTab} />;
-      case 'schedule': return <ScheduleScreen store={store} onNav={setActiveTab} />;
-      case 'messages': return <MessagesScreen store={store} onNav={setActiveTab} />;
-      case 'invoices': return <InvoicesScreen store={store} onNav={setActiveTab} />;
-      case 'reports':  return <ReportsScreen  store={store} onNav={setActiveTab} />;
-      case 'more':     return <MoreScreen     store={store} onNav={setActiveTab} />;
-      default:         return <HomeScreen     store={store} onNav={setActiveTab} />;
-    }
-  };
-
+  const [activeTab, setActiveTab] = useState('Home');
+  const { data } = useStore();
+  const unreadMessages = data.messages.reduce(function(a, m) { return a + (m.unread || 0); }, 0);
+  function navigateFromHome(screen) { setActiveTab(screen); }
+  function renderScreen() {
+    if (activeTab === 'Home')     return <HomeScreen navigate={navigateFromHome}/>;
+    if (activeTab === 'Projects') return <ProjectsScreen/>;
+    if (activeTab === 'Crew')     return <CrewScreen/>;
+    if (activeTab === 'Schedule') return <ScheduleScreen/>;
+    if (activeTab === 'Messages') return <MessagesScreen/>;
+    if (activeTab === 'Invoices') return <InvoicesScreen/>;
+    if (activeTab === 'Reports')  return <ReportsScreen/>;
+    if (activeTab === 'More')     return <MoreScreen/>;
+    return null;
+  }
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: C.surface }}>
-      <StatusBar barStyle="dark-content" backgroundColor={C.surface} />
-      {isSecondary && <SecondaryBar active={activeTab} onTab={setActiveTab} />}
-      <View style={{ flex: 1, backgroundColor: C.bg }}>
-        {renderScreen()}
-      </View>
-      <TabBar active={activeTab} onTab={setActiveTab} unreadMessages={unreadMessages} />
-    </SafeAreaView>
+    <View style={{ flex:1, backgroundColor:C.bg }}>
+      {renderScreen()}
+      <TabBar active={activeTab} onSelect={setActiveTab} unread={unreadMessages}/>
+    </View>
   );
 }
