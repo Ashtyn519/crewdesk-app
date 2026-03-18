@@ -47,7 +47,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#04080F] flex overflow-hidden relative">
+    <div className="h-screen bg-[#04080F] flex overflow-hidden relative">
 
       {/* Background orbs */}
       {orbs.map((o, i) => (

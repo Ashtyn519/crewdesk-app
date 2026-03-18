@@ -50,7 +50,7 @@ export default function SignupPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#04080F] flex overflow-hidden relative">
+    <div className="h-screen bg-[#04080F] flex overflow-hidden relative">
 
       {/* Orbs */}
       {orbs.map((o, i) => (
