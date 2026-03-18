@@ -1,313 +1,296 @@
-'use client'
+"use client"
+import { useState, useEffect, useRef } from "react"
 
-import { useEffect, useState, useRef } from 'react'
-import { createClient } from '@/lib/supabase/client'
-import clsx from 'clsx'
-import {
-  Send, Search, Plus, MoreVertical, Phone, Video,
-  Paperclip, Smile, ArrowLeft, Circle, CheckCheck,
-  Hash, Lock, Users, MessageSquare, X, Loader2
-} from 'lucide-react'
+import { motion, AnimatePresence } from "framer-motion"
+import { Send, Search, Plus, MoreHorizontal, Phone, Video, Hash, Circle, Check, CheckCheck, Smile } from "lucide-react"
+import clsx from "clsx"
 
-interface Thread {
-  id: string
-  name: string
-  last_message?: string
-  last_message_at?: string
-  unread_count?: number
-  is_group?: boolean
-  avatar_color?: string
-}
+const ease = [0.22, 1, 0.36, 1]
 
 interface Message {
   id: string
   thread_id: string
-  content: string
   sender_name: string
+  sender_color: string
+  content: string
   created_at: string
-  is_own?: boolean
+  read: boolean
 }
 
-const MOCK_THREADS: Thread[] = [
-  { id: '1', name: 'Alice Morgan', last_message: 'The raw footage looks great!', last_message_at: '2m ago', unread_count: 3, avatar_color: 'bg-blue-500' },
-  { id: '2', name: 'Production Team', last_message: 'Call sheet for tomorrow sent', last_message_at: '1h ago', unread_count: 1, is_group: true, avatar_color: 'bg-purple-500' },
-  { id: '3', name: 'James Whitfield', last_message: 'Invoice approved ✓', last_message_at: '3h ago', unread_count: 0, avatar_color: 'bg-emerald-500' },
-  { id: '4', name: 'Sound Dept', last_message: 'Boom op confirmed for Monday', last_message_at: 'Yesterday', unread_count: 0, is_group: true, avatar_color: 'bg-amber-500' },
-  { id: '5', name: 'Rachel Chen', last_message: 'Rate card attached', last_message_at: 'Mon', unread_count: 0, avatar_color: 'bg-rose-500' },
+interface Thread {
+  id: string
+  name: string
+  avatar_color: string
+  role: string
+  last_message: string
+  last_time: string
+  unread: number
+  online: boolean
+}
+
+const THREADS: Thread[] = [
+  { id: "1", name: "Sarah Mitchell", avatar_color: "bg-violet-500", role: "Director of Photography", last_message: "Can you confirm the call sheet for Monday?", last_time: "2m", unread: 3, online: true },
+  { id: "2", name: "James Cole", avatar_color: "bg-emerald-500", role: "Gaffer", last_message: "Lighting setup is ready for review", last_time: "14m", unread: 1, online: true },
+  { id: "3", name: "Priya Nair", avatar_color: "bg-amber-500", role: "Production Designer", last_message: "Set dressing complete on Stage 4", last_time: "1h", unread: 0, online: false },
+  { id: "4", name: "Marcus Webb", avatar_color: "bg-pink-500", role: "Sound Mixer", last_message: "Boom op confirmed for tomorrow", last_time: "2h", unread: 0, online: false },
+  { id: "5", name: "Luna Chen", avatar_color: "bg-blue-500", role: "Costume Designer", last_message: "Wardrobe changes approved ✓", last_time: "3h", unread: 0, online: true },
 ]
 
 const MOCK_MESSAGES: Record<string, Message[]> = {
-  '1': [
-    { id: 'm1', thread_id: '1', content: 'Hey! Just finished reviewing the footage from yesterday.', sender_name: 'Alice Morgan', created_at: '10:15', is_own: false },
-    { id: 'm2', thread_id: '1', content: 'The lighting in scene 3 is absolutely perfect.', sender_name: 'Alice Morgan', created_at: '10:16', is_own: false },
-    { id: 'm3', thread_id: '1', content: 'Thanks! We spent a long time setting that up. Really happy with it.', sender_name: 'You', created_at: '10:22', is_own: true },
-    { id: 'm4', thread_id: '1', content: 'The raw footage looks great!', sender_name: 'Alice Morgan', created_at: '10:45', is_own: false },
+  "1": [
+    { id: "m1", thread_id: "1", sender_name: "Sarah Mitchell", sender_color: "bg-violet-500", content: "Hey, just checking in on the schedule for next week.", created_at: new Date(Date.now() - 3600000).toISOString(), read: true },
+    { id: "m2", thread_id: "1", sender_name: "You", sender_color: "bg-amber-400", content: "All sorted! Monday 6am call time at Location A.", created_at: new Date(Date.now() - 3000000).toISOString(), read: true },
+    { id: "m3", thread_id: "1", sender_name: "Sarah Mitchell", sender_color: "bg-violet-500", content: "Perfect. I'll need the full DP package — Sony FX9 with full lens kit.", created_at: new Date(Date.now() - 2400000).toISOString(), read: true },
+    { id: "m4", thread_id: "1", sender_name: "You", sender_color: "bg-amber-400", content: "Confirmed, already booked with rental house. ETA is Sunday evening.", created_at: new Date(Date.now() - 1800000).toISOString(), read: true },
+    { id: "m5", thread_id: "1", sender_name: "Sarah Mitchell", sender_color: "bg-violet-500", content: "Can you confirm the call sheet for Monday?", created_at: new Date(Date.now() - 120000).toISOString(), read: false },
   ],
-  '2': [
-    { id: 'm5', thread_id: '2', content: 'Morning everyone! Quick reminder — wrap is at 18:00 tomorrow.', sender_name: 'James', created_at: '09:00', is_own: false },
-    { id: 'm6', thread_id: '2', content: 'Got it, will make sure the kit is packed by 17:30.', sender_name: 'Rachel', created_at: '09:12', is_own: false },
-    { id: 'm7', thread_id: '2', content: 'Call sheet for tomorrow sent', sender_name: 'You', created_at: '09:30', is_own: true },
+  "2": [
+    { id: "m6", thread_id: "2", sender_name: "James Cole", sender_color: "bg-emerald-500", content: "Rigging is all done on Stage 2. Ready for your sign-off.", created_at: new Date(Date.now() - 7200000).toISOString(), read: true },
+    { id: "m7", thread_id: "2", sender_name: "You", sender_color: "bg-amber-400", content: "Will check tomorrow morning. Looks great from the photos!", created_at: new Date(Date.now() - 3600000).toISOString(), read: true },
+    { id: "m8", thread_id: "2", sender_name: "James Cole", sender_color: "bg-emerald-500", content: "Lighting setup is ready for review", created_at: new Date(Date.now() - 840000).toISOString(), read: false },
   ],
 }
 
-function AvatarInitials({ name, colorClass, size = 'md' }: { name: string; colorClass?: string; size?: 'sm' | 'md' | 'lg' }) {
-  const colors = ['bg-blue-500','bg-purple-500','bg-emerald-500','bg-amber-500','bg-rose-500','bg-cyan-500']
-  const idx = name.charCodeAt(0) % colors.length
-  const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2)
-  const sizes = { sm: 'w-8 h-8 text-xs', md: 'w-10 h-10 text-sm', lg: 'w-11 h-11 text-sm' }
-  return (
-    <div className={clsx('rounded-full flex items-center justify-center font-bold text-white flex-shrink-0', colorClass ?? colors[idx], sizes[size])}>
-      {initials}
-    </div>
-  )
+function formatTime(iso: string) {
+  const d = new Date(iso)
+  const now = new Date()
+  const diff = now.getTime() - d.getTime()
+  if (diff < 60000) return "now"
+  if (diff < 3600000) return Math.floor(diff / 60000) + "m"
+  if (diff < 86400000) return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+  return d.toLocaleDateString([], { month: "short", day: "numeric" })
 }
-
-export const dynamic = 'force-dynamic'
 
 export default function MessagesPage() {
-  const supabase = createClient()
-  const [threads, setThreads] = useState<Thread[]>(MOCK_THREADS)
-  const [selectedThread, setSelectedThread] = useState<Thread | null>(null)
-  const [messages, setMessages] = useState<Message[]>([])
-  const [newMessage, setNewMessage] = useState('')
-  const [search, setSearch] = useState('')
+  const [activeThread, setActiveThread] = useState<Thread>(THREADS[0])
+  const [messages, setMessages] = useState<Message[]>(MOCK_MESSAGES["1"] || [])
+  const [threads, setThreads] = useState<Thread[]>(THREADS)
+  const [input, setInput] = useState("")
+  const [search, setSearch] = useState("")
   const [sending, setSending] = useState(false)
-  const [showMobileThread, setShowMobileThread] = useState(false)
-  const messagesEndRef = useRef<HTMLDivElement>(null)
-  const inputRef = useRef<HTMLInputElement>(null)
+  const endRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    if (selectedThread) {
-      setMessages(MOCK_MESSAGES[selectedThread.id] ?? [])
-      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
-    }
-  }, [selectedThread])
+    endRef.current?.scrollIntoView({ behavior: "smooth" })
+  }, [messages])
 
-  function selectThread(t: Thread) {
-    setSelectedThread(t)
-    setShowMobileThread(true)
+  useEffect(() => {
+    const msgs = MOCK_MESSAGES[activeThread.id] || []
+    setMessages(msgs)
     // Mark as read
-    setThreads(prev => prev.map(th => th.id === t.id ? { ...th, unread_count: 0 } : th))
-  }
+    setThreads(prev => prev.map(t => t.id === activeThread.id ? { ...t, unread: 0 } : t))
+  }, [activeThread])
 
-  async function sendMessage() {
-    if (!newMessage.trim() || !selectedThread || sending) return
+  const sendMessage = async () => {
+    if (!input.trim() || sending) return
     setSending(true)
-    const msg: Message = {
-      id: Date.now().toString(),
-      thread_id: selectedThread.id,
-      content: newMessage.trim(),
-      sender_name: 'You',
-      created_at: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
-      is_own: true,
+    const newMsg: Message = {
+      id: "new-" + Date.now(),
+      thread_id: activeThread.id,
+      sender_name: "You",
+      sender_color: "bg-amber-400",
+      content: input.trim(),
+      created_at: new Date().toISOString(),
+      read: true,
     }
-    setMessages(prev => [...prev, msg])
-    setNewMessage('')
+    setMessages(prev => [...prev, newMsg])
+    setThreads(prev => prev.map(t => t.id === activeThread.id ? { ...t, last_message: input.trim(), last_time: "now" } : t))
+    setInput("")
     setSending(false)
-    setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-    }, 50)
   }
 
-  function handleKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Enter' && !e.shiftKey) {
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault()
       sendMessage()
     }
   }
 
   const filteredThreads = threads.filter(t =>
-    t.name.toLowerCase().includes(search.toLowerCase())
+    t.name.toLowerCase().includes(search.toLowerCase()) ||
+    t.role.toLowerCase().includes(search.toLowerCase())
   )
-  const totalUnread = threads.reduce((sum, t) => sum + (t.unread_count ?? 0), 0)
 
   return (
-    <div className="h-[calc(100vh-4rem)] bg-[#04080F] flex overflow-hidden">
-      {/* Sidebar */}
-      <div className={clsx(
-        'w-full md:w-80 lg:w-96 flex-shrink-0 flex flex-col border-r border-white/[0.06] bg-[#060C18]',
-        showMobileThread && 'hidden md:flex'
-      )}>
-        {/* Sidebar Header */}
+    <div className="flex h-[calc(100vh-64px)] bg-[#04080F]">
+      {/* Thread list */}
+      <motion.div
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.4, ease }}
+        className="w-80 flex-shrink-0 border-r border-white/[0.06] flex flex-col"
+      >
         <div className="p-4 border-b border-white/[0.06]">
           <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center gap-2">
-              <h2 className="text-base font-semibold text-white">Messages</h2>
-              {totalUnread > 0 && (
-                <span className="px-2 py-0.5 bg-amber-500 text-black text-xs font-bold rounded-full">{totalUnread}</span>
-              )}
-            </div>
-            <button className="p-2 rounded-xl hover:bg-white/10 text-white/40 hover:text-white transition-all">
+            <h2 className="font-bold text-white">Messages</h2>
+            <motion.button
+              whileHover={{ scale: 1.1 }}
+              whileTap={{ scale: 0.9 }}
+              className="w-7 h-7 rounded-lg bg-amber-400/10 text-amber-400 flex items-center justify-center hover:bg-amber-400/20 transition-colors"
+            >
               <Plus className="w-4 h-4" />
-            </button>
+            </motion.button>
           </div>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
-            <input value={search} onChange={e => setSearch(e.target.value)}
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
               placeholder="Search conversations..."
-              className="w-full pl-9 pr-4 py-2 bg-[#0A1020] border border-white/[0.06] rounded-xl text-sm text-white placeholder-white/25 focus:outline-none focus:border-amber-500/50 transition-all" />
+              className="w-full pl-8 pr-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-sm text-white placeholder-white/30 outline-none focus:border-amber-400/40 transition-colors"
+            />
           </div>
         </div>
 
-        {/* Thread List */}
-        <div className="flex-1 overflow-y-auto py-2">
-          {filteredThreads.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center px-4">
-              <MessageSquare className="w-8 h-8 text-white/20 mb-3" />
-              <p className="text-sm text-white/40">No conversations found</p>
+        <div className="flex-1 overflow-y-auto">
+          {filteredThreads.map((thread, i) => (
+            <motion.button
+              key={thread.id}
+              initial={{ opacity: 0, x: -10 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: i * 0.05, ease }}
+              onClick={() => setActiveThread(thread)}
+              className={clsx(
+                "w-full p-4 flex items-center gap-3 hover:bg-white/[0.03] transition-colors text-left border-b border-white/[0.03]",
+                activeThread.id === thread.id && "bg-white/[0.05]"
+              )}
+            >
+              <div className="relative flex-shrink-0">
+                <div className={"w-10 h-10 rounded-full " + thread.avatar_color + " flex items-center justify-center text-sm font-bold text-white"}>
+                  {thread.name.charAt(0)}
+                </div>
+                {thread.online && (
+                  <div className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-[#04080F]" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-0.5">
+                  <span className="text-sm font-semibold text-white truncate">{thread.name}</span>
+                  <span className="text-xs text-white/30 flex-shrink-0 ml-2">{thread.last_time}</span>
+                </div>
+                <p className="text-xs text-white/40 truncate">{thread.last_message}</p>
+              </div>
+              {thread.unread > 0 && (
+                <div className="w-5 h-5 rounded-full bg-amber-400 text-black text-xs font-bold flex items-center justify-center flex-shrink-0">
+                  {thread.unread}
+                </div>
+              )}
+            </motion.button>
+          ))}
+        </div>
+      </motion.div>
+
+      {/* Chat area */}
+      <div className="flex-1 flex flex-col">
+        {/* Header */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease }}
+          className="h-16 border-b border-white/[0.06] flex items-center justify-between px-6"
+        >
+          <div className="flex items-center gap-3">
+            <div className="relative">
+              <div className={"w-9 h-9 rounded-full " + activeThread.avatar_color + " flex items-center justify-center text-sm font-bold text-white"}>
+                {activeThread.name.charAt(0)}
+              </div>
+              {activeThread.online && <div className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-[#04080F]" />}
             </div>
-          ) : (
-            filteredThreads.map(t => (
-              <button key={t.id} onClick={() => selectThread(t)}
-                className={clsx(
-                  'w-full flex items-center gap-3 px-4 py-3 transition-all text-left',
-                  selectedThread?.id === t.id
-                    ? 'bg-amber-500/10 border-r-2 border-r-amber-500'
-                    : 'hover:bg-white/5'
-                )}>
-                <div className="relative">
-                  <AvatarInitials name={t.name} colorClass={t.avatar_color} />
-                  {t.is_group && (
-                    <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-[#060C18] rounded-full flex items-center justify-center">
-                      <Users className="w-2.5 h-2.5 text-white/40" />
+            <div>
+              <div className="font-semibold text-sm text-white">{activeThread.name}</div>
+              <div className="text-xs text-white/40">{activeThread.online ? "Active now" : activeThread.role}</div>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            {[Phone, Video, MoreHorizontal].map((Icon, i) => (
+              <motion.button key={i} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+                className="w-8 h-8 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] flex items-center justify-center text-white/50 hover:text-white/80 transition-colors">
+                <Icon className="w-4 h-4" />
+              </motion.button>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Messages */}
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+          <AnimatePresence initial={false}>
+            {messages.map((msg, i) => {
+              const isYou = msg.sender_name === "You"
+              return (
+                <motion.div
+                  key={msg.id}
+                  initial={{ opacity: 0, y: 10, scale: 0.97 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  transition={{ duration: 0.25, ease }}
+                  className={clsx("flex gap-3", isYou && "flex-row-reverse")}
+                >
+                  {!isYou && (
+                    <div className={"w-8 h-8 rounded-full flex-shrink-0 " + msg.sender_color + " flex items-center justify-center text-xs font-bold text-white"}>
+                      {msg.sender_name.charAt(0)}
                     </div>
                   )}
-                  <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#060C18]" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-1">
-                    <span className={clsx('text-sm font-medium truncate', (t.unread_count ?? 0) > 0 ? 'text-white' : 'text-white/80')}>{t.name}</span>
-                    <span className="text-xs text-white/30 flex-shrink-0">{t.last_message_at}</span>
-                  </div>
-                  <div className="flex items-center justify-between gap-1 mt-0.5">
-                    <p className="text-xs text-white/40 truncate">{t.last_message}</p>
-                    {(t.unread_count ?? 0) > 0 && (
-                      <span className="flex-shrink-0 w-5 h-5 bg-amber-500 text-black text-xs font-bold rounded-full flex items-center justify-center">{t.unread_count}</span>
-                    )}
-                  </div>
-                </div>
-              </button>
-            ))
-          )}
-        </div>
-      </div>
-
-      {/* Chat Area */}
-      <div className={clsx(
-        'flex-1 flex flex-col',
-        !showMobileThread && 'hidden md:flex'
-      )}>
-        {selectedThread ? (
-          <>
-            {/* Chat Header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06] bg-[#060C18]">
-              <div className="flex items-center gap-3">
-                <button onClick={() => setShowMobileThread(false)} className="md:hidden p-2 rounded-xl hover:bg-white/10 text-white/50 transition-all mr-1">
-                  <ArrowLeft className="w-4 h-4" />
-                </button>
-                <div className="relative">
-                  <AvatarInitials name={selectedThread.name} colorClass={selectedThread.avatar_color} size="md" />
-                  <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#060C18]" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-white text-sm">{selectedThread.name}</h3>
-                  <p className="text-xs text-emerald-400">Online</p>
-                </div>
-              </div>
-              <div className="flex items-center gap-1">
-                <button className="p-2 rounded-xl hover:bg-white/10 text-white/40 hover:text-white transition-all">
-                  <Phone className="w-4 h-4" />
-                </button>
-                <button className="p-2 rounded-xl hover:bg-white/10 text-white/40 hover:text-white transition-all">
-                  <Video className="w-4 h-4" />
-                </button>
-                <button className="p-2 rounded-xl hover:bg-white/10 text-white/40 hover:text-white transition-all">
-                  <MoreVertical className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-
-            {/* Messages */}
-            <div className="flex-1 overflow-y-auto p-6 space-y-4">
-              {/* Date divider */}
-              <div className="flex items-center gap-3">
-                <div className="flex-1 h-px bg-white/[0.06]" />
-                <span className="text-xs text-white/25 px-3 py-1 bg-[#0A1020] rounded-full border border-white/[0.06]">Today</span>
-                <div className="flex-1 h-px bg-white/[0.06]" />
-              </div>
-
-              {messages.map((msg, i) => {
-                const isOwn = msg.is_own
-                const prevMsg = messages[i - 1]
-                const showAvatar = !prevMsg || prevMsg.sender_name !== msg.sender_name
-                return (
-                  <div key={msg.id} className={clsx('flex items-end gap-2', isOwn ? 'flex-row-reverse' : 'flex-row')}>
-                    {!isOwn && (
-                      <div className="w-8 flex-shrink-0">
-                        {showAvatar && <AvatarInitials name={msg.sender_name} size="sm" />}
-                      </div>
-                    )}
-                    <div className={clsx('max-w-xs lg:max-w-md xl:max-w-lg group', isOwn ? 'items-end' : 'items-start', 'flex flex-col gap-1')}>
-                      {showAvatar && !isOwn && (
-                        <span className="text-xs text-white/40 ml-1">{msg.sender_name}</span>
-                      )}
-                      <div className={clsx(
-                        'px-4 py-2.5 rounded-2xl text-sm leading-relaxed',
-                        isOwn
-                          ? 'bg-amber-500 text-black rounded-br-md'
-                          : 'bg-[#0A1020] border border-white/[0.06] text-white/90 rounded-bl-md'
-                      )}>
-                        {msg.content}
-                      </div>
-                      <div className={clsx('flex items-center gap-1', isOwn ? 'flex-row-reverse' : 'flex-row')}>
-                        <span className="text-xs text-white/25">{msg.created_at}</span>
-                        {isOwn && <CheckCheck className="w-3 h-3 text-amber-400" />}
-                      </div>
+                  <div className={clsx("max-w-[65%]", isYou && "items-end flex flex-col")}>
+                    {!isYou && <div className="text-xs text-white/40 mb-1 ml-1">{msg.sender_name}</div>}
+                    <div className={clsx(
+                      "px-4 py-2.5 rounded-2xl text-sm leading-relaxed",
+                      isYou
+                        ? "bg-amber-400 text-black rounded-tr-sm font-medium"
+                        : "bg-white/[0.06] border border-white/[0.06] text-white rounded-tl-sm"
+                    )}>
+                      {msg.content}
+                    </div>
+                    <div className={clsx("flex items-center gap-1 mt-1 text-xs text-white/25", isYou && "justify-end")}>
+                      <span>{formatTime(msg.created_at)}</span>
+                      {isYou && <CheckCheck className="w-3 h-3 text-amber-400/60" />}
                     </div>
                   </div>
-                )
-              })}
-              <div ref={messagesEndRef} />
-            </div>
+                </motion.div>
+              )
+            })}
+          </AnimatePresence>
+          <div ref={endRef} />
+        </div>
 
-            {/* Input */}
-            <div className="p-4 border-t border-white/[0.06] bg-[#060C18]">
-              <div className="flex items-center gap-3 bg-[#0A1020] border border-white/[0.06] rounded-2xl px-4 py-2 focus-within:border-amber-500/40 transition-all">
-                <button className="p-1 text-white/30 hover:text-white/60 transition-all flex-shrink-0">
-                  <Paperclip className="w-4 h-4" />
-                </button>
-                <input ref={inputRef}
-                  value={newMessage}
-                  onChange={e => setNewMessage(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  placeholder={`Message ${selectedThread.name}...`}
-                  className="flex-1 bg-transparent text-sm text-white placeholder-white/25 focus:outline-none py-1" />
-                <button className="p-1 text-white/30 hover:text-white/60 transition-all flex-shrink-0">
-                  <Smile className="w-4 h-4" />
-                </button>
-                <button onClick={sendMessage}
-                  disabled={!newMessage.trim() || sending}
-                  className="w-8 h-8 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed text-black rounded-xl flex items-center justify-center transition-all flex-shrink-0">
-                  {sending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
-                </button>
-              </div>
-              <p className="text-xs text-white/20 text-center mt-2">Press Enter to send · Shift+Enter for new line</p>
+        {/* Input */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4, ease, delay: 0.2 }}
+          className="p-4 border-t border-white/[0.06]"
+        >
+          <div className="flex items-end gap-3 bg-white/[0.04] border border-white/[0.06] rounded-2xl px-4 py-3 focus-within:border-amber-400/30 transition-colors">
+            <textarea
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder={"Message " + activeThread.name + "..."}
+              rows={1}
+              className="flex-1 bg-transparent text-sm text-white placeholder-white/30 outline-none resize-none"
+              style={{ maxHeight: "120px" }}
+            />
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
+                className="text-white/30 hover:text-white/60 transition-colors">
+                <Smile className="w-5 h-5" />
+              </motion.button>
+              <motion.button
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                onClick={sendMessage}
+                disabled={!input.trim() || sending}
+                className={clsx(
+                  "w-9 h-9 rounded-xl flex items-center justify-center transition-all",
+                  input.trim()
+                    ? "bg-amber-400 text-black hover:bg-amber-300"
+                    : "bg-white/[0.06] text-white/20"
+                )}
+              >
+                <Send className="w-4 h-4" />
+              </motion.button>
             </div>
-          </>
-        ) : (
-          /* Empty state */
-          <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-            <div className="w-20 h-20 rounded-3xl bg-[#0A1020] border border-white/[0.06] flex items-center justify-center mb-6">
-              <MessageSquare className="w-9 h-9 text-white/20" />
-            </div>
-            <h3 className="text-lg font-semibold text-white mb-2">Your messages</h3>
-            <p className="text-sm text-white/40 max-w-xs mb-6">Send direct messages to crew members or chat with your production teams</p>
-            <button className="flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-black text-sm font-semibold rounded-xl transition-all">
-              <Plus className="w-4 h-4" />
-              New Message
-            </button>
           </div>
-        )}
+          <p className="text-xs text-white/20 mt-2 ml-1">Press Enter to send · Shift+Enter for new line</p>
+        </motion.div>
       </div>
     </div>
   )
