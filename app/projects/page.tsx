@@ -1,33 +1,74 @@
 'use client'
-import { useState, useEffect } from 'react'
+
+import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Plus, Search, Filter, FolderOpen, Calendar, Users, DollarSign, MoreHorizontal, ChevronRight, Briefcase, TrendingUp, Clock, CheckCircle2, AlertCircle, Circle } from 'lucide-react'
+import { motion, AnimatePresence, useInView } from 'framer-motion'
+import {
+  Plus, Search, FolderOpen, Calendar, DollarSign,
+  Users, MoreVertical, Edit2, Trash2, X, Check,
+  TrendingUp, Clock, Briefcase, ChevronRight, Sparkles
+} from 'lucide-react'
 import clsx from 'clsx'
 
 interface Project {
   id: string
   name: string
-  client: string
-  status: 'active' | 'completed' | 'on-hold' | 'draft'
-  budget: number
-  spent: number
-  start_date: string
-  end_date: string
-  crew_count: number
-  description: string
+  description: string | null
+  status: 'active' | 'completed' | 'on_hold' | 'cancelled'
+  budget: number | null
+  spent: number | null
+  client_name: string | null
+  deadline: string | null
   created_at: string
 }
 
 const statusConfig = {
-  active: { label: 'Active', color: 'text-emerald-400', bg: 'bg-emerald-400/10', border: 'border-emerald-400/20', dot: 'bg-emerald-400' },
-  completed: { label: 'Completed', color: 'text-blue-400', bg: 'bg-blue-400/10', border: 'border-blue-400/20', dot: 'bg-blue-400' },
-  'on-hold': { label: 'On Hold', color: 'text-amber-400', bg: 'bg-amber-400/10', border: 'border-amber-400/20', dot: 'bg-amber-400' },
-  draft: { label: 'Draft', color: 'text-slate-400', bg: 'bg-slate-400/10', border: 'border-slate-400/20', dot: 'bg-slate-400' },
+  active:    { label: 'Active',     color: 'text-emerald-400', bg: 'bg-emerald-400/10', dot: 'bg-emerald-400' },
+  completed: { label: 'Completed',  color: 'text-blue-400',    bg: 'bg-blue-400/10',    dot: 'bg-blue-400'    },
+  on_hold:   { label: 'On Hold',    color: 'text-amber-400',   bg: 'bg-amber-400/10',   dot: 'bg-amber-400'   },
+  cancelled: { label: 'Cancelled',  color: 'text-red-400',     bg: 'bg-red-400/10',     dot: 'bg-red-400'     },
 }
 
-const defaultForm = {
-  name: '', client: '', status: 'active' as Project['status'],
-  budget: 0, spent: 0, start_date: '', end_date: '', crew_count: 0, description: '',
+const container = {
+  hidden: {},
+  show: { transition: { staggerChildren: 0.07 } }
+}
+const cardVariant = {
+  hidden: { opacity: 0, y: 24, scale: 0.97 },
+  show:   { opacity: 1, y: 0,  scale: 1,    transition: { type: 'spring', stiffness: 320, damping: 28 } }
+}
+const fadeUp = {
+  hidden: { opacity: 0, y: 16 },
+  show:   { opacity: 1, y: 0,  transition: { duration: 0.45, ease: [0.22,1,0.36,1] } }
+}
+
+function AnimatedBar({ pct }: { pct: number }) {
+  const ref = useRef<HTMLDivElement>(null)
+  const inView = useInView(ref, { once: true })
+  return (
+    <div ref={ref} className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+      <motion.div
+        className={clsx('h-full rounded-full', pct > 90 ? 'bg-red-400' : pct > 70 ? 'bg-amber-400' : 'bg-emerald-400')}
+        initial={{ width: 0 }}
+        animate={{ width: inView ? `${Math.min(pct, 100)}%` : 0 }}
+        transition={{ duration: 0.9, ease: [0.22,1,0.36,1], delay: 0.1 }}
+      />
+    </div>
+  )
+}
+
+function StatPill({ icon: Icon, label, value, accent }: { icon: React.ElementType; label: string; value: string; accent: string }) {
+  return (
+    <motion.div variants={fadeUp} className="bg-[#0A1020] border border-white/[0.06] rounded-2xl p-5 flex items-center gap-4">
+      <div className={clsx('w-10 h-10 rounded-xl flex items-center justify-center', accent)}>
+        <Icon className="w-5 h-5" />
+      </div>
+      <div>
+        <p className="text-xs text-white/40 mb-0.5">{label}</p>
+        <p className="text-xl font-bold text-white">{value}</p>
+      </div>
+    </motion.div>
+  )
 }
 
 export const dynamic = 'force-dynamic'
@@ -35,306 +76,331 @@ export const dynamic = 'force-dynamic'
 export default function ProjectsPage() {
   const supabase = createClient()
   const [projects, setProjects] = useState<Project[]>([])
-  const [loading, setLoading] = useState(true)
-  const [showForm, setShowForm] = useState(false)
-  const [editing, setEditing] = useState<Project | null>(null)
-  const [form, setForm] = useState(defaultForm)
-  const [search, setSearch] = useState('')
+  const [loading, setLoading]   = useState(true)
+  const [search, setSearch]     = useState('')
   const [statusFilter, setStatusFilter] = useState<string>('all')
-  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid')
-  const [menuOpen, setMenuOpen] = useState<string | null>(null)
+  const [showModal, setShowModal] = useState(false)
+  const [editProject, setEditProject] = useState<Project | null>(null)
+  const [menuOpen, setMenuOpen]  = useState<string | null>(null)
+  const [toast, setToast]        = useState<string | null>(null)
+  const [form, setForm] = useState({
+    name: '', description: '', status: 'active' as Project['status'],
+    budget: '', client_name: '', deadline: ''
+  })
 
-  useEffect(() => { fetchProjects() }, [])
+  const showToast = (msg: string) => { setToast(msg); setTimeout(() => setToast(null), 3000) }
 
-  async function fetchProjects() {
-    setLoading(true)
+  async function load() {
     const { data } = await supabase.from('projects').select('*').order('created_at', { ascending: false })
-    setProjects(data || [])
+    setProjects((data || []) as Project[])
     setLoading(false)
   }
 
-  function openNew() {
-    setEditing(null)
-    setForm(defaultForm)
-    setShowForm(true)
-  }
-
-  function openEdit(p: Project) {
-    setEditing(p)
-    setForm({ name: p.name, client: p.client, status: p.status as Project['status'], budget: p.budget, spent: p.spent, start_date: p.start_date || '', end_date: p.end_date || '', crew_count: p.crew_count || 0, description: p.description || '' })
-    setShowForm(true)
-    setMenuOpen(null)
-  }
-
-  async function saveProject() {
-    if (!form.name.trim()) return
-    if (editing) {
-      await supabase.from('projects').update(form).eq('id', editing.id)
-    } else {
-      await supabase.from('projects').insert([form])
-    }
-    setShowForm(false)
-    fetchProjects()
-  }
-
-  async function deleteProject(id: string) {
-    await supabase.from('projects').delete().eq('id', id)
-    setMenuOpen(null)
-    fetchProjects()
-  }
+  useEffect(() => { load() }, [])
 
   const filtered = projects.filter(p => {
-    const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) || p.client.toLowerCase().includes(search.toLowerCase())
+    const matchSearch = p.name.toLowerCase().includes(search.toLowerCase()) ||
+      (p.client_name || '').toLowerCase().includes(search.toLowerCase())
     const matchStatus = statusFilter === 'all' || p.status === statusFilter
     return matchSearch && matchStatus
   })
 
   const stats = {
-    total: projects.length,
-    active: projects.filter(p => p.status === 'active').length,
-    totalBudget: projects.reduce((s, p) => s + (p.budget || 0), 0),
+    total:     projects.length,
+    active:    projects.filter(p => p.status === 'active').length,
     completed: projects.filter(p => p.status === 'completed').length,
+    budget:    projects.reduce((s, p) => s + (p.budget || 0), 0),
   }
 
+  function openCreate() {
+    setEditProject(null)
+    setForm({ name: '', description: '', status: 'active', budget: '', client_name: '', deadline: '' })
+    setShowModal(true)
+  }
+
+  function openEdit(p: Project) {
+    setEditProject(p)
+    setForm({
+      name: p.name, description: p.description || '', status: p.status,
+      budget: p.budget?.toString() || '', client_name: p.client_name || '',
+      deadline: p.deadline ? p.deadline.slice(0,10) : ''
+    })
+    setShowModal(true)
+    setMenuOpen(null)
+  }
+
+  async function saveProject() {
+    const payload = {
+      name: form.name, description: form.description || null, status: form.status,
+      budget: form.budget ? parseFloat(form.budget) : null,
+      client_name: form.client_name || null,
+      deadline: form.deadline || null,
+    }
+    if (editProject) {
+      await supabase.from('projects').update(payload).eq('id', editProject.id)
+      showToast('Project updated')
+    } else {
+      await supabase.from('projects').insert(payload)
+      showToast('Project created')
+    }
+    setShowModal(false)
+    load()
+  }
+
+  async function deleteProject(id: string) {
+    await supabase.from('projects').delete().eq('id', id)
+    showToast('Project deleted')
+    setMenuOpen(null)
+    load()
+  }
+
+  function initials(name: string) {
+    return name.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase()
+  }
+
+  const fmtCurrency = (n: number) => new Intl.NumberFormat('en-GB', { style:'currency', currency:'GBP', maximumFractionDigits:0 }).format(n)
+  const fmtDate = (s: string) => new Date(s).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' })
+
   return (
-    <div className="p-6 lg:p-8 space-y-8">
+    <div className="min-h-screen bg-[#04080F] p-6 lg:p-8">
+      {/* Toast */}
+      <AnimatePresence>
+        {toast && (
+          <motion.div
+            initial={{ opacity:0, y:-20, scale:0.95 }}
+            animate={{ opacity:1, y:0,   scale:1   }}
+            exit={{    opacity:0, y:-20, scale:0.95 }}
+            transition={{ type:'spring', stiffness:400, damping:25 }}
+            className="fixed top-6 right-6 z-50 bg-emerald-500 text-white px-5 py-3 rounded-xl flex items-center gap-2 shadow-xl shadow-emerald-500/20"
+          >
+            <Check className="w-4 h-4" /> {toast}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-white tracking-tight">Projects</h1>
-          <p className="text-sm text-slate-400 mt-1">Manage your production projects and track budgets</p>
-        </div>
-        <button onClick={openNew} className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-black text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors shadow-lg shadow-amber-500/20">
-          <Plus className="w-4 h-4" />
-          New Project
-        </button>
-      </div>
-
-      {/* Stats Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: 'Total Projects', value: stats.total, icon: Briefcase, color: 'blue' },
-          { label: 'Active', value: stats.active, icon: TrendingUp, color: 'emerald' },
-          { label: 'Completed', value: stats.completed, icon: CheckCircle2, color: 'purple' },
-          { label: 'Total Budget', value: `£${(stats.totalBudget / 1000).toFixed(0)}k`, icon: DollarSign, color: 'amber' },
-        ].map((stat) => (
-          <div key={stat.label} className="bg-[#0A1020] border border-white/[0.06] rounded-2xl p-5 hover:border-white/10 transition-colors">
-            <div className={clsx('w-9 h-9 rounded-xl flex items-center justify-center mb-3', {
-              'bg-blue-500/10': stat.color === 'blue',
-              'bg-emerald-500/10': stat.color === 'emerald',
-              'bg-purple-500/10': stat.color === 'purple',
-              'bg-amber-500/10': stat.color === 'amber',
-            })}>
-              <stat.icon className={clsx('w-4.5 h-4.5', {
-                'text-blue-400': stat.color === 'blue',
-                'text-emerald-400': stat.color === 'emerald',
-                'text-purple-400': stat.color === 'purple',
-                'text-amber-400': stat.color === 'amber',
-              })} style={{ width: '1.125rem', height: '1.125rem' }} />
-            </div>
-            <div className="text-xl font-semibold text-white">{stat.value}</div>
-            <div className="text-xs text-slate-500 mt-0.5">{stat.label}</div>
+      <motion.div variants={container} initial="hidden" animate="show" className="mb-8">
+        <motion.div variants={fadeUp} className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+              <Briefcase className="w-6 h-6 text-amber-400" /> Projects
+            </h1>
+            <p className="text-white/40 text-sm mt-1">{stats.total} projects · {stats.active} active</p>
           </div>
-        ))}
-      </div>
+          <motion.button
+            whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}
+            onClick={openCreate}
+            className="flex items-center gap-2 bg-amber-400 hover:bg-amber-300 text-[#04080F] font-semibold px-4 py-2.5 rounded-xl text-sm transition-colors"
+          >
+            <Plus className="w-4 h-4" /> New Project
+          </motion.button>
+        </motion.div>
 
-      {/* Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search projects..."
-            className="w-full bg-[#0A1020] border border-white/[0.06] text-white text-sm pl-9 pr-4 py-2.5 rounded-xl placeholder:text-slate-600 focus:outline-none focus:border-amber-500/50 transition-colors"
-          />
-        </div>
-        <div className="flex gap-2">
-          {['all', 'active', 'completed', 'on-hold', 'draft'].map(s => (
-            <button
-              key={s}
-              onClick={() => setStatusFilter(s)}
-              className={clsx('px-3 py-2 rounded-xl text-xs font-medium capitalize transition-colors', {
-                'bg-amber-500 text-black': statusFilter === s,
-                'bg-[#0A1020] border border-white/[0.06] text-slate-400 hover:text-white hover:border-white/10': statusFilter !== s,
-              })}
-            >
-              {s === 'all' ? 'All' : statusConfig[s as Project['status']]?.label || s}
-            </button>
-          ))}
-        </div>
-      </div>
+        {/* Stats */}
+        <motion.div variants={container} className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <StatPill icon={Briefcase}   label="Total Projects" value={stats.total.toString()}      accent="bg-violet-400/10 text-violet-400" />
+          <StatPill icon={TrendingUp}  label="Active"         value={stats.active.toString()}     accent="bg-emerald-400/10 text-emerald-400" />
+          <StatPill icon={Check}       label="Completed"      value={stats.completed.toString()}  accent="bg-blue-400/10 text-blue-400" />
+          <StatPill icon={DollarSign}  label="Total Budget"   value={stats.budget > 0 ? fmtCurrency(stats.budget) : '—'} accent="bg-amber-400/10 text-amber-400" />
+        </motion.div>
 
-      {/* Projects Grid */}
+        {/* Filters */}
+        <motion.div variants={fadeUp} className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+            <input
+              value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Search projects or clients…"
+              className="w-full bg-[#0A1020] border border-white/[0.06] rounded-xl pl-10 pr-4 py-2.5 text-sm text-white placeholder-white/30 focus:outline-none focus:border-amber-400/50"
+            />
+          </div>
+          <div className="flex gap-2">
+            {['all','active','completed','on_hold','cancelled'].map(s => (
+              <button
+                key={s} onClick={() => setStatusFilter(s)}
+                className={clsx(
+                  'px-3 py-2 rounded-xl text-xs font-medium transition-all capitalize',
+                  statusFilter === s
+                    ? 'bg-amber-400 text-[#04080F]'
+                    : 'bg-[#0A1020] text-white/50 hover:text-white border border-white/[0.06]'
+                )}
+              >{s === 'on_hold' ? 'On Hold' : s}</button>
+            ))}
+          </div>
+        </motion.div>
+      </motion.div>
+
+      {/* Grid */}
       {loading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+        <motion.div variants={container} initial="hidden" animate="show" className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="bg-[#0A1020] border border-white/[0.06] rounded-2xl p-6 animate-pulse">
-              <div className="h-4 bg-white/5 rounded w-2/3 mb-2" />
-              <div className="h-3 bg-white/5 rounded w-1/3 mb-4" />
-              <div className="h-2 bg-white/5 rounded-full w-full mb-4" />
-              <div className="flex gap-4">
-                <div className="h-3 bg-white/5 rounded w-16" />
-                <div className="h-3 bg-white/5 rounded w-16" />
-              </div>
-            </div>
+            <motion.div key={i} variants={cardVariant} className="bg-[#0A1020] border border-white/[0.06] rounded-2xl p-6 animate-pulse">
+              <div className="h-4 bg-white/5 rounded w-2/3 mb-3" />
+              <div className="h-3 bg-white/5 rounded w-1/2 mb-6" />
+              <div className="h-1.5 bg-white/5 rounded mb-4" />
+              <div className="flex gap-2"><div className="h-3 bg-white/5 rounded w-20" /><div className="h-3 bg-white/5 rounded w-20" /></div>
+            </motion.div>
           ))}
-        </div>
+        </motion.div>
       ) : filtered.length === 0 ? (
-        <div className="flex flex-col items-center justify-center py-24 text-center">
-          <div className="w-16 h-16 bg-[#0A1020] border border-white/[0.06] rounded-2xl flex items-center justify-center mb-4">
-            <FolderOpen className="w-7 h-7 text-slate-600" />
+        <motion.div initial={{ opacity:0, scale:0.96 }} animate={{ opacity:1, scale:1 }} transition={{ duration:0.5 }}
+          className="flex flex-col items-center justify-center py-24 text-center">
+          <div className="w-20 h-20 rounded-2xl bg-white/[0.03] border border-white/[0.06] flex items-center justify-center mb-6">
+            <FolderOpen className="w-8 h-8 text-white/20" />
           </div>
-          <h3 className="text-white font-medium mb-1">{search || statusFilter !== 'all' ? 'No projects found' : 'No projects yet'}</h3>
-          <p className="text-slate-500 text-sm mb-6">{search || statusFilter !== 'all' ? 'Try adjusting your filters' : 'Create your first project to get started'}</p>
-          {!search && statusFilter === 'all' && (
-            <button onClick={openNew} className="flex items-center gap-2 bg-amber-500 hover:bg-amber-400 text-black text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors">
-              <Plus className="w-4 h-4" />
-              Create Project
-            </button>
-          )}
-        </div>
+          <h3 className="text-white/60 text-lg font-medium mb-2">No projects found</h3>
+          <p className="text-white/30 text-sm mb-6">Create your first project to get started</p>
+          <motion.button whileHover={{ scale:1.04 }} whileTap={{ scale:0.96 }}
+            onClick={openCreate}
+            className="flex items-center gap-2 bg-amber-400 hover:bg-amber-300 text-[#04080F] font-semibold px-5 py-2.5 rounded-xl text-sm"
+          ><Plus className="w-4 h-4" /> New Project</motion.button>
+        </motion.div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-          {filtered.map((project) => {
-            const cfg = statusConfig[project.status] || statusConfig.draft
-            const budgetPct = project.budget > 0 ? Math.min(100, Math.round((project.spent / project.budget) * 100)) : 0
-            const budgetColor = budgetPct > 85 ? 'bg-red-500' : budgetPct > 60 ? 'bg-amber-500' : 'bg-emerald-500'
+        <motion.div variants={container} initial="hidden" animate="show"
+          className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+          {filtered.map(p => {
+            const s = statusConfig[p.status]
+            const pct = p.budget && p.spent ? (p.spent / p.budget) * 100 : 0
             return (
-              <div key={project.id} className="group bg-[#0A1020] border border-white/[0.06] hover:border-white/10 rounded-2xl p-6 transition-all hover:shadow-xl hover:shadow-black/20 relative">
-                {/* Header */}
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className={clsx('inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md text-xs font-medium border', cfg.bg, cfg.color, cfg.border)}>
-                        <span className={clsx('w-1.5 h-1.5 rounded-full', cfg.dot)} />
-                        {cfg.label}
-                      </span>
-                    </div>
-                    <h3 className="text-white font-semibold text-base truncate">{project.name}</h3>
-                    <p className="text-slate-500 text-sm truncate">{project.client}</p>
-                  </div>
-                  <div className="relative ml-2">
-                    <button
-                      onClick={() => setMenuOpen(menuOpen === project.id ? null : project.id)}
-                      className="w-8 h-8 flex items-center justify-center rounded-lg text-slate-500 hover:text-white hover:bg-white/5 transition-colors opacity-0 group-hover:opacity-100"
-                    >
-                      <MoreHorizontal className="w-4 h-4" />
-                    </button>
-                    {menuOpen === project.id && (
-                      <div className="absolute right-0 top-9 bg-[#0C1428] border border-white/10 rounded-xl shadow-2xl py-1 z-10 min-w-[120px]">
-                        <button onClick={() => openEdit(project)} className="flex items-center gap-2 px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/5 w-full text-left transition-colors">Edit</button>
-                        <button onClick={() => deleteProject(project.id)} className="flex items-center gap-2 px-3 py-2 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/5 w-full text-left transition-colors">Delete</button>
-                      </div>
+              <motion.div key={p.id} variants={cardVariant}
+                whileHover={{ y: -3, boxShadow: '0 12px 40px rgba(0,0,0,0.3)' }}
+                className="bg-[#0A1020] border border-white/[0.06] hover:border-white/10 rounded-2xl p-6 relative group transition-colors">
+                {/* Menu */}
+                <div className="absolute top-4 right-4">
+                  <button onClick={() => setMenuOpen(menuOpen === p.id ? null : p.id)}
+                    className="w-7 h-7 rounded-lg flex items-center justify-center text-white/30 hover:text-white hover:bg-white/[0.06] opacity-0 group-hover:opacity-100 transition-all">
+                    <MoreVertical className="w-4 h-4" />
+                  </button>
+                  <AnimatePresence>
+                    {menuOpen === p.id && (
+                      <motion.div initial={{ opacity:0, scale:0.9, y:-4 }} animate={{ opacity:1, scale:1, y:0 }}
+                        exit={{ opacity:0, scale:0.9, y:-4 }} transition={{ type:'spring', stiffness:400, damping:25 }}
+                        className="absolute right-0 top-8 bg-[#0C1428] border border-white/[0.08] rounded-xl overflow-hidden z-20 w-36 shadow-2xl">
+                        <button onClick={() => openEdit(p)} className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-white/70 hover:text-white hover:bg-white/[0.05] transition-colors">
+                          <Edit2 className="w-3.5 h-3.5" /> Edit
+                        </button>
+                        <button onClick={() => deleteProject(p.id)} className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-red-400/5 transition-colors">
+                          <Trash2 className="w-3.5 h-3.5" /> Delete
+                        </button>
+                      </motion.div>
                     )}
-                  </div>
+                  </AnimatePresence>
                 </div>
 
-                {/* Description */}
-                {project.description && (
-                  <p className="text-slate-500 text-sm mb-4 line-clamp-2">{project.description}</p>
-                )}
+                {/* Status pill */}
+                <div className={clsx('inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-medium mb-4', s.bg, s.color)}>
+                  <span className={clsx('w-1.5 h-1.5 rounded-full', s.dot)} />
+                  {s.label}
+                </div>
 
-                {/* Budget Bar */}
-                {project.budget > 0 && (
+                {/* Title */}
+                <h3 className="text-white font-semibold text-base mb-1 pr-8">{p.name}</h3>
+                {p.client_name && (
+                  <p className="text-white/40 text-xs mb-3 flex items-center gap-1">
+                    <Users className="w-3 h-3" /> {p.client_name}
+                  </p>
+                )}
+                {p.description && <p className="text-white/30 text-xs mb-4 line-clamp-2">{p.description}</p>}
+
+                {/* Budget bar */}
+                {p.budget && (
                   <div className="mb-4">
-                    <div className="flex justify-between text-xs text-slate-500 mb-1.5">
-                      <span>Budget used</span>
-                      <span className={budgetPct > 85 ? 'text-red-400' : 'text-slate-400'}>{budgetPct}%</span>
+                    <div className="flex justify-between text-xs mb-1.5">
+                      <span className="text-white/40">Budget</span>
+                      <span className="text-white/60">{fmtCurrency(p.spent || 0)} / {fmtCurrency(p.budget)}</span>
                     </div>
-                    <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
-                      <div className={clsx('h-full rounded-full transition-all', budgetColor)} style={{ width: `${budgetPct}%` }} />
-                    </div>
-                    <div className="flex justify-between text-xs text-slate-600 mt-1">
-                      <span>£{(project.spent || 0).toLocaleString()} spent</span>
-                      <span>£{(project.budget || 0).toLocaleString()} total</span>
-                    </div>
+                    <AnimatedBar pct={pct} />
                   </div>
                 )}
 
-                {/* Footer Meta */}
-                <div className="flex items-center gap-4 text-xs text-slate-500 pt-4 border-t border-white/[0.04]">
-                  {project.crew_count > 0 && (
-                    <span className="flex items-center gap-1">
-                      <Users className="w-3.5 h-3.5" />
-                      {project.crew_count} crew
+                {/* Footer */}
+                <div className="flex items-center justify-between pt-3 border-t border-white/[0.05]">
+                  {p.deadline ? (
+                    <span className="flex items-center gap-1 text-xs text-white/40">
+                      <Clock className="w-3 h-3" /> {fmtDate(p.deadline)}
                     </span>
-                  )}
-                  {project.end_date && (
-                    <span className="flex items-center gap-1">
-                      <Calendar className="w-3.5 h-3.5" />
-                      {new Date(project.end_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                    </span>
-                  )}
+                  ) : <span />}
+                  <ChevronRight className="w-3.5 h-3.5 text-white/20 group-hover:text-amber-400 transition-colors" />
                 </div>
-              </div>
+              </motion.div>
             )
           })}
-        </div>
+        </motion.div>
       )}
 
       {/* Modal */}
-      {showForm && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={e => e.target === e.currentTarget && setShowForm(false)}>
-          <div className="bg-[#0A1020] border border-white/[0.08] rounded-2xl w-full max-w-lg shadow-2xl">
-            <div className="flex items-center justify-between px-6 pt-6 pb-5 border-b border-white/[0.06]">
-              <h2 className="text-white font-semibold text-lg">{editing ? 'Edit Project' : 'New Project'}</h2>
-              <button onClick={() => setShowForm(false)} className="text-slate-500 hover:text-white transition-colors text-xl leading-none">×</button>
-            </div>
-            <div className="p-6 space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="col-span-2">
-                  <label className="block text-xs text-slate-500 mb-1.5 font-medium">Project Name *</label>
-                  <input value={form.name} onChange={e => setForm({...form, name: e.target.value})} placeholder="e.g. Feature Film 2026" className="w-full bg-[#060C18] border border-white/[0.06] text-white text-sm px-3 py-2.5 rounded-xl placeholder:text-slate-600 focus:outline-none focus:border-amber-500/50 transition-colors" />
+      <AnimatePresence>
+        {showModal && (
+          <motion.div initial={{ opacity:0 }} animate={{ opacity:1 }} exit={{ opacity:0 }}
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 flex items-center justify-center p-4"
+            onClick={e => e.target === e.currentTarget && setShowModal(false)}>
+            <motion.div initial={{ opacity:0, scale:0.92, y:20 }} animate={{ opacity:1, scale:1, y:0 }}
+              exit={{ opacity:0, scale:0.92, y:20 }}
+              transition={{ type:'spring', stiffness:360, damping:28 }}
+              className="bg-[#0A1020] border border-white/[0.08] rounded-2xl p-6 w-full max-w-md shadow-2xl">
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-amber-400" />
+                  {editProject ? 'Edit Project' : 'New Project'}
+                </h2>
+                <button onClick={() => setShowModal(false)} className="w-8 h-8 rounded-lg flex items-center justify-center text-white/40 hover:text-white hover:bg-white/[0.06]">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {[
+                  { label:'Project Name', key:'name', type:'text', placeholder:'e.g. Brand Redesign' },
+                  { label:'Client Name',  key:'client_name', type:'text', placeholder:'e.g. Acme Corp' },
+                  { label:'Budget (£)',   key:'budget', type:'number', placeholder:'0' },
+                  { label:'Deadline',     key:'deadline', type:'date', placeholder:'' },
+                ].map(f => (
+                  <div key={f.key}>
+                    <label className="block text-xs text-white/50 mb-1.5 font-medium">{f.label}</label>
+                    <input
+                      type={f.type} placeholder={f.placeholder}
+                      value={form[f.key as keyof typeof form]}
+                      onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))}
+                      className="w-full bg-[#060C18] border border-white/[0.06] rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/20 focus:outline-none focus:border-amber-400/50"
+                    />
+                  </div>
+                ))}
+                <div>
+                  <label className="block text-xs text-white/50 mb-1.5 font-medium">Description</label>
+                  <textarea rows={2} placeholder="Brief description…"
+                    value={form.description}
+                    onChange={e => setForm(prev => ({ ...prev, description: e.target.value }))}
+                    className="w-full bg-[#060C18] border border-white/[0.06] rounded-xl px-3 py-2.5 text-sm text-white placeholder-white/20 focus:outline-none focus:border-amber-400/50 resize-none"
+                  />
                 </div>
                 <div>
-                  <label className="block text-xs text-slate-500 mb-1.5 font-medium">Client</label>
-                  <input value={form.client} onChange={e => setForm({...form, client: e.target.value})} placeholder="Client name" className="w-full bg-[#060C18] border border-white/[0.06] text-white text-sm px-3 py-2.5 rounded-xl placeholder:text-slate-600 focus:outline-none focus:border-amber-500/50 transition-colors" />
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-500 mb-1.5 font-medium">Status</label>
-                  <select value={form.status} onChange={e => setForm({...form, status: e.target.value as Project['status']})} className="w-full bg-[#060C18] border border-white/[0.06] text-white text-sm px-3 py-2.5 rounded-xl focus:outline-none focus:border-amber-500/50 transition-colors">
-                    <option value="draft">Draft</option>
+                  <label className="block text-xs text-white/50 mb-1.5 font-medium">Status</label>
+                  <select value={form.status} onChange={e => setForm(prev => ({ ...prev, status: e.target.value as Project['status'] }))}
+                    className="w-full bg-[#060C18] border border-white/[0.06] rounded-xl px-3 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400/50">
                     <option value="active">Active</option>
-                    <option value="on-hold">On Hold</option>
                     <option value="completed">Completed</option>
+                    <option value="on_hold">On Hold</option>
+                    <option value="cancelled">Cancelled</option>
                   </select>
                 </div>
-                <div>
-                  <label className="block text-xs text-slate-500 mb-1.5 font-medium">Total Budget (£)</label>
-                  <input type="number" value={form.budget} onChange={e => setForm({...form, budget: Number(e.target.value)})} placeholder="0" className="w-full bg-[#060C18] border border-white/[0.06] text-white text-sm px-3 py-2.5 rounded-xl placeholder:text-slate-600 focus:outline-none focus:border-amber-500/50 transition-colors" />
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-500 mb-1.5 font-medium">Amount Spent (£)</label>
-                  <input type="number" value={form.spent} onChange={e => setForm({...form, spent: Number(e.target.value)})} placeholder="0" className="w-full bg-[#060C18] border border-white/[0.06] text-white text-sm px-3 py-2.5 rounded-xl placeholder:text-slate-600 focus:outline-none focus:border-amber-500/50 transition-colors" />
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-500 mb-1.5 font-medium">Start Date</label>
-                  <input type="date" value={form.start_date} onChange={e => setForm({...form, start_date: e.target.value})} className="w-full bg-[#060C18] border border-white/[0.06] text-white text-sm px-3 py-2.5 rounded-xl focus:outline-none focus:border-amber-500/50 transition-colors" />
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-500 mb-1.5 font-medium">End Date</label>
-                  <input type="date" value={form.end_date} onChange={e => setForm({...form, end_date: e.target.value})} className="w-full bg-[#060C18] border border-white/[0.06] text-white text-sm px-3 py-2.5 rounded-xl focus:outline-none focus:border-amber-500/50 transition-colors" />
-                </div>
-                <div>
-                  <label className="block text-xs text-slate-500 mb-1.5 font-medium">Crew Count</label>
-                  <input type="number" value={form.crew_count} onChange={e => setForm({...form, crew_count: Number(e.target.value)})} placeholder="0" className="w-full bg-[#060C18] border border-white/[0.06] text-white text-sm px-3 py-2.5 rounded-xl placeholder:text-slate-600 focus:outline-none focus:border-amber-500/50 transition-colors" />
-                </div>
-                <div className="col-span-2">
-                  <label className="block text-xs text-slate-500 mb-1.5 font-medium">Description</label>
-                  <textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} rows={3} placeholder="Brief project description..." className="w-full bg-[#060C18] border border-white/[0.06] text-white text-sm px-3 py-2.5 rounded-xl placeholder:text-slate-600 focus:outline-none focus:border-amber-500/50 transition-colors resize-none" />
-                </div>
               </div>
-            </div>
-            <div className="px-6 pb-6 flex gap-3">
-              <button onClick={() => setShowForm(false)} className="flex-1 bg-white/5 hover:bg-white/8 text-slate-300 text-sm font-medium py-2.5 rounded-xl transition-colors">Cancel</button>
-              <button onClick={saveProject} className="flex-1 bg-amber-500 hover:bg-amber-400 text-black text-sm font-semibold py-2.5 rounded-xl transition-colors">
-                {editing ? 'Save Changes' : 'Create Project'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+
+              <div className="flex gap-3 mt-6">
+                <button onClick={() => setShowModal(false)}
+                  className="flex-1 bg-white/[0.04] hover:bg-white/[0.08] text-white/60 hover:text-white font-medium py-2.5 rounded-xl text-sm transition-colors">
+                  Cancel
+                </button>
+                <motion.button whileHover={{ scale:1.02 }} whileTap={{ scale:0.97 }}
+                  onClick={saveProject}
+                  disabled={!form.name}
+                  className="flex-1 bg-amber-400 hover:bg-amber-300 disabled:opacity-40 text-[#04080F] font-semibold py-2.5 rounded-xl text-sm transition-colors">
+                  {editProject ? 'Save Changes' : 'Create Project'}
+                </motion.button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
