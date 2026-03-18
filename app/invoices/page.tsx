@@ -6,9 +6,10 @@ import { motion, AnimatePresence } from 'framer-motion'
 import {
   Receipt, Plus, Search, Check, X, Eye,
   Clock, CheckCircle2, AlertCircle, Sparkles,
-  MoreVertical, Edit2, Trash2, DollarSign, TrendingUp, Send
+  MoreVertical, Edit2, Trash2, DollarSign, TrendingUp, Send, FileDown
 } from 'lucide-react'
 import clsx from 'clsx'
+import { downloadInvoicePDF } from '@/lib/pdf'
 
 interface LineItem { description: string; qty: number; rate: number }
 interface Invoice {
@@ -312,7 +313,10 @@ export default function InvoicesPage() {
                               <Check className="w-3.5 h-3.5" /> Mark Paid
                             </button>
                           )}
-                          <button onClick={() => deleteInvoice(inv.id)} className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-red-400/5">
+                          <button onClick={() => { downloadInvoicePDF({ invoice_number: inv.invoice_number || 'INV-001', client_name: inv.client_name || 'Client', issued_date: inv.issued_date || inv.created_at, status: inv.status, amount: inv.amount, notes: inv.notes, line_items: inv.line_items as any }) }} className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-blue-400 hover:text-blue-300 hover:bg-blue-400/5">
+                      <FileDown className="w-3.5 h-3.5" /> Download PDF
+                    </button>
+                    <button onClick={() => deleteInvoice(inv.id)} className="flex items-center gap-2 w-full px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-red-400/5">
                             <Trash2 className="w-3.5 h-3.5" /> Delete
                           </button>
                         </motion.div>
