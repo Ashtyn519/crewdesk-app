@@ -1,18 +1,22 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Plus, Send, X, MessageSquare, ChevronRight, Search } from 'lucide-react'
-
-export const dynamic = 'force-dynamic'
+import clsx from 'clsx'
+import {
+  Send, Search, Plus, MoreVertical, Phone, Video,
+  Paperclip, Smile, ArrowLeft, Circle, CheckCheck,
+  Hash, Lock, Users, MessageSquare, X, Loader2
+} from 'lucide-react'
 
 interface Thread {
   id: string
-  title: string
-  project_id: string | null
-  created_at: string
+  name: string
   last_message?: string
-  message_count?: number
+  last_message_at?: string
+  unread_count?: number
+  is_group?: boolean
+  avatar_color?: string
 }
 
 interface Message {
@@ -21,247 +25,288 @@ interface Message {
   content: string
   sender_name: string
   created_at: string
-  is_own: boolean
+  is_own?: boolean
 }
+
+const MOCK_THREADS: Thread[] = [
+  { id: '1', name: 'Alice Morgan', last_message: 'The raw footage looks great!', last_message_at: '2m ago', unread_count: 3, avatar_color: 'bg-blue-500' },
+  { id: '2', name: 'Production Team', last_message: 'Call sheet for tomorrow sent', last_message_at: '1h ago', unread_count: 1, is_group: true, avatar_color: 'bg-purple-500' },
+  { id: '3', name: 'James Whitfield', last_message: 'Invoice approved ✓', last_message_at: '3h ago', unread_count: 0, avatar_color: 'bg-emerald-500' },
+  { id: '4', name: 'Sound Dept', last_message: 'Boom op confirmed for Monday', last_message_at: 'Yesterday', unread_count: 0, is_group: true, avatar_color: 'bg-amber-500' },
+  { id: '5', name: 'Rachel Chen', last_message: 'Rate card attached', last_message_at: 'Mon', unread_count: 0, avatar_color: 'bg-rose-500' },
+]
+
+const MOCK_MESSAGES: Record<string, Message[]> = {
+  '1': [
+    { id: 'm1', thread_id: '1', content: 'Hey! Just finished reviewing the footage from yesterday.', sender_name: 'Alice Morgan', created_at: '10:15', is_own: false },
+    { id: 'm2', thread_id: '1', content: 'The lighting in scene 3 is absolutely perfect.', sender_name: 'Alice Morgan', created_at: '10:16', is_own: false },
+    { id: 'm3', thread_id: '1', content: 'Thanks! We spent a long time setting that up. Really happy with it.', sender_name: 'You', created_at: '10:22', is_own: true },
+    { id: 'm4', thread_id: '1', content: 'The raw footage looks great!', sender_name: 'Alice Morgan', created_at: '10:45', is_own: false },
+  ],
+  '2': [
+    { id: 'm5', thread_id: '2', content: 'Morning everyone! Quick reminder — wrap is at 18:00 tomorrow.', sender_name: 'James', created_at: '09:00', is_own: false },
+    { id: 'm6', thread_id: '2', content: 'Got it, will make sure the kit is packed by 17:30.', sender_name: 'Rachel', created_at: '09:12', is_own: false },
+    { id: 'm7', thread_id: '2', content: 'Call sheet for tomorrow sent', sender_name: 'You', created_at: '09:30', is_own: true },
+  ],
+}
+
+function AvatarInitials({ name, colorClass, size = 'md' }: { name: string; colorClass?: string; size?: 'sm' | 'md' | 'lg' }) {
+  const colors = ['bg-blue-500','bg-purple-500','bg-emerald-500','bg-amber-500','bg-rose-500','bg-cyan-500']
+  const idx = name.charCodeAt(0) % colors.length
+  const initials = name.split(' ').map(w => w[0]).join('').toUpperCase().slice(0,2)
+  const sizes = { sm: 'w-8 h-8 text-xs', md: 'w-10 h-10 text-sm', lg: 'w-11 h-11 text-sm' }
+  return (
+    <div className={clsx('rounded-full flex items-center justify-center font-bold text-white flex-shrink-0', colorClass ?? colors[idx], sizes[size])}>
+      {initials}
+    </div>
+  )
+}
+
+export const dynamic = 'force-dynamic'
 
 export default function MessagesPage() {
   const supabase = createClient()
-  const [threads, setThreads] = useState<Thread[]>([])
+  const [threads, setThreads] = useState<Thread[]>(MOCK_THREADS)
+  const [selectedThread, setSelectedThread] = useState<Thread | null>(null)
   const [messages, setMessages] = useState<Message[]>([])
-  const [activeThread, setActiveThread] = useState<Thread | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [sending, setSending] = useState(false)
   const [newMessage, setNewMessage] = useState('')
-  const [showNewThread, setShowNewThread] = useState(false)
-  const [newThreadTitle, setNewThreadTitle] = useState('')
   const [search, setSearch] = useState('')
-  const [currentUser, setCurrentUser] = useState<any>(null)
+  const [sending, setSending] = useState(false)
+  const [showMobileThread, setShowMobileThread] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
 
-  const loadThreads = async () => {
-    setLoading(true)
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-    setCurrentUser(user)
-    
-    const { data } = await supabase
-      .from('message_threads')
-      .select('*')
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-    
-    // Get message counts and last messages
-    const enriched = await Promise.all((data || []).map(async (thread) => {
-      const { data: msgs } = await supabase
-        .from('messages')
-        .select('content, created_at')
-        .eq('thread_id', thread.id)
-        .order('created_at', { ascending: false })
-        .limit(1)
-      return {
-        ...thread,
-        last_message: msgs?.[0]?.content || 'No messages yet',
-        message_count: msgs?.length || 0,
-      }
-    }))
-    
-    setThreads(enriched)
-    setLoading(false)
-  }
-
-  const loadMessages = async (thread: Thread) => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-    const { data } = await supabase
-      .from('messages')
-      .select('*')
-      .eq('thread_id', thread.id)
-      .order('created_at', { ascending: true })
-    setMessages((data || []).map(m => ({
-      ...m,
-      is_own: m.sender_id === user.id,
-    })))
-    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
-  }
-
-  useEffect(() => { loadThreads() }, [])
-  
   useEffect(() => {
-    if (activeThread) loadMessages(activeThread)
-  }, [activeThread])
+    if (selectedThread) {
+      setMessages(MOCK_MESSAGES[selectedThread.id] ?? [])
+      setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
+    }
+  }, [selectedThread])
 
-  const createThread = async () => {
-    if (!newThreadTitle.trim()) return
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-    const { data } = await supabase
-      .from('message_threads')
-      .insert({ title: newThreadTitle, user_id: user.id })
-      .select()
-      .single()
-    setNewThreadTitle('')
-    setShowNewThread(false)
-    await loadThreads()
-    if (data) setActiveThread(data)
+  function selectThread(t: Thread) {
+    setSelectedThread(t)
+    setShowMobileThread(true)
+    // Mark as read
+    setThreads(prev => prev.map(th => th.id === t.id ? { ...th, unread_count: 0 } : th))
   }
 
-  const sendMessage = async () => {
-    if (!newMessage.trim() || !activeThread) return
+  async function sendMessage() {
+    if (!newMessage.trim() || !selectedThread || sending) return
     setSending(true)
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) return
-    const senderName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'You'
-    await supabase.from('messages').insert({
-      thread_id: activeThread.id,
-      content: newMessage,
-      sender_id: user.id,
-      sender_name: senderName,
-      user_id: user.id,
-    })
+    const msg: Message = {
+      id: Date.now().toString(),
+      thread_id: selectedThread.id,
+      content: newMessage.trim(),
+      sender_name: 'You',
+      created_at: new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }),
+      is_own: true,
+    }
+    setMessages(prev => [...prev, msg])
     setNewMessage('')
-    await loadMessages(activeThread)
-    await loadThreads()
     setSending(false)
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }, 50)
   }
 
-  const deleteThread = async (id: string, e: React.MouseEvent) => {
-    e.stopPropagation()
-    if (!confirm('Delete this thread?')) return
-    await supabase.from('messages').delete().eq('thread_id', id)
-    await supabase.from('message_threads').delete().eq('id', id)
-    if (activeThread?.id === id) setActiveThread(null)
-    await loadThreads()
+  function handleKeyDown(e: React.KeyboardEvent) {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      sendMessage()
+    }
   }
 
-  const filtered = threads.filter(t => t.title.toLowerCase().includes(search.toLowerCase()))
+  const filteredThreads = threads.filter(t =>
+    t.name.toLowerCase().includes(search.toLowerCase())
+  )
+  const totalUnread = threads.reduce((sum, t) => sum + (t.unread_count ?? 0), 0)
 
   return (
-    <div className="flex h-[calc(100vh-4rem)] overflow-hidden">
+    <div className="h-[calc(100vh-4rem)] bg-[#04080F] flex overflow-hidden">
       {/* Sidebar */}
-      <div className="w-72 bg-[#0A1020] border-r border-white/5 flex flex-col flex-shrink-0">
-        <div className="p-4 border-b border-white/5">
+      <div className={clsx(
+        'w-full md:w-80 lg:w-96 flex-shrink-0 flex flex-col border-r border-white/[0.06] bg-[#060C18]',
+        showMobileThread && 'hidden md:flex'
+      )}>
+        {/* Sidebar Header */}
+        <div className="p-4 border-b border-white/[0.06]">
           <div className="flex items-center justify-between mb-3">
-            <h2 className="text-white font-semibold">Messages</h2>
-            <button onClick={() => setShowNewThread(true)} className="p-1.5 text-amber-400 hover:bg-amber-400/10 rounded-lg transition-colors">
+            <div className="flex items-center gap-2">
+              <h2 className="text-base font-semibold text-white">Messages</h2>
+              {totalUnread > 0 && (
+                <span className="px-2 py-0.5 bg-amber-500 text-black text-xs font-bold rounded-full">{totalUnread}</span>
+              )}
+            </div>
+            <button className="p-2 rounded-xl hover:bg-white/10 text-white/40 hover:text-white transition-all">
               <Plus className="w-4 h-4" />
             </button>
           </div>
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500" />
-            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search threads..."
-              className="w-full bg-[#04080F] border border-white/10 rounded-lg pl-8 pr-3 py-1.5 text-white text-xs focus:outline-none" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+            <input value={search} onChange={e => setSearch(e.target.value)}
+              placeholder="Search conversations..."
+              className="w-full pl-9 pr-4 py-2 bg-[#0A1020] border border-white/[0.06] rounded-xl text-sm text-white placeholder-white/25 focus:outline-none focus:border-amber-500/50 transition-all" />
           </div>
         </div>
 
-        {/* New Thread Form */}
-        {showNewThread && (
-          <div className="p-3 border-b border-white/5 bg-[#04080F]">
-            <input value={newThreadTitle} onChange={e => setNewThreadTitle(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && createThread()}
-              placeholder="Thread title..." autoFocus
-              className="w-full bg-[#0A1020] border border-amber-400/30 rounded px-2 py-1.5 text-white text-xs focus:outline-none mb-2" />
-            <div className="flex gap-2">
-              <button onClick={() => setShowNewThread(false)} className="flex-1 text-xs text-gray-400 py-1 rounded border border-white/10 hover:bg-white/5">Cancel</button>
-              <button onClick={createThread} disabled={!newThreadTitle.trim()} className="flex-1 text-xs bg-amber-500 text-black font-medium py-1 rounded hover:bg-amber-400 disabled:opacity-50">Create</button>
-            </div>
-          </div>
-        )}
-
         {/* Thread List */}
-        <div className="flex-1 overflow-y-auto">
-          {loading ? (
-            <div className="p-4 text-center text-gray-500 text-sm">Loading...</div>
-          ) : filtered.length === 0 ? (
-            <div className="p-4 text-center">
-              <MessageSquare className="w-8 h-8 text-gray-600 mx-auto mb-2" />
-              <p className="text-gray-500 text-xs">{search ? 'No matches' : 'No threads yet'}</p>
+        <div className="flex-1 overflow-y-auto py-2">
+          {filteredThreads.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center px-4">
+              <MessageSquare className="w-8 h-8 text-white/20 mb-3" />
+              <p className="text-sm text-white/40">No conversations found</p>
             </div>
           ) : (
-            filtered.map(thread => (
-              <div key={thread.id} onClick={() => setActiveThread(thread)}
-                className={`p-3 cursor-pointer border-b border-white/5 hover:bg-white/3 transition-colors group relative ${activeThread?.id === thread.id ? 'bg-amber-400/5 border-l-2 border-l-amber-400' : ''}`}>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1 min-w-0">
-                    <p className="text-white text-sm font-medium truncate">{thread.title}</p>
-                    <p className="text-gray-500 text-xs truncate mt-0.5">{thread.last_message}</p>
+            filteredThreads.map(t => (
+              <button key={t.id} onClick={() => selectThread(t)}
+                className={clsx(
+                  'w-full flex items-center gap-3 px-4 py-3 transition-all text-left',
+                  selectedThread?.id === t.id
+                    ? 'bg-amber-500/10 border-r-2 border-r-amber-500'
+                    : 'hover:bg-white/5'
+                )}>
+                <div className="relative">
+                  <AvatarInitials name={t.name} colorClass={t.avatar_color} />
+                  {t.is_group && (
+                    <div className="absolute -bottom-0.5 -right-0.5 w-4 h-4 bg-[#060C18] rounded-full flex items-center justify-center">
+                      <Users className="w-2.5 h-2.5 text-white/40" />
+                    </div>
+                  )}
+                  <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#060C18]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-1">
+                    <span className={clsx('text-sm font-medium truncate', (t.unread_count ?? 0) > 0 ? 'text-white' : 'text-white/80')}>{t.name}</span>
+                    <span className="text-xs text-white/30 flex-shrink-0">{t.last_message_at}</span>
                   </div>
-                  <div className="flex items-center gap-1 ml-2">
-                    <ChevronRight className="w-3.5 h-3.5 text-gray-600" />
-                    <button onClick={e => deleteThread(thread.id, e)} className="opacity-0 group-hover:opacity-100 text-gray-600 hover:text-red-400 transition-all p-0.5">
-                      <X className="w-3 h-3" />
-                    </button>
+                  <div className="flex items-center justify-between gap-1 mt-0.5">
+                    <p className="text-xs text-white/40 truncate">{t.last_message}</p>
+                    {(t.unread_count ?? 0) > 0 && (
+                      <span className="flex-shrink-0 w-5 h-5 bg-amber-500 text-black text-xs font-bold rounded-full flex items-center justify-center">{t.unread_count}</span>
+                    )}
                   </div>
                 </div>
-              </div>
+              </button>
             ))
           )}
         </div>
       </div>
 
       {/* Chat Area */}
-      <div className="flex-1 flex flex-col bg-[#04080F]">
-        {!activeThread ? (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center">
-              <MessageSquare className="w-16 h-16 text-gray-700 mx-auto mb-4" />
-              <p className="text-gray-400 font-medium">Select a thread or create a new one</p>
-              <button onClick={() => setShowNewThread(true)} className="mt-4 px-4 py-2 bg-amber-500/20 text-amber-400 rounded-lg hover:bg-amber-500/30 transition-colors text-sm">
-                Start a conversation
-              </button>
-            </div>
-          </div>
-        ) : (
+      <div className={clsx(
+        'flex-1 flex flex-col',
+        !showMobileThread && 'hidden md:flex'
+      )}>
+        {selectedThread ? (
           <>
-            {/* Thread Header */}
-            <div className="px-6 py-4 border-b border-white/5 bg-[#0A1020]">
-              <h2 className="text-white font-semibold">{activeThread.title}</h2>
-              <p className="text-gray-500 text-xs mt-0.5">{messages.length} message{messages.length !== 1 ? 's' : ''}</p>
+            {/* Chat Header */}
+            <div className="flex items-center justify-between px-6 py-4 border-b border-white/[0.06] bg-[#060C18]">
+              <div className="flex items-center gap-3">
+                <button onClick={() => setShowMobileThread(false)} className="md:hidden p-2 rounded-xl hover:bg-white/10 text-white/50 transition-all mr-1">
+                  <ArrowLeft className="w-4 h-4" />
+                </button>
+                <div className="relative">
+                  <AvatarInitials name={selectedThread.name} colorClass={selectedThread.avatar_color} size="md" />
+                  <div className="absolute top-0 right-0 w-2.5 h-2.5 bg-emerald-400 rounded-full border-2 border-[#060C18]" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-white text-sm">{selectedThread.name}</h3>
+                  <p className="text-xs text-emerald-400">Online</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-1">
+                <button className="p-2 rounded-xl hover:bg-white/10 text-white/40 hover:text-white transition-all">
+                  <Phone className="w-4 h-4" />
+                </button>
+                <button className="p-2 rounded-xl hover:bg-white/10 text-white/40 hover:text-white transition-all">
+                  <Video className="w-4 h-4" />
+                </button>
+                <button className="p-2 rounded-xl hover:bg-white/10 text-white/40 hover:text-white transition-all">
+                  <MoreVertical className="w-4 h-4" />
+                </button>
+              </div>
             </div>
 
             {/* Messages */}
             <div className="flex-1 overflow-y-auto p-6 space-y-4">
-              {messages.length === 0 ? (
-                <div className="text-center text-gray-500 text-sm py-8">
-                  No messages yet. Start the conversation!
-                </div>
-              ) : (
-                messages.map(msg => (
-                  <div key={msg.id} className={`flex ${msg.is_own ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-xs lg:max-w-md ${msg.is_own ? 'items-end' : 'items-start'} flex flex-col`}>
-                      {!msg.is_own && (
-                        <span className="text-xs text-gray-500 mb-1 ml-1">{msg.sender_name}</span>
+              {/* Date divider */}
+              <div className="flex items-center gap-3">
+                <div className="flex-1 h-px bg-white/[0.06]" />
+                <span className="text-xs text-white/25 px-3 py-1 bg-[#0A1020] rounded-full border border-white/[0.06]">Today</span>
+                <div className="flex-1 h-px bg-white/[0.06]" />
+              </div>
+
+              {messages.map((msg, i) => {
+                const isOwn = msg.is_own
+                const prevMsg = messages[i - 1]
+                const showAvatar = !prevMsg || prevMsg.sender_name !== msg.sender_name
+                return (
+                  <div key={msg.id} className={clsx('flex items-end gap-2', isOwn ? 'flex-row-reverse' : 'flex-row')}>
+                    {!isOwn && (
+                      <div className="w-8 flex-shrink-0">
+                        {showAvatar && <AvatarInitials name={msg.sender_name} size="sm" />}
+                      </div>
+                    )}
+                    <div className={clsx('max-w-xs lg:max-w-md xl:max-w-lg group', isOwn ? 'items-end' : 'items-start', 'flex flex-col gap-1')}>
+                      {showAvatar && !isOwn && (
+                        <span className="text-xs text-white/40 ml-1">{msg.sender_name}</span>
                       )}
-                      <div className={`px-4 py-2.5 rounded-2xl text-sm ${
-                        msg.is_own 
-                          ? 'bg-amber-500 text-black rounded-br-md' 
-                          : 'bg-[#0A1020] text-gray-200 border border-white/5 rounded-bl-md'
-                      }`}>
+                      <div className={clsx(
+                        'px-4 py-2.5 rounded-2xl text-sm leading-relaxed',
+                        isOwn
+                          ? 'bg-amber-500 text-black rounded-br-md'
+                          : 'bg-[#0A1020] border border-white/[0.06] text-white/90 rounded-bl-md'
+                      )}>
                         {msg.content}
                       </div>
-                      <span className="text-xs text-gray-600 mt-1 mx-1">
-                        {new Date(msg.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
-                      </span>
+                      <div className={clsx('flex items-center gap-1', isOwn ? 'flex-row-reverse' : 'flex-row')}>
+                        <span className="text-xs text-white/25">{msg.created_at}</span>
+                        {isOwn && <CheckCheck className="w-3 h-3 text-amber-400" />}
+                      </div>
                     </div>
                   </div>
-                ))
-              )}
+                )
+              })}
               <div ref={messagesEndRef} />
             </div>
 
-            {/* Message Input */}
-            <div className="p-4 border-t border-white/5 bg-[#0A1020]">
-              <div className="flex gap-3">
-                <input value={newMessage} onChange={e => setNewMessage(e.target.value)}
-                  onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
-                  placeholder="Type a message... (Enter to send)"
-                  className="flex-1 bg-[#04080F] border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-amber-400/40" />
-                <button onClick={sendMessage} disabled={sending || !newMessage.trim()}
-                  className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-black rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2">
-                  <Send className="w-4 h-4" />
+            {/* Input */}
+            <div className="p-4 border-t border-white/[0.06] bg-[#060C18]">
+              <div className="flex items-center gap-3 bg-[#0A1020] border border-white/[0.06] rounded-2xl px-4 py-2 focus-within:border-amber-500/40 transition-all">
+                <button className="p-1 text-white/30 hover:text-white/60 transition-all flex-shrink-0">
+                  <Paperclip className="w-4 h-4" />
+                </button>
+                <input ref={inputRef}
+                  value={newMessage}
+                  onChange={e => setNewMessage(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder={`Message ${selectedThread.name}...`}
+                  className="flex-1 bg-transparent text-sm text-white placeholder-white/25 focus:outline-none py-1" />
+                <button className="p-1 text-white/30 hover:text-white/60 transition-all flex-shrink-0">
+                  <Smile className="w-4 h-4" />
+                </button>
+                <button onClick={sendMessage}
+                  disabled={!newMessage.trim() || sending}
+                  className="w-8 h-8 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed text-black rounded-xl flex items-center justify-center transition-all flex-shrink-0">
+                  {sending ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Send className="w-3.5 h-3.5" />}
                 </button>
               </div>
+              <p className="text-xs text-white/20 text-center mt-2">Press Enter to send · Shift+Enter for new line</p>
             </div>
           </>
+        ) : (
+          /* Empty state */
+          <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
+            <div className="w-20 h-20 rounded-3xl bg-[#0A1020] border border-white/[0.06] flex items-center justify-center mb-6">
+              <MessageSquare className="w-9 h-9 text-white/20" />
+            </div>
+            <h3 className="text-lg font-semibold text-white mb-2">Your messages</h3>
+            <p className="text-sm text-white/40 max-w-xs mb-6">Send direct messages to crew members or chat with your production teams</p>
+            <button className="flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-black text-sm font-semibold rounded-xl transition-all">
+              <Plus className="w-4 h-4" />
+              New Message
+            </button>
+          </div>
         )}
       </div>
     </div>
