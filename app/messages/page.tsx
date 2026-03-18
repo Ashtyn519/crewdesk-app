@@ -1,75 +1,127 @@
 'use client'
-import { useEffect, useState, useRef } from 'react'
+
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Send, MessageSquare, Plus, Trash2 } from 'lucide-react'
+import { Plus, Send, X, MessageSquare, ChevronRight, Search } from 'lucide-react'
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic'
 
+interface Thread {
+  id: string
+  title: string
+  project_id: string | null
+  created_at: string
+  last_message?: string
+  message_count?: number
+}
 
-type Thread = { id: string; title: string; last_message: string; last_message_at: string; unread_count: number }
-type Message = { id: string; content: string; sender_id: string; created_at: string }
+interface Message {
+  id: string
+  thread_id: string
+  content: string
+  sender_name: string
+  created_at: string
+  is_own: boolean
+}
 
 export default function MessagesPage() {
+  const supabase = createClient()
   const [threads, setThreads] = useState<Thread[]>([])
-  const [activeThread, setActiveThread] = useState<Thread|null>(null)
   const [messages, setMessages] = useState<Message[]>([])
-  const [input, setInput] = useState('')
+  const [activeThread, setActiveThread] = useState<Thread | null>(null)
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
+  const [newMessage, setNewMessage] = useState('')
   const [showNewThread, setShowNewThread] = useState(false)
   const [newThreadTitle, setNewThreadTitle] = useState('')
-  const [userId, setUserId] = useState('')
-  const bottomRef = useRef<HTMLDivElement>(null)
-  const supabase = createClient()
+  const [search, setSearch] = useState('')
+  const [currentUser, setCurrentUser] = useState<any>(null)
+  const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    const init = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      setUserId(user?.id || '')
-      const { data } = await supabase.from('message_threads').select('*').eq('user_id', user?.id).order('last_message_at', { ascending: false })
-      setThreads(data || [])
-      setLoading(false)
-    }
-    init()
-  }, [])
+  const loadThreads = async () => {
+    setLoading(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    setCurrentUser(user)
+    
+    const { data } = await supabase
+      .from('message_threads')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+    
+    // Get message counts and last messages
+    const enriched = await Promise.all((data || []).map(async (thread) => {
+      const { data: msgs } = await supabase
+        .from('messages')
+        .select('content, created_at')
+        .eq('thread_id', thread.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+      return {
+        ...thread,
+        last_message: msgs?.[0]?.content || 'No messages yet',
+        message_count: msgs?.length || 0,
+      }
+    }))
+    
+    setThreads(enriched)
+    setLoading(false)
+  }
 
+  const loadMessages = async (thread: Thread) => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const { data } = await supabase
+      .from('messages')
+      .select('*')
+      .eq('thread_id', thread.id)
+      .order('created_at', { ascending: true })
+    setMessages((data || []).map(m => ({
+      ...m,
+      is_own: m.sender_id === user.id,
+    })))
+    setTimeout(() => messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }), 100)
+  }
+
+  useEffect(() => { loadThreads() }, [])
+  
   useEffect(() => {
-    if (activeThread) loadMessages(activeThread.id)
+    if (activeThread) loadMessages(activeThread)
   }, [activeThread])
-
-  useEffect(() => { bottomRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [messages])
-
-  const loadMessages = async (threadId: string) => {
-    const { data } = await supabase.from('messages').select('*').eq('thread_id', threadId).order('created_at')
-    setMessages(data || [])
-    await supabase.from('message_threads').update({ unread_count: 0 }).eq('id', threadId)
-    setThreads(prev => prev.map(t => t.id === threadId ? { ...t, unread_count: 0 } : t))
-  }
-
-  const sendMessage = async () => {
-    if (!input.trim() || !activeThread || sending) return
-    setSending(true)
-    const content = input.trim()
-    setInput('')
-    const { data } = await supabase.from('messages').insert({ thread_id: activeThread.id, sender_id: userId, content }).select().single()
-    if (data) {
-      setMessages(prev => [...prev, data])
-      await supabase.from('message_threads').update({ last_message: content, last_message_at: new Date().toISOString() }).eq('id', activeThread.id)
-      setThreads(prev => prev.map(t => t.id === activeThread.id ? { ...t, last_message: content, last_message_at: new Date().toISOString() } : t))
-    }
-    setSending(false)
-  }
 
   const createThread = async () => {
     if (!newThreadTitle.trim()) return
     const { data: { user } } = await supabase.auth.getUser()
-    const { data } = await supabase.from('message_threads').insert({ user_id: user?.id, title: newThreadTitle.trim(), unread_count: 0 }).select().single()
-    if (data) {
-      setThreads(prev => [data, ...prev])
-      setActiveThread(data)
-    }
+    if (!user) return
+    const { data } = await supabase
+      .from('message_threads')
+      .insert({ title: newThreadTitle, user_id: user.id })
+      .select()
+      .single()
     setNewThreadTitle('')
     setShowNewThread(false)
+    await loadThreads()
+    if (data) setActiveThread(data)
+  }
+
+  const sendMessage = async () => {
+    if (!newMessage.trim() || !activeThread) return
+    setSending(true)
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    const senderName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'You'
+    await supabase.from('messages').insert({
+      thread_id: activeThread.id,
+      content: newMessage,
+      sender_id: user.id,
+      sender_name: senderName,
+      user_id: user.id,
+    })
+    setNewMessage('')
+    await loadMessages(activeThread)
+    await loadThreads()
+    setSending(false)
   }
 
   const deleteThread = async (id: string, e: React.MouseEvent) => {
@@ -77,111 +129,135 @@ export default function MessagesPage() {
     if (!confirm('Delete this thread?')) return
     await supabase.from('messages').delete().eq('thread_id', id)
     await supabase.from('message_threads').delete().eq('id', id)
-    setThreads(prev => prev.filter(t => t.id !== id))
-    if (activeThread?.id === id) { setActiveThread(null); setMessages([]) }
+    if (activeThread?.id === id) setActiveThread(null)
+    await loadThreads()
   }
 
-  const formatTime = (ts: string) => {
-    const d = new Date(ts)
-    const now = new Date()
-    if (d.toDateString() === now.toDateString()) return d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
-    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' })
-  }
+  const filtered = threads.filter(t => t.title.toLowerCase().includes(search.toLowerCase()))
 
   return (
-    <div className="flex h-screen md:h-[calc(100vh)] overflow-hidden">
-      {/* Thread list */}
-      <div className={`w-full md:w-80 bg-[#0A1020] border-r border-slate-800 flex flex-col ${activeThread ? 'hidden md:flex' : 'flex'}`}>
-        <div className="p-4 border-b border-slate-800 flex items-center justify-between">
-          <h1 className="text-xl font-black text-white">Messages</h1>
-          <button onClick={() => setShowNewThread(true)} className="w-8 h-8 bg-amber-400 hover:bg-amber-300 text-black rounded-lg flex items-center justify-center transition-colors">
-            <Plus size={16} />
-          </button>
+    <div className="flex h-[calc(100vh-4rem)] overflow-hidden">
+      {/* Sidebar */}
+      <div className="w-72 bg-[#0A1020] border-r border-white/5 flex flex-col flex-shrink-0">
+        <div className="p-4 border-b border-white/5">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-white font-semibold">Messages</h2>
+            <button onClick={() => setShowNewThread(true)} className="p-1.5 text-amber-400 hover:bg-amber-400/10 rounded-lg transition-colors">
+              <Plus className="w-4 h-4" />
+            </button>
+          </div>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-500" />
+            <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search threads..."
+              className="w-full bg-[#04080F] border border-white/10 rounded-lg pl-8 pr-3 py-1.5 text-white text-xs focus:outline-none" />
+          </div>
         </div>
+
+        {/* New Thread Form */}
         {showNewThread && (
-          <div className="p-4 border-b border-slate-800 flex gap-2">
-            <input value={newThreadTitle} onChange={e => setNewThreadTitle(e.target.value)} placeholder="Thread name..."
+          <div className="p-3 border-b border-white/5 bg-[#04080F]">
+            <input value={newThreadTitle} onChange={e => setNewThreadTitle(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && createThread()}
-              className="flex-1 bg-[#0F1A2E] border border-slate-700 rounded-xl px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-400/50" />
-            <button onClick={createThread} className="bg-amber-400 hover:bg-amber-300 text-black px-3 rounded-xl text-sm font-bold transition-colors">Go</button>
+              placeholder="Thread title..." autoFocus
+              className="w-full bg-[#0A1020] border border-amber-400/30 rounded px-2 py-1.5 text-white text-xs focus:outline-none mb-2" />
+            <div className="flex gap-2">
+              <button onClick={() => setShowNewThread(false)} className="flex-1 text-xs text-gray-400 py-1 rounded border border-white/10 hover:bg-white/5">Cancel</button>
+              <button onClick={createThread} disabled={!newThreadTitle.trim()} className="flex-1 text-xs bg-amber-500 text-black font-medium py-1 rounded hover:bg-amber-400 disabled:opacity-50">Create</button>
+            </div>
           </div>
         )}
+
+        {/* Thread List */}
         <div className="flex-1 overflow-y-auto">
-          {loading ? <div className="p-4 text-slate-400 text-sm">Loading...</div> : threads.length === 0 ? (
-            <div className="flex flex-col items-center justify-center h-full p-8 text-center">
-              <MessageSquare size={40} className="text-slate-600 mb-3" />
-              <p className="text-slate-400 text-sm">No threads yet</p>
-              <button onClick={() => setShowNewThread(true)} className="mt-3 text-amber-400 text-sm">Start a conversation</button>
+          {loading ? (
+            <div className="p-4 text-center text-gray-500 text-sm">Loading...</div>
+          ) : filtered.length === 0 ? (
+            <div className="p-4 text-center">
+              <MessageSquare className="w-8 h-8 text-gray-600 mx-auto mb-2" />
+              <p className="text-gray-500 text-xs">{search ? 'No matches' : 'No threads yet'}</p>
             </div>
-          ) : threads.map(t => (
-            <div key={t.id} onClick={() => setActiveThread(t)}
-              className={`p-4 border-b border-slate-800/50 cursor-pointer hover:bg-slate-800/30 transition-colors ${activeThread?.id === t.id ? 'bg-amber-400/5 border-l-2 border-l-amber-400' : ''}`}>
-              <div className="flex items-start justify-between">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-white font-medium text-sm truncate">{t.title}</span>
-                    {t.unread_count > 0 && <span className="w-5 h-5 bg-amber-400 text-black text-xs font-bold rounded-full flex items-center justify-center flex-shrink-0">{t.unread_count}</span>}
+          ) : (
+            filtered.map(thread => (
+              <div key={thread.id} onClick={() => setActiveThread(thread)}
+                className={`p-3 cursor-pointer border-b border-white/5 hover:bg-white/3 transition-colors group relative ${activeThread?.id === thread.id ? 'bg-amber-400/5 border-l-2 border-l-amber-400' : ''}`}>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-white text-sm font-medium truncate">{thread.title}</p>
+                    <p className="text-gray-500 text-xs truncate mt-0.5">{thread.last_message}</p>
                   </div>
-                  {t.last_message && <p className="text-slate-500 text-xs mt-0.5 truncate">{t.last_message}</p>}
-                </div>
-                <div className="flex items-center gap-2 ml-2 flex-shrink-0">
-                  <span className="text-slate-600 text-xs">{t.last_message_at ? formatTime(t.last_message_at) : ''}</span>
-                  <button onClick={e => deleteThread(t.id, e)} className="text-slate-600 hover:text-red-400 transition-colors"><Trash2 size={12} /></button>
+                  <div className="flex items-center gap-1 ml-2">
+                    <ChevronRight className="w-3.5 h-3.5 text-gray-600" />
+                    <button onClick={e => deleteThread(thread.id, e)} className="opacity-0 group-hover:opacity-100 text-gray-600 hover:text-red-400 transition-all p-0.5">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       </div>
 
-      {/* Chat area */}
-      <div className={`flex-1 flex flex-col ${!activeThread ? 'hidden md:flex' : 'flex'}`}>
+      {/* Chat Area */}
+      <div className="flex-1 flex flex-col bg-[#04080F]">
         {!activeThread ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-            <MessageSquare size={64} className="text-slate-700 mb-4" />
-            <h2 className="text-2xl font-bold text-white mb-2">Select a conversation</h2>
-            <p className="text-slate-400">Choose a thread from the left or create a new one</p>
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-center">
+              <MessageSquare className="w-16 h-16 text-gray-700 mx-auto mb-4" />
+              <p className="text-gray-400 font-medium">Select a thread or create a new one</p>
+              <button onClick={() => setShowNewThread(true)} className="mt-4 px-4 py-2 bg-amber-500/20 text-amber-400 rounded-lg hover:bg-amber-500/30 transition-colors text-sm">
+                Start a conversation
+              </button>
+            </div>
           </div>
         ) : (
           <>
-            <div className="p-4 border-b border-slate-800 flex items-center gap-3">
-              <button onClick={() => setActiveThread(null)} className="md:hidden text-slate-400 hover:text-white mr-1">←</button>
-              <div className="w-8 h-8 bg-amber-400/20 rounded-full flex items-center justify-center text-amber-400 font-bold text-sm">
-                {activeThread.title.charAt(0).toUpperCase()}
-              </div>
-              <div>
-                <div className="text-white font-bold text-sm">{activeThread.title}</div>
-                <div className="text-slate-500 text-xs">{messages.length} messages</div>
-              </div>
+            {/* Thread Header */}
+            <div className="px-6 py-4 border-b border-white/5 bg-[#0A1020]">
+              <h2 className="text-white font-semibold">{activeThread.title}</h2>
+              <p className="text-gray-500 text-xs mt-0.5">{messages.length} message{messages.length !== 1 ? 's' : ''}</p>
             </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
-              {messages.length === 0 && (
-                <div className="text-center py-10">
-                  <p className="text-slate-500 text-sm">No messages yet. Say hello!</p>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {messages.length === 0 ? (
+                <div className="text-center text-gray-500 text-sm py-8">
+                  No messages yet. Start the conversation!
                 </div>
-              )}
-              {messages.map(msg => {
-                const isOwn = msg.sender_id === userId
-                return (
-                  <div key={msg.id} className={`flex ${isOwn ? 'justify-end' : 'justify-start'}`}>
-                    <div className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm ${isOwn ? 'bg-amber-400 text-black rounded-br-md' : 'bg-[#0F1A2E] text-white border border-slate-700 rounded-bl-md'}`}>
-                      <p>{msg.content}</p>
-                      <p className={`text-xs mt-1 ${isOwn ? 'text-amber-900/60' : 'text-slate-500'}`}>{formatTime(msg.created_at)}</p>
+              ) : (
+                messages.map(msg => (
+                  <div key={msg.id} className={`flex ${msg.is_own ? 'justify-end' : 'justify-start'}`}>
+                    <div className={`max-w-xs lg:max-w-md ${msg.is_own ? 'items-end' : 'items-start'} flex flex-col`}>
+                      {!msg.is_own && (
+                        <span className="text-xs text-gray-500 mb-1 ml-1">{msg.sender_name}</span>
+                      )}
+                      <div className={`px-4 py-2.5 rounded-2xl text-sm ${
+                        msg.is_own 
+                          ? 'bg-amber-500 text-black rounded-br-md' 
+                          : 'bg-[#0A1020] text-gray-200 border border-white/5 rounded-bl-md'
+                      }`}>
+                        {msg.content}
+                      </div>
+                      <span className="text-xs text-gray-600 mt-1 mx-1">
+                        {new Date(msg.created_at).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
                     </div>
                   </div>
-                )
-              })}
-              <div ref={bottomRef} />
+                ))
+              )}
+              <div ref={messagesEndRef} />
             </div>
-            <div className="p-4 border-t border-slate-800">
+
+            {/* Message Input */}
+            <div className="p-4 border-t border-white/5 bg-[#0A1020]">
               <div className="flex gap-3">
-                <input value={input} onChange={e => setInput(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage() } }}
-                  placeholder="Type a message..."
-                  className="flex-1 bg-[#0F1A2E] border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-amber-400/50 text-sm" />
-                <button onClick={sendMessage} disabled={!input.trim() || sending}
-                  className="w-11 h-11 bg-amber-400 hover:bg-amber-300 text-black rounded-xl flex items-center justify-center transition-colors disabled:opacity-50">
-                  <Send size={18} />
+                <input value={newMessage} onChange={e => setNewMessage(e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage()}
+                  placeholder="Type a message... (Enter to send)"
+                  className="flex-1 bg-[#04080F] border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none focus:border-amber-400/40" />
+                <button onClick={sendMessage} disabled={sending || !newMessage.trim()}
+                  className="px-4 py-2.5 bg-amber-500 hover:bg-amber-400 text-black rounded-xl transition-colors disabled:opacity-50 flex items-center gap-2">
+                  <Send className="w-4 h-4" />
                 </button>
               </div>
             </div>

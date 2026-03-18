@@ -1,192 +1,271 @@
 'use client'
-import { useEffect, useState, useRef } from 'react'
+
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { formatCurrency, formatDate } from '@/lib/utils'
-import { Plus, Upload, CheckSquare, FileText, Trash2, Search } from 'lucide-react'
+import { Plus, FileText, CheckCircle, Clock, AlertCircle, Trash2, Edit2, X, Upload, Eye } from 'lucide-react'
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic'
 
-
-type Contract = {
-  id: string; title: string; client_name: string; client_email: string;
-  status: string; value: number; file_url: string; signed_at: string;
-  expires_at: string; created_at: string;
+interface Contract {
+  id: string
+  title: string
+  client_name: string
+  status: 'draft' | 'sent' | 'signed' | 'expired'
+  start_date: string
+  end_date: string
+  value: number
+  description: string
+  file_url: string | null
 }
-const EMPTY = { title: '', client_name: '', client_email: '', status: 'draft', value: 0, file_url: '', expires_at: '' }
-const STATUS_COLORS: Record<string,string> = { draft:'bg-slate-700 text-slate-400', sent:'bg-amber-400/10 text-amber-400', signed:'bg-emerald-400/10 text-emerald-400', expired:'bg-red-400/10 text-red-400' }
+
+const defaultForm = {
+  title: '',
+  client_name: '',
+  status: 'draft' as Contract['status'],
+  start_date: '',
+  end_date: '',
+  value: 0,
+  description: '',
+}
 
 export default function ContractsPage() {
+  const supabase = createClient()
   const [contracts, setContracts] = useState<Contract[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
-  const [form, setForm] = useState<any>(EMPTY)
-  const [search, setSearch] = useState('')
+  const [editing, setEditing] = useState<Contract | null>(null)
   const [saving, setSaving] = useState(false)
-  const [uploading, setUploading] = useState(false)
-  const fileRef = useRef<HTMLInputElement>(null)
-  const supabase = createClient()
+  const [form, setForm] = useState(defaultForm)
 
   const load = async () => {
+    setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
-    const { data } = await supabase.from('contracts').select('*').eq('user_id', user?.id).order('created_at', { ascending: false })
+    if (!user) return
+    const { data } = await supabase
+      .from('contracts')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
     setContracts(data || [])
     setLoading(false)
   }
+
   useEffect(() => { load() }, [])
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0]
-    if (!file) return
-    setUploading(true)
-    const { data: { user } } = await supabase.auth.getUser()
-    const path = `contracts/${user?.id}/${Date.now()}-${file.name}`
-    const { data } = await supabase.storage.from('contracts').upload(path, file)
-    if (data) {
-      const { data: { publicUrl } } = supabase.storage.from('contracts').getPublicUrl(path)
-      setForm((f: any) => ({ ...f, file_url: publicUrl }))
-    }
-    setUploading(false)
+  const openNew = () => {
+    setEditing(null)
+    setForm(defaultForm)
+    setShowModal(true)
+  }
+
+  const openEdit = (c: Contract) => {
+    setEditing(c)
+    setForm({
+      title: c.title,
+      client_name: c.client_name || '',
+      status: c.status as 'draft' | 'sent' | 'signed' | 'expired',
+      start_date: c.start_date || '',
+      end_date: c.end_date || '',
+      value: c.value || 0,
+      description: c.description || '',
+    })
+    setShowModal(true)
   }
 
   const handleSave = async () => {
     setSaving(true)
     const { data: { user } } = await supabase.auth.getUser()
-    await supabase.from('contracts').insert({ ...form, user_id: user?.id })
+    if (!user) return
+    const payload = { ...form, user_id: user.id, updated_at: new Date().toISOString() }
+    if (editing) {
+      await supabase.from('contracts').update(payload).eq('id', editing.id)
+    } else {
+      await supabase.from('contracts').insert(payload)
+    }
     await load()
     setShowModal(false)
-    setForm(EMPTY)
     setSaving(false)
   }
 
-  const markSigned = async (id: string) => {
-    await supabase.from('contracts').update({ status: 'signed', signed_at: new Date().toISOString() }).eq('id', id)
-    setContracts(prev => prev.map(c => c.id === id ? { ...c, status: 'signed', signed_at: new Date().toISOString() } : c))
-  }
-
   const deleteContract = async (id: string) => {
-    if (!confirm('Delete contract?')) return
+    if (!confirm('Delete this contract?')) return
     await supabase.from('contracts').delete().eq('id', id)
-    setContracts(prev => prev.filter(c => c.id !== id))
+    await load()
   }
 
-  const filtered = contracts.filter(c => c.title.toLowerCase().includes(search.toLowerCase()) || c.client_name?.toLowerCase().includes(search.toLowerCase()))
+  const updateStatus = async (id: string, status: Contract['status']) => {
+    await supabase.from('contracts').update({ status, updated_at: new Date().toISOString() }).eq('id', id)
+    await load()
+  }
+
+  const statusIcon = (status: string) => {
+    if (status === 'signed') return <CheckCircle className="w-4 h-4 text-emerald-400" />
+    if (status === 'expired') return <AlertCircle className="w-4 h-4 text-red-400" />
+    if (status === 'sent') return <Clock className="w-4 h-4 text-amber-400" />
+    return <FileText className="w-4 h-4 text-gray-400" />
+  }
+
+  const statusColor = (status: string) => {
+    if (status === 'signed') return 'text-emerald-400 bg-emerald-400/10 border border-emerald-400/20'
+    if (status === 'expired') return 'text-red-400 bg-red-400/10 border border-red-400/20'
+    if (status === 'sent') return 'text-amber-400 bg-amber-400/10 border border-amber-400/20'
+    return 'text-gray-400 bg-gray-400/10 border border-gray-400/20'
+  }
+
+  const totalValue = contracts.filter(c => c.status === 'signed').reduce((s, c) => s + (c.value || 0), 0)
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-black text-white">Contracts</h1>
-          <p className="text-slate-400 mt-1">{contracts.length} contract{contracts.length !== 1 ? 's' : ''}</p>
+          <h1 className="text-2xl font-bold text-white">Contracts</h1>
+          <p className="text-gray-400 text-sm mt-1">{contracts.length} contract{contracts.length !== 1 ? 's' : ''}</p>
         </div>
-        <button onClick={() => { setForm(EMPTY); setShowModal(true) }}
-          className="flex items-center gap-2 bg-amber-400 hover:bg-amber-300 text-black font-bold px-4 py-2.5 rounded-xl transition-colors">
-          <Plus size={18} /> New Contract
+        <button onClick={openNew} className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-black font-semibold rounded-lg transition-colors">
+          <Plus className="w-4 h-4" /><span>New Contract</span>
         </button>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
-        {(['draft','sent','signed','expired'] as string[]).map(status => (
-          <div key={status} className="bg-[#0F1A2E] rounded-2xl p-4 border border-slate-800">
-            <div className="text-2xl font-bold text-white">{contracts.filter(c => c.status === status).length}</div>
-            <div className={`text-sm mt-1 capitalize ${STATUS_COLORS[status]?.split(' ')[1] || 'text-slate-400'}`}>{status}</div>
+      {/* Stats */}
+      <div className="grid grid-cols-4 gap-4">
+        {(['draft', 'sent', 'signed', 'expired'] as const).map(status => (
+          <div key={status} className="bg-[#0A1020] rounded-xl p-4 border border-white/5">
+            <p className="text-gray-400 text-xs mb-1 capitalize">{status}</p>
+            <p className={`text-2xl font-bold ${statusColor(status).split(' ')[0]}`}>
+              {contracts.filter(c => c.status === status).length}
+            </p>
           </div>
         ))}
       </div>
 
-      <div className="relative mb-4">
-        <Search size={16} className="absolute left-4 top-3.5 text-slate-500" />
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search contracts..."
-          className="w-full bg-[#0F1A2E] border border-slate-800 rounded-xl pl-10 pr-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-amber-400/50" />
-      </div>
-
-      {loading ? <div className="text-slate-400">Loading...</div> : (
-        <div className="space-y-3">
-          {filtered.map(c => (
-            <div key={c.id} className="bg-[#0F1A2E] rounded-2xl p-5 border border-slate-800 hover:border-slate-700 transition-colors">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-1">
-                    <FileText size={16} className="text-slate-500" />
-                    <span className="text-white font-bold">{c.title}</span>
-                    <span className={`text-xs px-2 py-1 rounded-full ${STATUS_COLORS[c.status] || 'bg-slate-700 text-slate-400'}`}>{c.status}</span>
-                  </div>
-                  <div className="text-slate-400 text-sm">{c.client_name} · {formatCurrency(c.value)} {c.signed_at && `· Signed ${formatDate(c.signed_at)}`}</div>
-                </div>
-                <div className="flex gap-2">
-                  {c.status !== 'signed' && (
-                    <button onClick={() => markSigned(c.id)} title="Mark signed"
-                      className="w-8 h-8 bg-emerald-400/10 hover:bg-emerald-400/20 text-emerald-400 rounded-lg flex items-center justify-center transition-colors">
-                      <CheckSquare size={14} />
-                    </button>
-                  )}
-                  {c.file_url && (
-                    <a href={c.file_url} target="_blank" rel="noopener noreferrer"
-                      className="w-8 h-8 bg-amber-400/10 hover:bg-amber-400/20 text-amber-400 rounded-lg flex items-center justify-center transition-colors">
-                      <Upload size={14} />
-                    </a>
-                  )}
-                  <button onClick={() => deleteContract(c.id)}
-                    className="w-8 h-8 bg-red-400/10 hover:bg-red-400/20 text-red-400 rounded-lg flex items-center justify-center transition-colors">
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))}
-          {filtered.length === 0 && (
-            <div className="text-center py-20">
-              <FileText size={48} className="text-slate-600 mx-auto mb-4" />
-              <p className="text-slate-400">No contracts yet</p>
-            </div>
-          )}
+      {totalValue > 0 && (
+        <div className="bg-emerald-400/5 border border-emerald-400/20 rounded-xl p-4">
+          <p className="text-gray-400 text-sm">Total Signed Contract Value</p>
+          <p className="text-2xl font-bold text-emerald-400">£{totalValue.toLocaleString()}</p>
         </div>
       )}
 
-      {showModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#0F1A2E] rounded-2xl p-6 w-full max-w-md border border-slate-700">
-            <h2 className="text-xl font-bold text-white mb-5">New Contract</h2>
-            <div className="space-y-4">
-              {[['title','Contract Title',true],['client_name','Client Name',false],['client_email','Client Email',false]].map(([k,label,required]) => (
-                <div key={k as string}>
-                  <label className="text-slate-300 text-sm block mb-1.5">{label as string}</label>
-                  <input type="text" value={form[k as string]} onChange={e => setForm((f: any) => ({...f, [k as string]: e.target.value}))} required={required as boolean}
-                    className="w-full bg-[#0A1020] border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-amber-400/50" />
+      {/* Contract Grid */}
+      {loading ? (
+        <div className="text-center text-gray-500 py-12">Loading contracts...</div>
+      ) : contracts.length === 0 ? (
+        <div className="bg-[#0A1020] rounded-xl border border-white/5 p-12 text-center">
+          <FileText className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+          <p className="text-gray-400">No contracts yet</p>
+          <button onClick={openNew} className="mt-4 px-4 py-2 bg-amber-500/20 text-amber-400 rounded-lg hover:bg-amber-500/30 transition-colors text-sm">
+            Create your first contract
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          {contracts.map(contract => (
+            <div key={contract.id} className="bg-[#0A1020] rounded-xl border border-white/5 p-5 hover:border-white/10 transition-colors">
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex-1 min-w-0">
+                  <h3 className="text-white font-semibold truncate">{contract.title}</h3>
+                  <p className="text-gray-400 text-sm mt-0.5">{contract.client_name || 'No client'}</p>
                 </div>
-              ))}
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="text-slate-300 text-sm block mb-1.5">Status</label>
-                  <select value={form.status} onChange={e => setForm((f: any) => ({...f, status: e.target.value}))}
-                    className="w-full bg-[#0A1020] border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none">
-                    {['draft','sent','signed','expired'].map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                </div>
-                <div>
-                  <label className="text-slate-300 text-sm block mb-1.5">Value (£)</label>
-                  <input type="number" value={form.value} onChange={e => setForm((f: any) => ({...f, value: parseFloat(e.target.value)||0}))}
-                    className="w-full bg-[#0A1020] border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-amber-400/50" />
-                </div>
+                <span className={`ml-3 flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0 ${statusColor(contract.status)}`}>
+                  {statusIcon(contract.status)}
+                  {contract.status.charAt(0).toUpperCase() + contract.status.slice(1)}
+                </span>
               </div>
-              <div>
-                <label className="text-slate-300 text-sm block mb-1.5">Expiry Date</label>
-                <input type="date" value={form.expires_at} onChange={e => setForm((f: any) => ({...f, expires_at: e.target.value}))}
-                  className="w-full bg-[#0A1020] border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-amber-400/50" />
+
+              {contract.description && (
+                <p className="text-gray-500 text-xs mb-3 line-clamp-2">{contract.description}</p>
+              )}
+
+              <div className="flex items-center justify-between text-xs text-gray-500 mb-4">
+                <span>
+                  {contract.start_date && `${new Date(contract.start_date).toLocaleDateString('en-GB')} → `}
+                  {contract.end_date ? new Date(contract.end_date).toLocaleDateString('en-GB') : 'No end date'}
+                </span>
+                {contract.value > 0 && (
+                  <span className="text-amber-400 font-medium">£{contract.value.toLocaleString()}</span>
+                )}
               </div>
-              <div>
-                <label className="text-slate-300 text-sm block mb-1.5">Upload Contract File</label>
-                <input ref={fileRef} type="file" accept=".pdf,.doc,.docx" onChange={handleFileUpload} className="hidden" />
-                <button onClick={() => fileRef.current?.click()}
-                  className="w-full border border-dashed border-slate-600 hover:border-amber-400/50 rounded-xl p-4 text-slate-400 hover:text-amber-400 transition-colors flex items-center justify-center gap-2">
-                  <Upload size={16} />
-                  {uploading ? 'Uploading...' : form.file_url ? 'File uploaded ✓' : 'Click to upload (PDF, DOC)'}
+
+              <div className="flex items-center gap-2 pt-3 border-t border-white/5">
+                {contract.status === 'draft' && (
+                  <button onClick={() => updateStatus(contract.id, 'sent')} className="flex-1 text-xs bg-amber-500/10 text-amber-400 hover:bg-amber-500/20 py-1.5 rounded-lg transition-colors">
+                    Mark Sent
+                  </button>
+                )}
+                {contract.status === 'sent' && (
+                  <button onClick={() => updateStatus(contract.id, 'signed')} className="flex-1 text-xs bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20 py-1.5 rounded-lg transition-colors">
+                    Mark Signed
+                  </button>
+                )}
+                <button onClick={() => openEdit(contract)} className="p-1.5 text-gray-400 hover:text-amber-400 transition-colors">
+                  <Edit2 className="w-4 h-4" />
+                </button>
+                <button onClick={() => deleteContract(contract.id)} className="p-1.5 text-gray-400 hover:text-red-400 transition-colors">
+                  <Trash2 className="w-4 h-4" />
                 </button>
               </div>
             </div>
-            <div className="flex gap-3 mt-6">
-              <button onClick={() => setShowModal(false)} className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-medium py-2.5 rounded-xl transition-colors">Cancel</button>
-              <button onClick={handleSave} disabled={saving || !form.title} className="flex-1 bg-amber-400 hover:bg-amber-300 text-black font-bold py-2.5 rounded-xl transition-colors disabled:opacity-50">
-                {saving ? 'Creating...' : 'Create Contract'}
+          ))}
+        </div>
+      )}
+
+      {/* Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[#0A1020] border border-white/10 rounded-2xl w-full max-w-lg">
+            <div className="flex items-center justify-between p-6 border-b border-white/5">
+              <h2 className="text-lg font-bold text-white">{editing ? 'Edit Contract' : 'New Contract'}</h2>
+              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">Contract Title *</label>
+                <input value={form.title} onChange={e => setForm({...form, title: e.target.value})}
+                  className="w-full bg-[#04080F] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-400/50" placeholder="Project agreement..." />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">Client Name</label>
+                  <input value={form.client_name} onChange={e => setForm({...form, client_name: e.target.value})}
+                    className="w-full bg-[#04080F] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-400/50" placeholder="Client name" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">Status</label>
+                  <select value={form.status} onChange={e => setForm({...form, status: e.target.value as any})}
+                    className="w-full bg-[#04080F] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-400/50">
+                    <option value="draft">Draft</option>
+                    <option value="sent">Sent</option>
+                    <option value="signed">Signed</option>
+                    <option value="expired">Expired</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">Start Date</label>
+                  <input type="date" value={form.start_date} onChange={e => setForm({...form, start_date: e.target.value})}
+                    className="w-full bg-[#04080F] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-400/50" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">End Date</label>
+                  <input type="date" value={form.end_date} onChange={e => setForm({...form, end_date: e.target.value})}
+                    className="w-full bg-[#04080F] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-400/50" />
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">Contract Value (£)</label>
+                <input type="number" value={form.value} onChange={e => setForm({...form, value: parseFloat(e.target.value) || 0})}
+                  className="w-full bg-[#04080F] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-400/50" placeholder="0" />
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">Description</label>
+                <textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} rows={3}
+                  className="w-full bg-[#04080F] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-400/50 resize-none" placeholder="Contract details..." />
+              </div>
+            </div>
+            <div className="flex gap-3 p-6 border-t border-white/5">
+              <button onClick={() => setShowModal(false)} className="flex-1 px-4 py-2 border border-white/10 text-gray-300 rounded-lg hover:bg-white/5 transition-colors text-sm">Cancel</button>
+              <button onClick={handleSave} disabled={saving || !form.title} className="flex-1 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-black font-semibold rounded-lg transition-colors text-sm disabled:opacity-50">
+                {saving ? 'Saving...' : editing ? 'Save Changes' : 'Create Contract'}
               </button>
             </div>
           </div>

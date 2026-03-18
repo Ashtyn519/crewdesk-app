@@ -1,251 +1,438 @@
 'use client'
-import { useEffect, useState } from 'react'
+
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { formatCurrency, formatDate } from '@/lib/utils'
-import { Plus, Download, CheckCircle, Receipt, Search, Trash2 } from 'lucide-react'
+import { Plus, Download, CheckCircle, Clock, AlertCircle, Trash2, Edit2, X, FileText, Printer } from 'lucide-react'
 
-export const dynamic = "force-dynamic";
+export const dynamic = 'force-dynamic'
 
-
-type LineItem = { description: string; qty: number; rate: number }
-type Invoice = {
-  id: string; invoice_number: string; client_name: string; client_email: string;
-  status: string; subtotal: number; tax_rate: number; total: number;
-  due_date: string; paid_at: string; line_items: LineItem[]; notes: string; created_at: string;
+interface Invoice {
+  id: string
+  invoice_number: string
+  client_name: string
+  amount: number
+  status: 'draft' | 'sent' | 'paid' | 'overdue'
+  due_date: string
+  issue_date: string
+  description: string
+  line_items: LineItem[]
 }
-const EMPTY_FORM = { invoice_number: '', client_name: '', client_email: '', status: 'draft', subtotal: 0, tax_rate: 20, total: 0, due_date: '', notes: '', line_items: [{ description: '', qty: 1, rate: 0 }] }
-const STATUS_COLORS: Record<string,string> = { draft:'bg-slate-700 text-slate-400', sent:'bg-amber-400/10 text-amber-400', paid:'bg-emerald-400/10 text-emerald-400', overdue:'bg-red-400/10 text-red-400' }
+
+interface LineItem {
+  description: string
+  quantity: number
+  rate: number
+  amount: number
+}
+
+const defaultForm = {
+  invoice_number: '',
+  client_name: '',
+  amount: 0,
+  status: 'draft' as const,
+  due_date: '',
+  issue_date: new Date().toISOString().split('T')[0],
+  description: '',
+  line_items: [{ description: '', quantity: 1, rate: 0, amount: 0 }] as LineItem[],
+}
 
 export default function InvoicesPage() {
+  const supabase = createClient()
   const [invoices, setInvoices] = useState<Invoice[]>([])
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
-  const [form, setForm] = useState<any>(EMPTY_FORM)
-  const [search, setSearch] = useState('')
+  const [showPDF, setShowPDF] = useState<Invoice | null>(null)
+  const [editing, setEditing] = useState<Invoice | null>(null)
   const [saving, setSaving] = useState(false)
-  const supabase = createClient()
+  const [form, setForm] = useState(defaultForm)
+  const printRef = useRef<HTMLDivElement>(null)
 
   const load = async () => {
+    setLoading(true)
     const { data: { user } } = await supabase.auth.getUser()
-    const { data } = await supabase.from('invoices').select('*').eq('user_id', user?.id).order('created_at', { ascending: false })
+    if (!user) return
+    const { data } = await supabase
+      .from('invoices')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
     setInvoices(data || [])
     setLoading(false)
   }
+
   useEffect(() => { load() }, [])
 
-  const calcTotals = (items: LineItem[], taxRate: number) => {
-    const subtotal = items.reduce((s, i) => s + (i.qty * i.rate), 0)
-    const total = subtotal * (1 + taxRate / 100)
-    return { subtotal: Math.round(subtotal * 100) / 100, total: Math.round(total * 100) / 100 }
+  const nextInvoiceNumber = () => {
+    if (invoices.length === 0) return 'INV-001'
+    const nums = invoices.map(i => parseInt(i.invoice_number.replace(/\D/g, '') || '0'))
+    return `INV-${String(Math.max(...nums) + 1).padStart(3, '0')}`
   }
 
-  const updateLineItem = (idx: number, field: keyof LineItem, val: string | number) => {
+  const openNew = () => {
+    setEditing(null)
+    setForm({ ...defaultForm, invoice_number: nextInvoiceNumber() })
+    setShowModal(true)
+  }
+
+  const openEdit = (inv: Invoice) => {
+    setEditing(inv)
+    setForm({
+      invoice_number: inv.invoice_number,
+      client_name: inv.client_name,
+      amount: inv.amount,
+      status: inv.status,
+      due_date: inv.due_date || '',
+      issue_date: inv.issue_date || new Date().toISOString().split('T')[0],
+      description: inv.description || '',
+      line_items: inv.line_items?.length ? inv.line_items : [{ description: '', quantity: 1, rate: 0, amount: 0 }],
+    })
+    setShowModal(true)
+  }
+
+  const updateLineItem = (idx: number, field: keyof LineItem, value: string | number) => {
     const items = [...form.line_items]
-    items[idx] = { ...items[idx], [field]: field === 'description' ? val : parseFloat(val as string) || 0 }
-    const { subtotal, total } = calcTotals(items, form.tax_rate)
-    setForm((f: any) => ({ ...f, line_items: items, subtotal, total }))
+    items[idx] = { ...items[idx], [field]: value }
+    if (field === 'quantity' || field === 'rate') {
+      items[idx].amount = Number(items[idx].quantity) * Number(items[idx].rate)
+    }
+    const total = items.reduce((s, i) => s + (Number(i.amount) || 0), 0)
+    setForm({ ...form, line_items: items, amount: total })
   }
 
-  const addLineItem = () => setForm((f: any) => ({ ...f, line_items: [...f.line_items, { description: '', qty: 1, rate: 0 }] }))
+  const addLineItem = () => setForm({ ...form, line_items: [...form.line_items, { description: '', quantity: 1, rate: 0, amount: 0 }] })
   const removeLineItem = (idx: number) => {
-    const items = form.line_items.filter((_: any, i: number) => i !== idx)
-    const { subtotal, total } = calcTotals(items, form.tax_rate)
-    setForm((f: any) => ({ ...f, line_items: items, subtotal, total }))
+    const items = form.line_items.filter((_, i) => i !== idx)
+    setForm({ ...form, line_items: items, amount: items.reduce((s, i) => s + i.amount, 0) })
   }
 
   const handleSave = async () => {
     setSaving(true)
     const { data: { user } } = await supabase.auth.getUser()
-    const num = form.invoice_number || `INV-${Date.now().toString().slice(-6)}`
-    await supabase.from('invoices').insert({ ...form, invoice_number: num, user_id: user?.id })
+    if (!user) return
+    const payload = { ...form, user_id: user.id, updated_at: new Date().toISOString() }
+    if (editing) {
+      await supabase.from('invoices').update(payload).eq('id', editing.id)
+    } else {
+      await supabase.from('invoices').insert(payload)
+    }
     await load()
     setShowModal(false)
-    setForm({ ...EMPTY_FORM, invoice_number: `INV-${Date.now().toString().slice(-6)}` })
     setSaving(false)
   }
 
-  const markPaid = async (id: string) => {
-    await supabase.from('invoices').update({ status: 'paid', paid_at: new Date().toISOString() }).eq('id', id)
-    setInvoices(prev => prev.map(inv => inv.id === id ? { ...inv, status: 'paid', paid_at: new Date().toISOString() } : inv))
+  const markPaid = async (inv: Invoice) => {
+    await supabase.from('invoices').update({ status: 'paid', updated_at: new Date().toISOString() }).eq('id', inv.id)
+    await load()
   }
 
   const deleteInvoice = async (id: string) => {
-    if (!confirm('Delete invoice?')) return
+    if (!confirm('Delete this invoice?')) return
     await supabase.from('invoices').delete().eq('id', id)
-    setInvoices(prev => prev.filter(inv => inv.id !== id))
+    await load()
   }
 
-  const downloadPDF = (inv: Invoice) => {
-    const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${inv.invoice_number}</title><style>
-      body{font-family:Arial,sans-serif;max-width:800px;margin:40px auto;color:#333;padding:20px}
-      .header{display:flex;justify-content:space-between;margin-bottom:40px}
-      .title{font-size:48px;font-weight:900;color:#F59E0B}
-      .status{padding:8px 16px;border-radius:20px;font-size:12px;font-weight:bold;text-transform:uppercase;background:${inv.status==='paid'?'#10B981':'#F59E0B'};color:white}
-      table{width:100%;border-collapse:collapse;margin:20px 0}
-      th{background:#f5f5f5;padding:12px;text-align:left;border-bottom:2px solid #ddd}
-      td{padding:12px;border-bottom:1px solid #eee}
-      .totals{text-align:right;margin-top:20px}
-      .total-row{font-size:20px;font-weight:bold;color:#F59E0B}
-    </style></head><body>
-      <div class="header">
-        <div><div class="title">INVOICE</div><div style="color:#666">${inv.invoice_number}</div></div>
-        <div><span class="status">${inv.status}</span></div>
-      </div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:30px">
-        <div><strong>Bill To:</strong><br>${inv.client_name}<br>${inv.client_email || ''}</div>
-        <div style="text-align:right"><strong>Date:</strong> ${new Date(inv.created_at).toLocaleDateString('en-GB')}<br><strong>Due:</strong> ${inv.due_date ? new Date(inv.due_date).toLocaleDateString('en-GB') : 'N/A'}</div>
-      </div>
-      <table><tr><th>Description</th><th>Qty</th><th>Rate</th><th>Amount</th></tr>
-        ${(inv.line_items || []).map((li: LineItem) => `<tr><td>${li.description}</td><td>${li.qty}</td><td>£${li.rate.toFixed(2)}</td><td>£${(li.qty*li.rate).toFixed(2)}</td></tr>`).join('')}
-      </table>
-      <div class="totals">
-        <div>Subtotal: £${inv.subtotal?.toFixed(2)}</div>
-        <div>VAT (${inv.tax_rate}%): £${((inv.total||0)-(inv.subtotal||0)).toFixed(2)}</div>
-        <div class="total-row">Total: £${inv.total?.toFixed(2)}</div>
-      </div>
-      ${inv.notes ? `<div style="margin-top:30px;padding:15px;background:#f9f9f9;border-radius:8px"><strong>Notes:</strong> ${inv.notes}</div>` : ''}
-    </body></html>`
-    const blob = new Blob([html], { type: 'text/html' })
-    const a = document.createElement('a'); a.href = URL.createObjectURL(blob)
-    a.download = `${inv.invoice_number}.html`; a.click()
+  const handlePrint = () => {
+    const printContent = printRef.current?.innerHTML
+    if (!printContent) return
+    const win = window.open('', '_blank')
+    if (!win) return
+    win.document.write(`
+      <html><head><title>Invoice ${showPDF?.invoice_number}</title>
+      <style>
+        body { font-family: -apple-system, sans-serif; padding: 40px; color: #111; max-width: 800px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; margin-bottom: 40px; }
+        .title { font-size: 32px; font-weight: bold; color: #d97706; }
+        table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        th { background: #f5f5f5; padding: 10px; text-align: left; border-bottom: 2px solid #ddd; }
+        td { padding: 10px; border-bottom: 1px solid #eee; }
+        .total { font-size: 20px; font-weight: bold; text-align: right; margin-top: 20px; }
+        .badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; display: inline-block; }
+        @media print { body { padding: 20px; } }
+      </style></head>
+      <body>${printContent}</body></html>
+    `)
+    win.document.close()
+    win.focus()
+    setTimeout(() => { win.print(); win.close() }, 500)
   }
 
-  const filtered = invoices.filter(inv => inv.client_name?.toLowerCase().includes(search.toLowerCase()) || inv.invoice_number?.toLowerCase().includes(search.toLowerCase()))
+  const statusIcon = (status: string) => {
+    if (status === 'paid') return <CheckCircle className="w-4 h-4 text-emerald-400" />
+    if (status === 'overdue') return <AlertCircle className="w-4 h-4 text-red-400" />
+    if (status === 'sent') return <Clock className="w-4 h-4 text-amber-400" />
+    return <FileText className="w-4 h-4 text-gray-400" />
+  }
 
-  const totalRevenue = invoices.filter(i => i.status === 'paid').reduce((s, i) => s + (i.total || 0), 0)
-  const outstanding = invoices.filter(i => i.status === 'sent').reduce((s, i) => s + (i.total || 0), 0)
+  const statusColor = (status: string) => {
+    if (status === 'paid') return 'text-emerald-400 bg-emerald-400/10 border border-emerald-400/20'
+    if (status === 'overdue') return 'text-red-400 bg-red-400/10 border border-red-400/20'
+    if (status === 'sent') return 'text-amber-400 bg-amber-400/10 border border-amber-400/20'
+    return 'text-gray-400 bg-gray-400/10 border border-gray-400/20'
+  }
+
+  const totalRevenue = invoices.filter(i => i.status === 'paid').reduce((s, i) => s + (i.amount || 0), 0)
+  const totalPending = invoices.filter(i => i.status === 'sent').reduce((s, i) => s + (i.amount || 0), 0)
+  const totalOverdue = invoices.filter(i => i.status === 'overdue').reduce((s, i) => s + (i.amount || 0), 0)
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-black text-white">Invoices</h1>
-          <p className="text-slate-400 mt-1">{invoices.length} invoice{invoices.length !== 1 ? 's' : ''}</p>
+          <h1 className="text-2xl font-bold text-white">Invoices</h1>
+          <p className="text-gray-400 text-sm mt-1">{invoices.length} invoice{invoices.length !== 1 ? 's' : ''} total</p>
         </div>
-        <button onClick={() => { setForm({ ...EMPTY_FORM, invoice_number: `INV-${Date.now().toString().slice(-6)}` }); setShowModal(true) }}
-          className="flex items-center gap-2 bg-amber-400 hover:bg-amber-300 text-black font-bold px-4 py-2.5 rounded-xl transition-colors">
-          <Plus size={18} /> New Invoice
+        <button onClick={openNew} className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-black font-semibold rounded-lg transition-colors">
+          <Plus className="w-4 h-4" /><span>New Invoice</span>
         </button>
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
-        {[['Revenue Collected', formatCurrency(totalRevenue), 'text-emerald-400'],['Outstanding', formatCurrency(outstanding), 'text-amber-400'],['Total Invoices', invoices.length.toString(), 'text-cyan-400']].map(([label, value, color]) => (
-          <div key={label} className="bg-[#0F1A2E] rounded-2xl p-4 border border-slate-800">
-            <div className={`text-xl font-bold ${color}`}>{value}</div>
-            <div className="text-slate-400 text-sm mt-1">{label}</div>
+      {/* Stats */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="bg-[#0A1020] rounded-xl p-4 border border-white/5">
+          <p className="text-gray-400 text-xs mb-1">Revenue Collected</p>
+          <p className="text-2xl font-bold text-emerald-400">£{totalRevenue.toLocaleString()}</p>
+        </div>
+        <div className="bg-[#0A1020] rounded-xl p-4 border border-white/5">
+          <p className="text-gray-400 text-xs mb-1">Pending Payment</p>
+          <p className="text-2xl font-bold text-amber-400">£{totalPending.toLocaleString()}</p>
+        </div>
+        <div className="bg-[#0A1020] rounded-xl p-4 border border-white/5">
+          <p className="text-gray-400 text-xs mb-1">Overdue</p>
+          <p className="text-2xl font-bold text-red-400">£{totalOverdue.toLocaleString()}</p>
+        </div>
+      </div>
+
+      {/* Invoice List */}
+      <div className="bg-[#0A1020] rounded-xl border border-white/5 overflow-hidden">
+        {loading ? (
+          <div className="p-12 text-center text-gray-500">Loading invoices...</div>
+        ) : invoices.length === 0 ? (
+          <div className="p-12 text-center">
+            <FileText className="w-12 h-12 text-gray-600 mx-auto mb-3" />
+            <p className="text-gray-400">No invoices yet</p>
+            <button onClick={openNew} className="mt-4 px-4 py-2 bg-amber-500/20 text-amber-400 rounded-lg hover:bg-amber-500/30 transition-colors text-sm">
+              Create your first invoice
+            </button>
           </div>
-        ))}
-      </div>
-
-      <div className="relative mb-4">
-        <Search size={16} className="absolute left-4 top-3.5 text-slate-500" />
-        <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search invoices..."
-          className="w-full bg-[#0F1A2E] border border-slate-800 rounded-xl pl-10 pr-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-amber-400/50" />
-      </div>
-
-      {loading ? <div className="text-slate-400">Loading...</div> : (
-        <div className="space-y-3">
-          {filtered.map(inv => (
-            <div key={inv.id} className="bg-[#0F1A2E] rounded-2xl p-5 border border-slate-800 hover:border-slate-700 transition-colors">
-              <div className="flex items-center justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-1">
-                    <span className="text-white font-bold">{inv.invoice_number}</span>
-                    <span className={`text-xs px-2 py-1 rounded-full ${STATUS_COLORS[inv.status] || 'bg-slate-700 text-slate-400'}`}>{inv.status}</span>
-                  </div>
-                  <div className="text-slate-400 text-sm">{inv.client_name} {inv.due_date && `· Due ${formatDate(inv.due_date)}`}</div>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="text-right">
-                    <div className="text-white font-bold">{formatCurrency(inv.total)}</div>
-                    <div className="text-slate-500 text-xs">incl. VAT</div>
-                  </div>
-                  <div className="flex gap-2">
-                    {inv.status !== 'paid' && (
-                      <button onClick={() => markPaid(inv.id)} title="Mark as paid"
-                        className="w-8 h-8 bg-emerald-400/10 hover:bg-emerald-400/20 text-emerald-400 rounded-lg flex items-center justify-center transition-colors">
-                        <CheckCircle size={14} />
+        ) : (
+          <table className="w-full">
+            <thead>
+              <tr className="border-b border-white/5">
+                <th className="text-left text-xs text-gray-400 font-medium px-4 py-3">Invoice #</th>
+                <th className="text-left text-xs text-gray-400 font-medium px-4 py-3">Client</th>
+                <th className="text-left text-xs text-gray-400 font-medium px-4 py-3">Amount</th>
+                <th className="text-left text-xs text-gray-400 font-medium px-4 py-3">Status</th>
+                <th className="text-left text-xs text-gray-400 font-medium px-4 py-3">Due Date</th>
+                <th className="text-right text-xs text-gray-400 font-medium px-4 py-3">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {invoices.map((inv, idx) => (
+                <tr key={inv.id} className={`border-b border-white/5 hover:bg-white/2 transition-colors ${idx === invoices.length - 1 ? 'border-0' : ''}`}>
+                  <td className="px-4 py-3">
+                    <span className="text-white font-mono text-sm">{inv.invoice_number}</span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="text-gray-300">{inv.client_name}</span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="text-white font-semibold">£{inv.amount?.toLocaleString()}</span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className={`flex items-center gap-1.5 w-fit px-2 py-0.5 rounded-full text-xs font-medium ${statusColor(inv.status)}`}>
+                      {statusIcon(inv.status)}
+                      {inv.status.charAt(0).toUpperCase() + inv.status.slice(1)}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <span className="text-gray-400 text-sm">
+                      {inv.due_date ? new Date(inv.due_date).toLocaleDateString('en-GB') : '—'}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2 justify-end">
+                      <button onClick={() => setShowPDF(inv)} className="p-1.5 text-gray-400 hover:text-blue-400 transition-colors" title="Preview/Download PDF">
+                        <Printer className="w-4 h-4" />
                       </button>
-                    )}
-                    <button onClick={() => downloadPDF(inv)} title="Download PDF"
-                      className="w-8 h-8 bg-amber-400/10 hover:bg-amber-400/20 text-amber-400 rounded-lg flex items-center justify-center transition-colors">
-                      <Download size={14} />
-                    </button>
-                    <button onClick={() => deleteInvoice(inv.id)} title="Delete"
-                      className="w-8 h-8 bg-red-400/10 hover:bg-red-400/20 text-red-400 rounded-lg flex items-center justify-center transition-colors">
-                      <Trash2 size={14} />
-                    </button>
-                  </div>
+                      {inv.status !== 'paid' && (
+                        <button onClick={() => markPaid(inv)} className="p-1.5 text-gray-400 hover:text-emerald-400 transition-colors" title="Mark as Paid">
+                          <CheckCircle className="w-4 h-4" />
+                        </button>
+                      )}
+                      <button onClick={() => openEdit(inv)} className="p-1.5 text-gray-400 hover:text-amber-400 transition-colors" title="Edit">
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button onClick={() => deleteInvoice(inv.id)} className="p-1.5 text-gray-400 hover:text-red-400 transition-colors" title="Delete">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {/* Create/Edit Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[#0A1020] border border-white/10 rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-white/5">
+              <h2 className="text-lg font-bold text-white">{editing ? 'Edit Invoice' : 'New Invoice'}</h2>
+              <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">Invoice Number</label>
+                  <input value={form.invoice_number} onChange={e => setForm({...form, invoice_number: e.target.value})}
+                    className="w-full bg-[#04080F] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-400/50" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">Client Name</label>
+                  <input value={form.client_name} onChange={e => setForm({...form, client_name: e.target.value})}
+                    className="w-full bg-[#04080F] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-400/50" placeholder="Client name" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">Issue Date</label>
+                  <input type="date" value={form.issue_date} onChange={e => setForm({...form, issue_date: e.target.value})}
+                    className="w-full bg-[#04080F] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-400/50" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">Due Date</label>
+                  <input type="date" value={form.due_date} onChange={e => setForm({...form, due_date: e.target.value})}
+                    className="w-full bg-[#04080F] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-400/50" />
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 mb-1 block">Status</label>
+                  <select value={form.status} onChange={e => setForm({...form, status: e.target.value as any})}
+                    className="w-full bg-[#04080F] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-400/50">
+                    <option value="draft">Draft</option>
+                    <option value="sent">Sent</option>
+                    <option value="paid">Paid</option>
+                    <option value="overdue">Overdue</option>
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="text-xs text-gray-400 mb-1 block">Description</label>
+                <textarea value={form.description} onChange={e => setForm({...form, description: e.target.value})} rows={2}
+                  className="w-full bg-[#04080F] border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-400/50 resize-none" placeholder="Invoice description..." />
+              </div>
+
+              {/* Line Items */}
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-xs text-gray-400">Line Items</label>
+                  <button onClick={addLineItem} className="text-xs text-amber-400 hover:text-amber-300">+ Add Item</button>
+                </div>
+                <div className="space-y-2">
+                  {form.line_items.map((item, idx) => (
+                    <div key={idx} className="grid grid-cols-12 gap-2 items-center">
+                      <input value={item.description} onChange={e => updateLineItem(idx, 'description', e.target.value)}
+                        placeholder="Description" className="col-span-5 bg-[#04080F] border border-white/10 rounded px-2 py-1.5 text-white text-xs focus:outline-none" />
+                      <input type="number" value={item.quantity} onChange={e => updateLineItem(idx, 'quantity', parseFloat(e.target.value) || 0)}
+                        placeholder="Qty" className="col-span-2 bg-[#04080F] border border-white/10 rounded px-2 py-1.5 text-white text-xs focus:outline-none" />
+                      <input type="number" value={item.rate} onChange={e => updateLineItem(idx, 'rate', parseFloat(e.target.value) || 0)}
+                        placeholder="Rate" className="col-span-2 bg-[#04080F] border border-white/10 rounded px-2 py-1.5 text-white text-xs focus:outline-none" />
+                      <span className="col-span-2 text-gray-300 text-xs text-right">£{item.amount.toFixed(2)}</span>
+                      <button onClick={() => removeLineItem(idx)} className="col-span-1 text-gray-500 hover:text-red-400">
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-3 text-right">
+                  <span className="text-gray-400 text-sm">Total: </span>
+                  <span className="text-white font-bold text-lg">£{form.amount.toFixed(2)}</span>
                 </div>
               </div>
             </div>
-          ))}
-          {filtered.length === 0 && (
-            <div className="text-center py-20">
-              <Receipt size={48} className="text-slate-600 mx-auto mb-4" />
-              <p className="text-slate-400">No invoices yet</p>
+            <div className="flex gap-3 p-6 border-t border-white/5">
+              <button onClick={() => setShowModal(false)} className="flex-1 px-4 py-2 border border-white/10 text-gray-300 rounded-lg hover:bg-white/5 transition-colors text-sm">
+                Cancel
+              </button>
+              <button onClick={handleSave} disabled={saving} className="flex-1 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-black font-semibold rounded-lg transition-colors text-sm disabled:opacity-50">
+                {saving ? 'Saving...' : editing ? 'Save Changes' : 'Create Invoice'}
+              </button>
             </div>
-          )}
+          </div>
         </div>
       )}
 
-      {showModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#0F1A2E] rounded-2xl p-6 w-full max-w-2xl border border-slate-700 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold text-white mb-5">New Invoice</h2>
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              {[['invoice_number','Invoice #'],['client_name','Client Name'],['client_email','Client Email'],['due_date','Due Date']].map(([k,label]) => (
-                <div key={k}>
-                  <label className="text-slate-300 text-sm block mb-1.5">{label}</label>
-                  <input type={k === 'due_date' ? 'date' : 'text'} value={form[k]} onChange={e => setForm((f: any) => ({...f, [k]: e.target.value}))}
-                    className="w-full bg-[#0A1020] border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-amber-400/50" />
+      {/* PDF Preview Modal */}
+      {showPDF && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200">
+              <h2 className="text-lg font-bold text-gray-800">Invoice {showPDF.invoice_number}</h2>
+              <div className="flex gap-2">
+                <button onClick={handlePrint} className="flex items-center gap-2 px-3 py-1.5 bg-amber-500 hover:bg-amber-400 text-white rounded-lg text-sm transition-colors">
+                  <Download className="w-4 h-4" /><span>Download PDF</span>
+                </button>
+                <button onClick={() => setShowPDF(null)} className="text-gray-400 hover:text-gray-600 p-1">
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </div>
+            <div ref={printRef} className="p-8 text-gray-800">
+              <div className="flex justify-between items-start mb-8">
+                <div>
+                  <div className="text-3xl font-bold text-amber-600 mb-1">CrewDesk</div>
+                  <div className="text-gray-500 text-sm">Film & TV Production Management</div>
                 </div>
-              ))}
-            </div>
-
-            <div className="mb-4">
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-slate-300 text-sm font-medium">Line Items</label>
-                <button onClick={addLineItem} className="text-amber-400 hover:text-amber-300 text-sm">+ Add item</button>
+                <div className="text-right">
+                  <div className="text-2xl font-bold text-gray-800">{showPDF.invoice_number}</div>
+                  <div className={`inline-block mt-1 px-3 py-0.5 rounded-full text-xs font-semibold ${
+                    showPDF.status === 'paid' ? 'bg-green-100 text-green-800' :
+                    showPDF.status === 'overdue' ? 'bg-red-100 text-red-800' :
+                    'bg-amber-100 text-amber-800'
+                  }`}>{showPDF.status.toUpperCase()}</div>
+                </div>
               </div>
-              <div className="space-y-2">
-                {form.line_items.map((item: LineItem, i: number) => (
-                  <div key={i} className="grid grid-cols-12 gap-2">
-                    <input value={item.description} onChange={e => updateLineItem(i, 'description', e.target.value)} placeholder="Description"
-                      className="col-span-6 bg-[#0A1020] border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-400/50" />
-                    <input type="number" value={item.qty} onChange={e => updateLineItem(i, 'qty', e.target.value)} placeholder="Qty"
-                      className="col-span-2 bg-[#0A1020] border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-400/50" />
-                    <input type="number" value={item.rate} onChange={e => updateLineItem(i, 'rate', e.target.value)} placeholder="Rate"
-                      className="col-span-3 bg-[#0A1020] border border-slate-700 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-400/50" />
-                    <button onClick={() => removeLineItem(i)} className="col-span-1 text-red-400 hover:text-red-300 flex items-center justify-center">×</button>
-                  </div>
-                ))}
+              <div className="grid grid-cols-2 gap-8 mb-8">
+                <div>
+                  <div className="text-xs text-gray-400 uppercase font-medium mb-1">Bill To</div>
+                  <div className="font-semibold text-gray-800">{showPDF.client_name}</div>
+                </div>
+                <div className="text-right">
+                  <div className="text-xs text-gray-400">Issue Date: {showPDF.issue_date ? new Date(showPDF.issue_date).toLocaleDateString('en-GB') : '—'}</div>
+                  <div className="text-xs text-gray-400">Due Date: {showPDF.due_date ? new Date(showPDF.due_date).toLocaleDateString('en-GB') : '—'}</div>
+                </div>
               </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div>
-                <label className="text-slate-300 text-sm block mb-1.5">VAT Rate (%)</label>
-                <input type="number" value={form.tax_rate} onChange={e => { const r = parseFloat(e.target.value)||0; const {subtotal,total} = calcTotals(form.line_items,r); setForm((f: any) => ({...f, tax_rate:r, subtotal, total})) }}
-                  className="w-full bg-[#0A1020] border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-amber-400/50" />
+              {showPDF.description && <p className="text-gray-600 text-sm mb-6">{showPDF.description}</p>}
+              <table className="w-full border-collapse mb-6">
+                <thead>
+                  <tr className="border-b-2 border-gray-200">
+                    <th className="text-left py-2 text-xs text-gray-500 font-medium">Description</th>
+                    <th className="text-right py-2 text-xs text-gray-500 font-medium">Qty</th>
+                    <th className="text-right py-2 text-xs text-gray-500 font-medium">Rate</th>
+                    <th className="text-right py-2 text-xs text-gray-500 font-medium">Amount</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {showPDF.line_items?.length ? showPDF.line_items.map((item, i) => (
+                    <tr key={i} className="border-b border-gray-100">
+                      <td className="py-2 text-sm">{item.description}</td>
+                      <td className="py-2 text-sm text-right">{item.quantity}</td>
+                      <td className="py-2 text-sm text-right">£{Number(item.rate).toFixed(2)}</td>
+                      <td className="py-2 text-sm text-right">£{Number(item.amount).toFixed(2)}</td>
+                    </tr>
+                  )) : (
+                    <tr><td colSpan={4} className="py-4 text-sm text-gray-400 text-center">No line items</td></tr>
+                  )}
+                </tbody>
+              </table>
+              <div className="flex justify-end">
+                <div className="text-right">
+                  <div className="text-sm text-gray-500 mb-1">Total Amount</div>
+                  <div className="text-3xl font-bold text-gray-900">£{Number(showPDF.amount).toLocaleString()}</div>
+                </div>
               </div>
-              <div className="flex flex-col justify-end">
-                <div className="text-slate-400 text-sm">Subtotal: <span className="text-white">{formatCurrency(form.subtotal)}</span></div>
-                <div className="text-amber-400 font-bold">Total: {formatCurrency(form.total)}</div>
-              </div>
-            </div>
-
-            <div className="mb-4">
-              <label className="text-slate-300 text-sm block mb-1.5">Notes</label>
-              <textarea value={form.notes} onChange={e => setForm((f: any) => ({...f, notes: e.target.value}))} rows={2}
-                className="w-full bg-[#0A1020] border border-slate-700 rounded-xl px-4 py-2.5 text-white focus:outline-none focus:border-amber-400/50" />
-            </div>
-
-            <div className="flex gap-3">
-              <button onClick={() => setShowModal(false)} className="flex-1 bg-slate-800 hover:bg-slate-700 text-white font-medium py-2.5 rounded-xl transition-colors">Cancel</button>
-              <button onClick={handleSave} disabled={saving} className="flex-1 bg-amber-400 hover:bg-amber-300 text-black font-bold py-2.5 rounded-xl transition-colors disabled:opacity-50">
-                {saving ? 'Creating...' : 'Create Invoice'}
-              </button>
             </div>
           </div>
         </div>
