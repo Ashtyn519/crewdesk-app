@@ -4,6 +4,9 @@ import { createClient } from '@/lib/supabase/client'
 import { User, Building, CreditCard, Bell, Globe, Save, LogOut } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
+export const dynamic = "force-dynamic";
+
+
 const TABS = [
   { id: 'profile', label: 'Profile', icon: User },
   { id: 'workspace', label: 'Workspace', icon: Building },

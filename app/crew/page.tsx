@@ -4,6 +4,9 @@ import { createClient } from '@/lib/supabase/client'
 import { formatCurrency } from '@/lib/utils'
 import { Plus, Star, Search, Trash2, Edit2, Users, Mail } from 'lucide-react'
 
+export const dynamic = "force-dynamic";
+
+
 type CrewMember = {
   id: string; name: string; email: string; role: string; department: string;
   day_rate: number; rating: number; availability: string; bio: string; invite_status: string; created_at: string;

@@ -4,6 +4,9 @@ import { createClient } from '@/lib/supabase/client'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { Plus, Download, CheckCircle, Receipt, Search, Trash2 } from 'lucide-react'
 
+export const dynamic = "force-dynamic";
+
+
 type LineItem = { description: string; qty: number; rate: number }
 type Invoice = {
   id: string; invoice_number: string; client_name: string; client_email: string;

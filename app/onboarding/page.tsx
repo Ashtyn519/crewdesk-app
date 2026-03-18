@@ -4,6 +4,9 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { CheckCircle, ArrowRight, Briefcase, Users, CreditCard } from 'lucide-react'
 
+export const dynamic = "force-dynamic";
+
+
 const STEPS = [
   { id: 1, title: 'Your Workspace', desc: 'Set up your company details', icon: Briefcase },
   { id: 2, title: 'Your Role', desc: 'Tell us about your production work', icon: Users },

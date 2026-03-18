@@ -4,6 +4,9 @@ import { createClient } from '@/lib/supabase/client'
 import { formatCurrency } from '@/lib/utils'
 import { TrendingUp, FolderOpen, Users, Receipt, AlertCircle, CheckCircle } from 'lucide-react'
 
+export const dynamic = "force-dynamic";
+
+
 interface Stats {
   totalRevenue: number
   activeProjects: number

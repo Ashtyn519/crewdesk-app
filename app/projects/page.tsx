@@ -4,6 +4,9 @@ import { createClient } from '@/lib/supabase/client'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { Plus, Edit2, Trash2, FolderOpen, Search } from 'lucide-react'
 
+export const dynamic = "force-dynamic";
+
+
 type Project = {
   id: string; name: string; client: string; status: string;
   budget: number; spent: number; start_date: string; end_date: string;

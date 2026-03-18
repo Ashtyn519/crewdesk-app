@@ -3,6 +3,9 @@ import { useEffect, useState, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { Send, MessageSquare, Plus, Trash2 } from 'lucide-react'
 
+export const dynamic = "force-dynamic";
+
+
 type Thread = { id: string; title: string; last_message: string; last_message_at: string; unread_count: number }
 type Message = { id: string; content: string; sender_id: string; created_at: string }
 

@@ -4,6 +4,9 @@ import { createClient } from '@/lib/supabase/client'
 import { formatCurrency, formatDate } from '@/lib/utils'
 import { Plus, Upload, CheckSquare, FileText, Trash2, Search } from 'lucide-react'
 
+export const dynamic = "force-dynamic";
+
+
 type Contract = {
   id: string; title: string; client_name: string; client_email: string;
   status: string; value: number; file_url: string; signed_at: string;
