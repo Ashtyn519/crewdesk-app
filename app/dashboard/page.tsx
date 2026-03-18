@@ -1,325 +1,346 @@
-import { createClient } from "@/lib/supabase/server";
-import { redirect } from "next/navigation";
-import Link from "next/link";
-import { 
-  FolderOpen, FileText, Users, MessageSquare, 
-  TrendingUp, AlertCircle, CheckCircle, Clock,
-  Plus, ArrowRight, DollarSign
-} from "lucide-react";
+'use client'
 
-export const dynamic = "force-dynamic";
+import { useState, useEffect } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import Link from 'next/link'
+import {
+  FolderOpen, Receipt, Users, FileSignature,
+  Plus, ArrowUpRight, TrendingUp, AlertCircle,
+  Clock, CheckCircle, Activity, ChevronRight,
+  Sparkles, Calendar, Target
+} from 'lucide-react'
+import { clsx } from 'clsx'
 
-export default async function DashboardPage() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
+export const dynamic = 'force-dynamic'
 
-  // Fetch all stats in parallel
-  const [
-    { data: projects },
-    { data: invoices },
-    { data: crew },
-    { data: contracts },
-    { data: messages },
-    { data: workspace },
-  ] = await Promise.all([
-    supabase.from("projects").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-    supabase.from("invoices").select("*").eq("user_id", user.id).order("created_at", { ascending: false }),
-    supabase.from("crew_members").select("*").eq("user_id", user.id).limit(5),
-    supabase.from("contracts").select("*").eq("user_id", user.id).order("created_at", { ascending: false }).limit(5),
-    supabase.from("message_threads").select("*").eq("user_id", user.id).order("last_message_at", { ascending: false }).limit(5),
-    supabase.from("workspaces").select("*").eq("user_id", user.id).single(),
-  ]);
+interface Stats {
+  projects: number
+  revenue: number
+  pending: number
+  crew: number
+  invoices: number
+  overdue: number
+  contracts: number
+  signed: number
+}
 
-  const activeProjects = projects?.filter(p => p.status === "active") || [];
-  const paidRevenue = invoices?.filter(i => i.status === "paid").reduce((s, i) => s + (Number(i.total) || 0), 0) || 0;
-  const unpaidAmount = invoices?.filter(i => i.status === "sent" || i.status === "overdue").reduce((s, i) => s + (Number(i.total) || 0), 0) || 0;
-  const overdueInvoices = invoices?.filter(i => i.status === "overdue") || [];
-  const crewCount = crew?.length || 0;
-  const signedContracts = contracts?.filter(c => c.status === "signed") || [];
+interface RecentProject {
+  id: string
+  name: string
+  status: string
+  client?: string
+  budget?: number
+  updated_at: string
+}
 
-  const stats = [
-    {
-      label: "Active Projects",
-      value: activeProjects.length,
-      total: projects?.length || 0,
-      icon: FolderOpen,
-      color: "text-blue-400",
-      bg: "bg-blue-400/10",
-      border: "border-blue-400/20",
-      href: "/projects",
-    },
-    {
-      label: "Revenue (Paid)",
-      value: `£${paidRevenue.toLocaleString("en-GB", { minimumFractionDigits: 0 })}`,
-      sub: `£${unpaidAmount.toLocaleString("en-GB", { minimumFractionDigits: 0 })} pending`,
-      icon: DollarSign,
-      color: "text-emerald-400",
-      bg: "bg-emerald-400/10",
-      border: "border-emerald-400/20",
-      href: "/invoices",
-    },
-    {
-      label: "Crew Members",
-      value: crewCount,
-      sub: "active freelancers",
-      icon: Users,
-      color: "text-purple-400",
-      bg: "bg-purple-400/10",
-      border: "border-purple-400/20",
-      href: "/crew",
-    },
-    {
-      label: "Invoices",
-      value: invoices?.length || 0,
-      sub: `${overdueInvoices.length} overdue`,
-      icon: FileText,
-      color: overdueInvoices.length > 0 ? "text-red-400" : "text-amber-400",
-      bg: overdueInvoices.length > 0 ? "bg-red-400/10" : "bg-amber-400/10",
-      border: overdueInvoices.length > 0 ? "border-red-400/20" : "border-amber-400/20",
-      href: "/invoices",
-    },
-  ];
+interface RecentInvoice {
+  id: string
+  invoice_number: string
+  client_name: string
+  amount: number
+  status: string
+  due_date: string
+}
 
-  const quickActions = [
-    { label: "New Project", href: "/projects", icon: FolderOpen, color: "bg-blue-500" },
-    { label: "New Invoice", href: "/invoices", icon: FileText, color: "bg-emerald-500" },
-    { label: "Add Crew", href: "/crew", icon: Users, color: "bg-purple-500" },
-    { label: "New Message", href: "/messages", icon: MessageSquare, color: "bg-amber-500" },
-  ];
+const statusColors: Record<string, string> = {
+  active: 'text-emerald-400 bg-emerald-400/10',
+  planning: 'text-blue-400 bg-blue-400/10',
+  completed: 'text-gray-400 bg-gray-400/10',
+  'on-hold': 'text-amber-400 bg-amber-400/10',
+  paid: 'text-emerald-400 bg-emerald-400/10',
+  sent: 'text-amber-400 bg-amber-400/10',
+  overdue: 'text-red-400 bg-red-400/10',
+  draft: 'text-gray-400 bg-gray-400/10',
+}
 
-  const workspaceName = workspace?.name || "Your Workspace";
-  const userName = user.email?.split("@")[0] || "there";
+function StatCard({ icon: Icon, label, value, sub, color, href, trend }: {
+  icon: any, label: string, value: string, sub: string,
+  color: string, href: string, trend?: number
+}) {
+  return (
+    <Link href={href} className="group relative bg-[#0A1020] hover:bg-[#0C1428] border border-white/[0.06] hover:border-white/10 rounded-2xl p-5 transition-all duration-200 overflow-hidden block">
+      {/* Subtle gradient overlay */}
+      <div className={clsx('absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-300 rounded-2xl', `bg-gradient-to-br ${color}/5 to-transparent`)} />
+      
+      <div className="flex items-start justify-between mb-4">
+        <div className={clsx('w-10 h-10 rounded-xl flex items-center justify-center', `bg-${color}/10`)}>
+          <Icon className={clsx('w-5 h-5', `text-${color}`)} />
+        </div>
+        {trend !== undefined && (
+          <div className={clsx(
+            'flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full',
+            trend >= 0 ? 'text-emerald-400 bg-emerald-400/10' : 'text-red-400 bg-red-400/10'
+          )}>
+            <TrendingUp className={clsx('w-3 h-3', trend < 0 && 'rotate-180')} />
+            {Math.abs(trend)}%
+          </div>
+        )}
+        {trend === undefined && (
+          <ArrowUpRight className="w-4 h-4 text-gray-600 group-hover:text-gray-400 transition-colors" />
+        )}
+      </div>
+      
+      <div>
+        <p className="text-3xl font-bold text-white mb-1 tracking-tight">{value}</p>
+        <p className="text-gray-400 text-sm font-medium">{label}</p>
+        <p className="text-gray-600 text-xs mt-0.5">{sub}</p>
+      </div>
+    </Link>
+  )
+}
+
+export default function DashboardPage() {
+  const supabase = createClient()
+  const [user, setUser] = useState<any>(null)
+  const [stats, setStats] = useState<Stats>({ projects: 0, revenue: 0, pending: 0, crew: 0, invoices: 0, overdue: 0, contracts: 0, signed: 0 })
+  const [projects, setProjects] = useState<RecentProject[]>([])
+  const [invoices, setInvoices] = useState<RecentInvoice[]>([])
+  const [loading, setLoading] = useState(true)
+  const today = new Date()
+  const hour = today.getHours()
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
+
+  useEffect(() => {
+    const load = async () => {
+      const { data: { user: u } } = await supabase.auth.getUser()
+      if (!u) return
+      setUser(u)
+
+      const [
+        { data: proj },
+        { data: inv },
+        { data: crew },
+        { data: contracts }
+      ] = await Promise.all([
+        supabase.from('projects').select('id,name,status,client,budget,updated_at').eq('user_id', u.id).order('updated_at', { ascending: false }).limit(5),
+        supabase.from('invoices').select('id,invoice_number,client_name,amount,status,due_date').eq('user_id', u.id).order('created_at', { ascending: false }).limit(5),
+        supabase.from('crew_members').select('id').eq('user_id', u.id),
+        supabase.from('contracts').select('id,status').eq('user_id', u.id),
+      ])
+
+      const allInv = inv || []
+      const allProj = proj || []
+
+      setStats({
+        projects: allProj.filter(p => p.status === 'active').length,
+        revenue: allInv.filter(i => i.status === 'paid').reduce((s: number, i: any) => s + (i.amount || 0), 0),
+        pending: allInv.filter(i => i.status === 'sent').reduce((s: number, i: any) => s + (i.amount || 0), 0),
+        crew: (crew || []).length,
+        invoices: allInv.length,
+        overdue: allInv.filter(i => i.status === 'overdue').length,
+        contracts: (contracts || []).length,
+        signed: (contracts || []).filter((c: any) => c.status === 'signed').length,
+      })
+      setProjects(allProj.slice(0, 4))
+      setInvoices(allInv.slice(0, 4))
+      setLoading(false)
+    }
+    load()
+  }, [])
+
+  const firstName = user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0] || 'there'
 
   return (
-    <div className="p-6 lg:p-8 max-w-7xl mx-auto">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl lg:text-3xl font-bold text-white">
-          Welcome back, <span className="text-amber-400 capitalize">{userName}</span> 👋
-        </h1>
-        <p className="text-slate-400 mt-1">{workspaceName} · Here's your production overview</p>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        {stats.map((stat) => (
-          <Link key={stat.label} href={stat.href}
-            className={`bg-[#0A1020] border ${stat.border} rounded-2xl p-5 hover:bg-[#0F1A2E] transition-all group`}>
-            <div className="flex items-center justify-between mb-3">
-              <div className={`w-10 h-10 ${stat.bg} rounded-xl flex items-center justify-center`}>
-                <stat.icon className={`${stat.color} w-5 h-5`} />
-              </div>
-              <ArrowRight className="w-4 h-4 text-slate-600 group-hover:text-slate-400 transition-colors" />
-            </div>
-            <div className={`text-2xl font-bold ${stat.color} mb-1`}>{stat.value}</div>
-            <div className="text-sm text-slate-400">{stat.label}</div>
-            {stat.sub && <div className="text-xs text-slate-500 mt-1">{stat.sub}</div>}
-            {stat.total !== undefined && (
-              <div className="text-xs text-slate-500 mt-1">{stat.total} total</div>
-            )}
+    <div className="p-6 space-y-6 max-w-[1400px]">
+      {/* Hero Header */}
+      <div className="flex items-start justify-between">
+        <div>
+          <div className="flex items-center gap-2 mb-1">
+            <Sparkles className="w-4 h-4 text-amber-400" />
+            <span className="text-amber-400/80 text-sm font-medium">{greeting}</span>
+          </div>
+          <h1 className="text-2xl font-bold text-white tracking-tight">
+            Welcome back, <span className="text-amber-400">{firstName}</span>
+          </h1>
+          <p className="text-gray-500 text-sm mt-1">
+            {today.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <Link href="/projects" className="flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-black text-sm font-semibold rounded-xl transition-colors shadow-lg shadow-amber-500/20">
+            <Plus className="w-4 h-4" />
+            New Project
           </Link>
-        ))}
-      </div>
-
-      {/* Quick Actions */}
-      <div className="mb-8">
-        <h2 className="text-lg font-semibold text-white mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          {quickActions.map((action) => (
-            <Link key={action.label} href={action.href}
-              className="flex items-center gap-3 bg-[#0A1020] border border-slate-800 rounded-xl p-4 hover:bg-[#0F1A2E] hover:border-slate-700 transition-all group">
-              <div className={`w-9 h-9 ${action.color}/20 rounded-lg flex items-center justify-center`}>
-                <action.icon className={`w-4 h-4 text-white`} />
-              </div>
-              <span className="text-sm font-medium text-slate-300 group-hover:text-white transition-colors">
-                {action.label}
-              </span>
-              <Plus className="w-4 h-4 text-slate-600 ml-auto group-hover:text-slate-400 transition-colors" />
-            </Link>
-          ))}
         </div>
       </div>
 
-      {/* Bottom Grid */}
-      <div className="grid lg:grid-cols-2 gap-6">
-        {/* Recent Projects */}
-        <div className="bg-[#0A1020] border border-slate-800 rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="text-lg font-semibold text-white">Recent Projects</h2>
-            <Link href="/projects" className="text-amber-400 text-sm hover:text-amber-300 transition-colors flex items-center gap-1">
-              View all <ArrowRight className="w-3 h-3" />
-            </Link>
-          </div>
-          {(projects || []).length === 0 ? (
-            <div className="text-center py-8">
-              <FolderOpen className="w-10 h-10 text-slate-600 mx-auto mb-3" />
-              <p className="text-slate-500 text-sm">No projects yet</p>
-              <Link href="/projects" className="text-amber-400 text-sm mt-2 inline-block hover:text-amber-300">
-                Create your first project →
-              </Link>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {(projects || []).slice(0, 5).map((project: any) => (
-                <div key={project.id} className="flex items-center justify-between p-3 bg-[#0F1A2E] rounded-xl">
-                  <div className="flex items-center gap-3 min-w-0">
-                    <div className={`w-2 h-2 rounded-full flex-shrink-0 ${
-                      project.status === "active" ? "bg-emerald-400" :
-                      project.status === "completed" ? "bg-blue-400" :
-                      project.status === "on_hold" ? "bg-amber-400" : "bg-red-400"
-                    }`} />
-                    <span className="text-sm text-white truncate">{project.name}</span>
-                  </div>
-                  <span className={`text-xs px-2 py-1 rounded-lg flex-shrink-0 ${
-                    project.status === "active" ? "bg-emerald-400/10 text-emerald-400" :
-                    project.status === "completed" ? "bg-blue-400/10 text-blue-400" :
-                    project.status === "on_hold" ? "bg-amber-400/10 text-amber-400" : "bg-red-400/10 text-red-400"
-                  }`}>
-                    {project.status?.replace("_", " ")}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Recent Activity */}
-        <div className="bg-[#0A1020] border border-slate-800 rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="text-lg font-semibold text-white">Recent Invoices</h2>
-            <Link href="/invoices" className="text-amber-400 text-sm hover:text-amber-300 transition-colors flex items-center gap-1">
-              View all <ArrowRight className="w-3 h-3" />
-            </Link>
-          </div>
-          {(invoices || []).length === 0 ? (
-            <div className="text-center py-8">
-              <FileText className="w-10 h-10 text-slate-600 mx-auto mb-3" />
-              <p className="text-slate-500 text-sm">No invoices yet</p>
-              <Link href="/invoices" className="text-amber-400 text-sm mt-2 inline-block hover:text-amber-300">
-                Create your first invoice →
-              </Link>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {(invoices || []).slice(0, 5).map((invoice: any) => (
-                <div key={invoice.id} className="flex items-center justify-between p-3 bg-[#0F1A2E] rounded-xl">
-                  <div className="min-w-0">
-                    <div className="text-sm text-white font-medium truncate">{invoice.client_name}</div>
-                    <div className="text-xs text-slate-500">{invoice.invoice_number}</div>
-                  </div>
-                  <div className="text-right flex-shrink-0">
-                    <div className="text-sm font-semibold text-white">£{Number(invoice.total || 0).toLocaleString()}</div>
-                    <span className={`text-xs px-2 py-0.5 rounded-lg ${
-                      invoice.status === "paid" ? "bg-emerald-400/10 text-emerald-400" :
-                      invoice.status === "sent" ? "bg-blue-400/10 text-blue-400" :
-                      invoice.status === "overdue" ? "bg-red-400/10 text-red-400" : "bg-slate-700 text-slate-400"
-                    }`}>
-                      {invoice.status}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Contracts Summary */}
-        <div className="bg-[#0A1020] border border-slate-800 rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="text-lg font-semibold text-white">Contracts</h2>
-            <Link href="/contracts" className="text-amber-400 text-sm hover:text-amber-300 transition-colors flex items-center gap-1">
-              View all <ArrowRight className="w-3 h-3" />
-            </Link>
-          </div>
-          {(contracts || []).length === 0 ? (
-            <div className="text-center py-8">
-              <CheckCircle className="w-10 h-10 text-slate-600 mx-auto mb-3" />
-              <p className="text-slate-500 text-sm">No contracts yet</p>
-              <Link href="/contracts" className="text-amber-400 text-sm mt-2 inline-block hover:text-amber-300">
-                Upload your first contract →
-              </Link>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {(contracts || []).slice(0, 4).map((contract: any) => (
-                <div key={contract.id} className="flex items-center justify-between p-3 bg-[#0F1A2E] rounded-xl">
-                  <div className="min-w-0">
-                    <div className="text-sm text-white truncate">{contract.title}</div>
-                    <div className="text-xs text-slate-500">{contract.party_name || "No party"}</div>
-                  </div>
-                  <span className={`text-xs px-2 py-1 rounded-lg flex-shrink-0 ${
-                    contract.status === "signed" ? "bg-emerald-400/10 text-emerald-400" :
-                    contract.status === "sent" ? "bg-blue-400/10 text-blue-400" :
-                    contract.status === "expired" ? "bg-red-400/10 text-red-400" : "bg-slate-700 text-slate-400"
-                  }`}>
-                    {contract.status}
-                  </span>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* Messages */}
-        <div className="bg-[#0A1020] border border-slate-800 rounded-2xl p-6">
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="text-lg font-semibold text-white">Messages</h2>
-            <Link href="/messages" className="text-amber-400 text-sm hover:text-amber-300 transition-colors flex items-center gap-1">
-              View all <ArrowRight className="w-3 h-3" />
-            </Link>
-          </div>
-          {(messages || []).length === 0 ? (
-            <div className="text-center py-8">
-              <MessageSquare className="w-10 h-10 text-slate-600 mx-auto mb-3" />
-              <p className="text-slate-500 text-sm">No messages yet</p>
-              <Link href="/messages" className="text-amber-400 text-sm mt-2 inline-block hover:text-amber-300">
-                Start a conversation →
-              </Link>
-            </div>
-          ) : (
-            <div className="space-y-3">
-              {(messages || []).slice(0, 4).map((thread: any) => (
-                <div key={thread.id} className="flex items-center gap-3 p-3 bg-[#0F1A2E] rounded-xl">
-                  <div className="w-9 h-9 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white text-sm font-semibold flex-shrink-0">
-                    {thread.title[0]?.toUpperCase()}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm text-white font-medium truncate">{thread.title}</div>
-                    <div className="text-xs text-slate-500 truncate">{thread.last_message || "No messages yet"}</div>
-                  </div>
-                  {thread.unread_count > 0 && (
-                    <span className="w-5 h-5 bg-amber-400 text-black text-xs rounded-full flex items-center justify-center font-semibold flex-shrink-0">
-                      {thread.unread_count}
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Overdue Alerts */}
-      {overdueInvoices.length > 0 && (
-        <div className="mt-6 bg-red-400/10 border border-red-400/30 rounded-2xl p-5">
-          <div className="flex items-center gap-3 mb-3">
-            <AlertCircle className="w-5 h-5 text-red-400" />
-            <h3 className="text-red-400 font-semibold">Overdue Invoices</h3>
-          </div>
-          <div className="space-y-2">
-            {overdueInvoices.map((inv: any) => (
-              <div key={inv.id} className="flex items-center justify-between text-sm">
-                <span className="text-slate-300">{inv.client_name} · {inv.invoice_number}</span>
-                <span className="text-red-400 font-semibold">£{Number(inv.total || 0).toLocaleString()}</span>
-              </div>
-            ))}
-          </div>
-          <Link href="/invoices" className="mt-3 text-red-400 text-sm hover:text-red-300 flex items-center gap-1">
-            Manage invoices <ArrowRight className="w-3 h-3" />
+      {/* Alert: Overdue invoices */}
+      {stats.overdue > 0 && (
+        <div className="flex items-center gap-3 px-4 py-3 bg-red-500/8 border border-red-500/20 rounded-xl text-sm">
+          <AlertCircle className="w-4 h-4 text-red-400 flex-shrink-0" />
+          <p className="text-red-300">
+            You have <span className="font-semibold text-red-400">{stats.overdue} overdue invoice{stats.overdue > 1 ? 's' : ''}</span> that need attention.
+          </p>
+          <Link href="/invoices" className="ml-auto text-red-400 hover:text-red-300 font-medium flex items-center gap-1 flex-shrink-0">
+            View <ChevronRight className="w-3.5 h-3.5" />
           </Link>
         </div>
       )}
+
+      {/* Stats Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          icon={FolderOpen}
+          label="Active Projects"
+          value={String(stats.projects)}
+          sub={`${projects.length} total projects`}
+          color="blue"
+          href="/projects"
+        />
+        <StatCard
+          icon={Receipt}
+          label="Revenue Collected"
+          value={`£${stats.revenue.toLocaleString()}`}
+          sub={`£${stats.pending.toLocaleString()} pending`}
+          color="emerald"
+          href="/invoices"
+        />
+        <StatCard
+          icon={Users}
+          label="Crew Members"
+          value={String(stats.crew)}
+          sub="Active talent roster"
+          color="purple"
+          href="/crew"
+        />
+        <StatCard
+          icon={FileSignature}
+          label="Contracts"
+          value={String(stats.contracts)}
+          sub={`${stats.signed} signed`}
+          color="amber"
+          href="/contracts"
+        />
+      </div>
+
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Recent Projects */}
+        <div className="bg-[#0A1020] rounded-2xl border border-white/[0.06] overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
+            <div className="flex items-center gap-2">
+              <FolderOpen className="w-4 h-4 text-blue-400" />
+              <h2 className="text-white font-semibold text-sm">Recent Projects</h2>
+            </div>
+            <Link href="/projects" className="text-xs text-gray-500 hover:text-amber-400 transition-colors flex items-center gap-1">
+              View all <ChevronRight className="w-3 h-3" />
+            </Link>
+          </div>
+          <div>
+            {loading ? (
+              <div className="p-5 space-y-3">
+                {[1,2,3].map(i => <div key={i} className="h-10 bg-white/[0.03] rounded-lg animate-pulse" />)}
+              </div>
+            ) : projects.length === 0 ? (
+              <div className="p-8 text-center">
+                <FolderOpen className="w-8 h-8 text-gray-700 mx-auto mb-2" />
+                <p className="text-gray-500 text-sm">No projects yet</p>
+                <Link href="/projects" className="text-amber-400 text-xs hover:text-amber-300 mt-2 inline-block">Create first project →</Link>
+              </div>
+            ) : (
+              <div>
+                {projects.map((p, idx) => (
+                  <div key={p.id} className={clsx(
+                    'flex items-center justify-between px-5 py-3.5 hover:bg-white/[0.02] transition-colors',
+                    idx < projects.length - 1 && 'border-b border-white/[0.04]'
+                  )}>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-8 h-8 rounded-lg bg-blue-500/10 border border-blue-500/20 flex items-center justify-center flex-shrink-0">
+                        <span className="text-blue-400 text-xs font-bold">{p.name[0].toUpperCase()}</span>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-white text-sm font-medium truncate">{p.name}</p>
+                        <p className="text-gray-500 text-xs">{p.client || 'No client'}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      {p.budget && <span className="text-gray-400 text-xs">£{p.budget.toLocaleString()}</span>}
+                      <span className={clsx(
+                        'text-xs px-2 py-0.5 rounded-full font-medium capitalize',
+                        statusColors[p.status] || 'text-gray-400 bg-gray-400/10'
+                      )}>{p.status}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Recent Invoices */}
+        <div className="bg-[#0A1020] rounded-2xl border border-white/[0.06] overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
+            <div className="flex items-center gap-2">
+              <Receipt className="w-4 h-4 text-emerald-400" />
+              <h2 className="text-white font-semibold text-sm">Recent Invoices</h2>
+            </div>
+            <Link href="/invoices" className="text-xs text-gray-500 hover:text-amber-400 transition-colors flex items-center gap-1">
+              View all <ChevronRight className="w-3 h-3" />
+            </Link>
+          </div>
+          <div>
+            {loading ? (
+              <div className="p-5 space-y-3">
+                {[1,2,3].map(i => <div key={i} className="h-10 bg-white/[0.03] rounded-lg animate-pulse" />)}
+              </div>
+            ) : invoices.length === 0 ? (
+              <div className="p-8 text-center">
+                <Receipt className="w-8 h-8 text-gray-700 mx-auto mb-2" />
+                <p className="text-gray-500 text-sm">No invoices yet</p>
+                <Link href="/invoices" className="text-amber-400 text-xs hover:text-amber-300 mt-2 inline-block">Create first invoice →</Link>
+              </div>
+            ) : (
+              <div>
+                {invoices.map((inv, idx) => (
+                  <div key={inv.id} className={clsx(
+                    'flex items-center justify-between px-5 py-3.5 hover:bg-white/[0.02] transition-colors',
+                    idx < invoices.length - 1 && 'border-b border-white/[0.04]'
+                  )}>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center flex-shrink-0">
+                        <Receipt className="w-3.5 h-3.5 text-emerald-400" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-white text-sm font-medium truncate">{inv.client_name || 'Unknown client'}</p>
+                        <p className="text-gray-500 text-xs font-mono">{inv.invoice_number || 'Draft'}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-3 flex-shrink-0">
+                      <span className="text-white text-sm font-semibold">£{(inv.amount || 0).toLocaleString()}</span>
+                      <span className={clsx(
+                        'text-xs px-2 py-0.5 rounded-full font-medium capitalize',
+                        statusColors[inv.status] || 'text-gray-400 bg-gray-400/10'
+                      )}>{inv.status}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Actions Row */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+        {[
+          { href: '/projects', label: 'New Project', icon: FolderOpen, color: 'blue' },
+          { href: '/invoices', label: 'New Invoice', icon: Receipt, color: 'emerald' },
+          { href: '/crew', label: 'Add Crew', icon: Users, color: 'purple' },
+          { href: '/contracts', label: 'New Contract', icon: FileSignature, color: 'amber' },
+        ].map(({ href, label, icon: Icon, color }) => (
+          <Link
+            key={href}
+            href={href}
+            className="group flex items-center gap-3 px-4 py-3 bg-[#0A1020] hover:bg-[#0C1428] border border-white/[0.06] hover:border-white/10 rounded-xl transition-all duration-200"
+          >
+            <div className={clsx('w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0', `bg-${color}-500/10`)}>
+              <Icon className={clsx('w-3.5 h-3.5', `text-${color}-400`)} />
+            </div>
+            <span className="text-gray-300 text-sm font-medium group-hover:text-white transition-colors">{label}</span>
+            <Plus className="w-3.5 h-3.5 text-gray-600 group-hover:text-gray-400 ml-auto transition-colors" />
+          </Link>
+        ))}
+      </div>
     </div>
-  );
+  )
 }
