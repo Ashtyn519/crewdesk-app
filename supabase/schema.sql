@@ -122,3 +122,14 @@ CREATE POLICY IF NOT EXISTS "Thread members see messages" ON messages FOR ALL US
   EXISTS (SELECT 1 FROM message_threads WHERE id = thread_id AND auth.uid() = user_id)
 );
 CREATE POLICY IF NOT EXISTS "Users own workspace" ON workspaces FOR ALL USING (auth.uid() = user_id);
+
+-- Crew members extended columns (run these in Supabase SQL editor if not already present)
+ALTER TABLE crew_members ADD COLUMN IF NOT EXISTS location TEXT;
+ALTER TABLE crew_members ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'active' CHECK (status IN ('active','inactive','on_leave'));
+ALTER TABLE crew_members ADD COLUMN IF NOT EXISTS phone TEXT;
+ALTER TABLE crew_members ADD COLUMN IF NOT EXISTS rating NUMERIC(3,1);
+
+-- Invoices extended columns
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS issued_date TIMESTAMPTZ;
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS line_items JSONB;
+ALTER TABLE invoices ADD COLUMN IF NOT EXISTS notes TEXT;
