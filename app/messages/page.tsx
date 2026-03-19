@@ -1,296 +1,182 @@
-"use client"
-import { useState, useEffect, useRef } from "react"
+'use client'
+export const dynamic = 'force-dynamic'
+import { useState, useRef, useEffect } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import Sidebar from '@/components/Sidebar'
+import TopHeader from '@/components/TopHeader'
 
-import { motion, AnimatePresence } from "framer-motion"
-import { Send, Search, Plus, MoreHorizontal, Phone, Video, Hash, Circle, Check, CheckCheck, Smile } from "lucide-react"
-import clsx from "clsx"
-
-const ease = [0.22, 1, 0.36, 1]
-
-interface Message {
-  id: string
-  thread_id: string
-  sender_name: string
-  sender_color: string
-  content: string
-  created_at: string
-  read: boolean
-}
-
+interface Message { id: number; text: string; sender: 'me' | 'them'; time: string; read: boolean }
 interface Thread {
-  id: string
-  name: string
-  avatar_color: string
-  role: string
-  last_message: string
-  last_time: string
-  unread: number
-  online: boolean
+  id: number; name: string; role: string; initials: string; color: string;
+  lastMessage: string; lastTime: string; unread: number; messages: Message[]
 }
 
 const THREADS: Thread[] = [
-  { id: "1", name: "Sarah Mitchell", avatar_color: "bg-violet-500", role: "Director of Photography", last_message: "Can you confirm the call sheet for Monday?", last_time: "2m", unread: 3, online: true },
-  { id: "2", name: "James Cole", avatar_color: "bg-emerald-500", role: "Gaffer", last_message: "Lighting setup is ready for review", last_time: "14m", unread: 1, online: true },
-  { id: "3", name: "Priya Nair", avatar_color: "bg-amber-500", role: "Production Designer", last_message: "Set dressing complete on Stage 4", last_time: "1h", unread: 0, online: false },
-  { id: "4", name: "Marcus Webb", avatar_color: "bg-pink-500", role: "Sound Mixer", last_message: "Boom op confirmed for tomorrow", last_time: "2h", unread: 0, online: false },
-  { id: "5", name: "Luna Chen", avatar_color: "bg-blue-500", role: "Costume Designer", last_message: "Wardrobe changes approved ✓", last_time: "3h", unread: 0, online: true },
+  { id: 1, name: 'Marcus Webb', role: 'DOP', initials: 'MW', color: 'from-blue-400 to-indigo-500', lastMessage: 'Sounds good — I\'ll bring the ARRI kit', lastTime: '2:14pm', unread: 2,
+    messages: [
+      { id: 1, text: 'Hey Marcus, are you free for the City Lights shoot on March 22nd?', sender: 'me', time: '10:00am', read: true },
+      { id: 2, text: 'Yes, I\'m available. What\'s the call time?', sender: 'them', time: '10:15am', read: true },
+      { id: 3, text: 'Call time is 6am at Canary Wharf. We\'ll need the ARRI Alexa and full lens kit.', sender: 'me', time: '10:20am', read: true },
+      { id: 4, text: 'Perfect, I\'ll bring the whole package. Will there be a focus puller?', sender: 'them', time: '11:05am', read: true },
+      { id: 5, text: 'Yes, Jake will be on focus. Budget for the kit is £2,400 for the day.', sender: 'me', time: '11:10am', read: true },
+      { id: 6, text: 'Sounds good — I\'ll bring the ARRI kit', sender: 'them', time: '2:14pm', read: false },
+    ]
+  },
+  { id: 2, name: 'Priya Sharma', role: 'Editor', initials: 'PS', color: 'from-purple-400 to-pink-500', lastMessage: 'I\'ll have the first cut ready by Friday', lastTime: '11:30am', unread: 1,
+    messages: [
+      { id: 1, text: 'Priya, how\'s the Neon Nights edit coming along?', sender: 'me', time: '9:00am', read: true },
+      { id: 2, text: 'Going well! I\'ve got the rough assembly done. Need to colour grade and do the sound pass.', sender: 'them', time: '9:45am', read: true },
+      { id: 3, text: 'Great. Client needs it by Monday — is that doable?', sender: 'me', time: '10:00am', read: true },
+      { id: 4, text: 'I\'ll have the first cut ready by Friday', sender: 'them', time: '11:30am', read: false },
+    ]
+  },
+  { id: 3, name: 'Sophie Lane', role: 'Prod Designer', initials: 'SL', color: 'from-rose-400 to-red-500', lastMessage: 'Budget breakdown sent over to you now', lastTime: 'Yesterday', unread: 0,
+    messages: [
+      { id: 1, text: 'Sophie, can you send me the budget breakdown for the Apex TVC set?', sender: 'me', time: 'Yesterday 3pm', read: true },
+      { id: 2, text: 'Of course. I\'ve itemised everything — props, set build, and rigging.', sender: 'them', time: 'Yesterday 3:30pm', read: true },
+      { id: 3, text: 'Budget breakdown sent over to you now', sender: 'them', time: 'Yesterday 4pm', read: true },
+    ]
+  },
+  { id: 4, name: 'Jake Torres', role: 'Sound', initials: 'JT', color: 'from-emerald-400 to-teal-500', lastMessage: 'All sorted, I\'ve booked the kit', lastTime: 'Monday', unread: 0,
+    messages: [
+      { id: 1, text: 'Jake — you\'re on the City Lights doc. Focus pulling for Marcus.', sender: 'me', time: 'Monday 9am', read: true },
+      { id: 2, text: 'Brilliant, looking forward to it. Same rate as last time?', sender: 'them', time: 'Monday 9:30am', read: true },
+      { id: 3, text: 'Yes, £380/day. See you on the 22nd.', sender: 'me', time: 'Monday 10am', read: true },
+      { id: 4, text: 'All sorted, I\'ve booked the kit', sender: 'them', time: 'Monday 11am', read: true },
+    ]
+  },
+  { id: 5, name: 'Pulse Records', role: 'Client', initials: 'PR', color: 'from-amber-400 to-orange-500', lastMessage: 'Love it! Can we add one more revision?', lastTime: 'Last week', unread: 0,
+    messages: [
+      { id: 1, text: 'Hi! We\'ve reviewed the Neon Nights cut. Overall we love the direction.', sender: 'them', time: 'Last week', read: true },
+      { id: 2, text: 'Really glad to hear that! Any feedback?', sender: 'me', time: 'Last week', read: true },
+      { id: 3, text: 'Love it! Can we add one more revision?', sender: 'them', time: 'Last week', read: true },
+    ]
+  },
 ]
 
-const MOCK_MESSAGES: Record<string, Message[]> = {
-  "1": [
-    { id: "m1", thread_id: "1", sender_name: "Sarah Mitchell", sender_color: "bg-violet-500", content: "Hey, just checking in on the schedule for next week.", created_at: new Date(Date.now() - 3600000).toISOString(), read: true },
-    { id: "m2", thread_id: "1", sender_name: "You", sender_color: "bg-amber-400", content: "All sorted! Monday 6am call time at Location A.", created_at: new Date(Date.now() - 3000000).toISOString(), read: true },
-    { id: "m3", thread_id: "1", sender_name: "Sarah Mitchell", sender_color: "bg-violet-500", content: "Perfect. I'll need the full DP package — Sony FX9 with full lens kit.", created_at: new Date(Date.now() - 2400000).toISOString(), read: true },
-    { id: "m4", thread_id: "1", sender_name: "You", sender_color: "bg-amber-400", content: "Confirmed, already booked with rental house. ETA is Sunday evening.", created_at: new Date(Date.now() - 1800000).toISOString(), read: true },
-    { id: "m5", thread_id: "1", sender_name: "Sarah Mitchell", sender_color: "bg-violet-500", content: "Can you confirm the call sheet for Monday?", created_at: new Date(Date.now() - 120000).toISOString(), read: false },
-  ],
-  "2": [
-    { id: "m6", thread_id: "2", sender_name: "James Cole", sender_color: "bg-emerald-500", content: "Rigging is all done on Stage 2. Ready for your sign-off.", created_at: new Date(Date.now() - 7200000).toISOString(), read: true },
-    { id: "m7", thread_id: "2", sender_name: "You", sender_color: "bg-amber-400", content: "Will check tomorrow morning. Looks great from the photos!", created_at: new Date(Date.now() - 3600000).toISOString(), read: true },
-    { id: "m8", thread_id: "2", sender_name: "James Cole", sender_color: "bg-emerald-500", content: "Lighting setup is ready for review", created_at: new Date(Date.now() - 840000).toISOString(), read: false },
-  ],
-}
-
-function formatTime(iso: string) {
-  const d = new Date(iso)
-  const now = new Date()
-  const diff = now.getTime() - d.getTime()
-  if (diff < 60000) return "now"
-  if (diff < 3600000) return Math.floor(diff / 60000) + "m"
-  if (diff < 86400000) return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
-  return d.toLocaleDateString([], { month: "short", day: "numeric" })
-}
-
 export default function MessagesPage() {
-  const [activeThread, setActiveThread] = useState<Thread>(THREADS[0])
-  const [messages, setMessages] = useState<Message[]>(MOCK_MESSAGES["1"] || [])
   const [threads, setThreads] = useState<Thread[]>(THREADS)
-  const [input, setInput] = useState("")
-  const [search, setSearch] = useState("")
-  const [sending, setSending] = useState(false)
-  const endRef = useRef<HTMLDivElement>(null)
+  const [active, setActive] = useState<Thread>(THREADS[0])
+  const [input, setInput] = useState('')
+  const [search, setSearch] = useState('')
+  const messagesEnd = useRef<HTMLDivElement>(null)
 
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [messages])
+  useEffect(() => { messagesEnd.current?.scrollIntoView({ behavior: 'smooth' }) }, [active.messages.length])
 
-  useEffect(() => {
-    const msgs = MOCK_MESSAGES[activeThread.id] || []
-    setMessages(msgs)
-    // Mark as read
-    setThreads(prev => prev.map(t => t.id === activeThread.id ? { ...t, unread: 0 } : t))
-  }, [activeThread])
-
-  const sendMessage = async () => {
-    if (!input.trim() || sending) return
-    setSending(true)
-    const newMsg: Message = {
-      id: "new-" + Date.now(),
-      thread_id: activeThread.id,
-      sender_name: "You",
-      sender_color: "bg-amber-400",
-      content: input.trim(),
-      created_at: new Date().toISOString(),
-      read: true,
-    }
-    setMessages(prev => [...prev, newMsg])
-    setThreads(prev => prev.map(t => t.id === activeThread.id ? { ...t, last_message: input.trim(), last_time: "now" } : t))
-    setInput("")
-    setSending(false)
+  const send = () => {
+    if (!input.trim()) return
+    const newMsg: Message = { id: Date.now(), text: input.trim(), sender: 'me', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), read: true }
+    const updated = threads.map(t => t.id === active.id ? { ...t, messages: [...t.messages, newMsg], lastMessage: input.trim(), lastTime: 'now', unread: 0 } : t)
+    setThreads(updated)
+    setActive({ ...active, messages: [...active.messages, newMsg] })
+    setInput('')
+    // Simulate reply after 1.5s
+    setTimeout(() => {
+      const replies = ['Got it, thanks!', 'Perfect, will do.', 'Sounds great!', 'On it 👍', 'Let me check and get back to you.', 'Roger that.']
+      const reply: Message = { id: Date.now() + 1, text: replies[Math.floor(Math.random() * replies.length)], sender: 'them', time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }), read: true }
+      setThreads(prev => prev.map(t => t.id === active.id ? { ...t, messages: [...t.messages, newMsg, reply], lastMessage: reply.text, lastTime: 'now' } : t))
+      setActive(prev => ({ ...prev, messages: [...prev.messages, reply] }))
+    }, 1500)
   }
 
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault()
-      sendMessage()
-    }
+  const markRead = (thread: Thread) => {
+    const updated = threads.map(t => t.id === thread.id ? { ...t, unread: 0 } : t)
+    setThreads(updated)
+    setActive({ ...thread, unread: 0 })
   }
 
-  const filteredThreads = threads.filter(t =>
-    t.name.toLowerCase().includes(search.toLowerCase()) ||
-    t.role.toLowerCase().includes(search.toLowerCase())
-  )
+  const filteredThreads = threads.filter(t => t.name.toLowerCase().includes(search.toLowerCase()) || t.role.toLowerCase().includes(search.toLowerCase()))
+  const totalUnread = threads.reduce((s, t) => s + t.unread, 0)
 
   return (
-    <div className="flex h-[calc(100vh-64px)] bg-[#04080F]">
-      {/* Thread list */}
-      <motion.div
-        initial={{ opacity: 0, x: -20 }}
-        animate={{ opacity: 1, x: 0 }}
-        transition={{ duration: 0.4, ease }}
-        className="w-80 flex-shrink-0 border-r border-white/[0.06] flex flex-col"
-      >
-        <div className="p-4 border-b border-white/[0.06]">
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="font-bold text-white">Messages</h2>
-            <motion.button
-              whileHover={{ scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              className="w-7 h-7 rounded-lg bg-amber-400/10 text-amber-400 flex items-center justify-center hover:bg-amber-400/20 transition-colors"
-            >
-              <Plus className="w-4 h-4" />
-            </motion.button>
-          </div>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-white/30" />
-            <input
-              value={search}
-              onChange={e => setSearch(e.target.value)}
-              placeholder="Search conversations..."
-              className="w-full pl-8 pr-3 py-2 rounded-xl bg-white/[0.04] border border-white/[0.06] text-sm text-white placeholder-white/30 outline-none focus:border-amber-400/40 transition-colors"
-            />
-          </div>
-        </div>
-
-        <div className="flex-1 overflow-y-auto">
-          {filteredThreads.map((thread, i) => (
-            <motion.button
-              key={thread.id}
-              initial={{ opacity: 0, x: -10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.05, ease }}
-              onClick={() => setActiveThread(thread)}
-              className={clsx(
-                "w-full p-4 flex items-center gap-3 hover:bg-white/[0.03] transition-colors text-left border-b border-white/[0.03]",
-                activeThread.id === thread.id && "bg-white/[0.05]"
-              )}
-            >
-              <div className="relative flex-shrink-0">
-                <div className={"w-10 h-10 rounded-full " + thread.avatar_color + " flex items-center justify-center text-sm font-bold text-white"}>
-                  {thread.name.charAt(0)}
-                </div>
-                {thread.online && (
-                  <div className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-[#04080F]" />
-                )}
+    <div className="flex h-screen bg-[#04080F] overflow-hidden">
+      <Sidebar />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <TopHeader />
+        <div className="flex-1 flex overflow-hidden">
+          {/* Thread list */}
+          <div className="w-72 border-r border-white/[0.06] flex flex-col bg-[#060C18]">
+            <div className="p-4 border-b border-white/[0.06]">
+              <div className="flex items-center justify-between mb-3">
+                <h2 className="text-white font-semibold text-sm">Messages</h2>
+                {totalUnread > 0 && <span className="bg-amber-400 text-black text-xs font-bold px-1.5 py-0.5 rounded-full">{totalUnread}</span>}
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center justify-between mb-0.5">
-                  <span className="text-sm font-semibold text-white truncate">{thread.name}</span>
-                  <span className="text-xs text-white/30 flex-shrink-0 ml-2">{thread.last_time}</span>
-                </div>
-                <p className="text-xs text-white/40 truncate">{thread.last_message}</p>
+              <div className="relative">
+                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 text-xs">🔍</span>
+                <input className="w-full bg-white/5 border border-white/[0.06] rounded-lg pl-7 pr-3 py-2 text-xs text-white placeholder-gray-500 focus:border-amber-400/30 focus:outline-none" placeholder="Search conversations..." value={search} onChange={e => setSearch(e.target.value)} />
               </div>
-              {thread.unread > 0 && (
-                <div className="w-5 h-5 rounded-full bg-amber-400 text-black text-xs font-bold flex items-center justify-center flex-shrink-0">
-                  {thread.unread}
-                </div>
-              )}
-            </motion.button>
-          ))}
-        </div>
-      </motion.div>
-
-      {/* Chat area */}
-      <div className="flex-1 flex flex-col">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease }}
-          className="h-16 border-b border-white/[0.06] flex items-center justify-between px-6"
-        >
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <div className={"w-9 h-9 rounded-full " + activeThread.avatar_color + " flex items-center justify-center text-sm font-bold text-white"}>
-                {activeThread.name.charAt(0)}
-              </div>
-              {activeThread.online && <div className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-[#04080F]" />}
             </div>
-            <div>
-              <div className="font-semibold text-sm text-white">{activeThread.name}</div>
-              <div className="text-xs text-white/40">{activeThread.online ? "Active now" : activeThread.role}</div>
-            </div>
-          </div>
-          <div className="flex items-center gap-2">
-            {[Phone, Video, MoreHorizontal].map((Icon, i) => (
-              <motion.button key={i} whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-                className="w-8 h-8 rounded-lg bg-white/[0.04] hover:bg-white/[0.08] flex items-center justify-center text-white/50 hover:text-white/80 transition-colors">
-                <Icon className="w-4 h-4" />
-              </motion.button>
-            ))}
-          </div>
-        </motion.div>
-
-        {/* Messages */}
-        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
-          <AnimatePresence initial={false}>
-            {messages.map((msg, i) => {
-              const isYou = msg.sender_name === "You"
-              return (
-                <motion.div
-                  key={msg.id}
-                  initial={{ opacity: 0, y: 10, scale: 0.97 }}
-                  animate={{ opacity: 1, y: 0, scale: 1 }}
-                  transition={{ duration: 0.25, ease }}
-                  className={clsx("flex gap-3", isYou && "flex-row-reverse")}
-                >
-                  {!isYou && (
-                    <div className={"w-8 h-8 rounded-full flex-shrink-0 " + msg.sender_color + " flex items-center justify-center text-xs font-bold text-white"}>
-                      {msg.sender_name.charAt(0)}
+            <div className="flex-1 overflow-y-auto">
+              {filteredThreads.map(thread => (
+                <button key={thread.id} onClick={() => markRead(thread)} className={`w-full text-left px-4 py-3.5 border-b border-white/[0.03] transition-all hover:bg-white/[0.03] ${active.id === thread.id ? 'bg-white/[0.05] border-l-2 border-l-amber-400' : ''}`}>
+                  <div className="flex items-center gap-3">
+                    <div className={`w-9 h-9 rounded-xl bg-gradient-to-br ${thread.color} flex items-center justify-center text-white font-bold text-xs flex-shrink-0 relative`}>
+                      {thread.initials}
+                      {thread.unread > 0 && <span className="absolute -top-1 -right-1 w-4 h-4 bg-amber-400 rounded-full text-black text-[9px] flex items-center justify-center font-bold">{thread.unread}</span>}
                     </div>
-                  )}
-                  <div className={clsx("max-w-[65%]", isYou && "items-end flex flex-col")}>
-                    {!isYou && <div className="text-xs text-white/40 mb-1 ml-1">{msg.sender_name}</div>}
-                    <div className={clsx(
-                      "px-4 py-2.5 rounded-2xl text-sm leading-relaxed",
-                      isYou
-                        ? "bg-amber-400 text-black rounded-tr-sm font-medium"
-                        : "bg-white/[0.06] border border-white/[0.06] text-white rounded-tl-sm"
-                    )}>
-                      {msg.content}
-                    </div>
-                    <div className={clsx("flex items-center gap-1 mt-1 text-xs text-white/25", isYou && "justify-end")}>
-                      <span>{formatTime(msg.created_at)}</span>
-                      {isYou && <CheckCheck className="w-3 h-3 text-amber-400/60" />}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-baseline">
+                        <span className={`text-xs font-semibold ${thread.unread > 0 ? 'text-white' : 'text-gray-300'}`}>{thread.name}</span>
+                        <span className="text-[10px] text-gray-500 flex-shrink-0 ml-2">{thread.lastTime}</span>
+                      </div>
+                      <p className="text-[11px] text-gray-500 truncate mt-0.5">{thread.lastMessage}</p>
                     </div>
                   </div>
-                </motion.div>
-              )
-            })}
-          </AnimatePresence>
-          <div ref={endRef} />
-        </div>
-
-        {/* Input */}
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4, ease, delay: 0.2 }}
-          className="p-4 border-t border-white/[0.06]"
-        >
-          <div className="flex items-end gap-3 bg-white/[0.04] border border-white/[0.06] rounded-2xl px-4 py-3 focus-within:border-amber-400/30 transition-colors">
-            <textarea
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder={"Message " + activeThread.name + "..."}
-              rows={1}
-              className="flex-1 bg-transparent text-sm text-white placeholder-white/30 outline-none resize-none"
-              style={{ maxHeight: "120px" }}
-            />
-            <div className="flex items-center gap-2 flex-shrink-0">
-              <motion.button whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}
-                className="text-white/30 hover:text-white/60 transition-colors">
-                <Smile className="w-5 h-5" />
-              </motion.button>
-              <motion.button
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={sendMessage}
-                disabled={!input.trim() || sending}
-                className={clsx(
-                  "w-9 h-9 rounded-xl flex items-center justify-center transition-all",
-                  input.trim()
-                    ? "bg-amber-400 text-black hover:bg-amber-300"
-                    : "bg-white/[0.06] text-white/20"
-                )}
-              >
-                <Send className="w-4 h-4" />
-              </motion.button>
+                </button>
+              ))}
             </div>
           </div>
-          <p className="text-xs text-white/20 mt-2 ml-1">Press Enter to send · Shift+Enter for new line</p>
-        </motion.div>
+
+          {/* Message thread */}
+          <div className="flex-1 flex flex-col">
+            {/* Thread header */}
+            <div className="px-6 py-4 border-b border-white/[0.06] flex items-center justify-between bg-[#04080F]">
+              <div className="flex items-center gap-3">
+                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${active.color} flex items-center justify-center text-white font-bold text-sm`}>{active.initials}</div>
+                <div>
+                  <h3 className="text-white font-semibold text-sm">{active.name}</h3>
+                  <p className="text-gray-500 text-xs">{active.role}</p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <button className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white text-sm transition-colors" title="Call">📞</button>
+                <button className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-gray-400 hover:text-white text-sm transition-colors" title="Info">ℹ️</button>
+              </div>
+            </div>
+
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              <AnimatePresence initial={false}>
+                {active.messages.map((msg, i) => (
+                  <motion.div key={msg.id} initial={{ opacity: 0, y: 10, scale: 0.98 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ duration: 0.2 }}
+                    className={`flex ${msg.sender === 'me' ? 'justify-end' : 'justify-start'} gap-2`}>
+                    {msg.sender === 'them' && (
+                      <div className={`w-7 h-7 rounded-lg bg-gradient-to-br ${active.color} flex items-center justify-center text-white text-xs font-bold flex-shrink-0 mt-auto`}>{active.initials[0]}</div>
+                    )}
+                    <div className={`max-w-[65%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed ${msg.sender === 'me' ? 'bg-amber-400 text-black rounded-br-md' : 'bg-[#0A1020] text-white border border-white/[0.06] rounded-bl-md'}`}>
+                      {msg.text}
+                      <p className={`text-[10px] mt-1 ${msg.sender === 'me' ? 'text-black/50 text-right' : 'text-gray-500'}`}>{msg.time}</p>
+                    </div>
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+              <div ref={messagesEnd} />
+            </div>
+
+            {/* Input */}
+            <div className="px-6 py-4 border-t border-white/[0.06] bg-[#04080F]">
+              <div className="flex items-end gap-3">
+                <div className="flex-1 bg-[#0A1020] border border-white/[0.08] rounded-2xl px-4 py-3 focus-within:border-amber-400/30 transition-colors">
+                  <textarea className="w-full bg-transparent text-white text-sm resize-none outline-none placeholder-gray-500 max-h-32" placeholder={`Message ${active.name}...`} rows={1} value={input} onChange={e => setInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }} />
+                </div>
+                <motion.button onClick={send} whileTap={{ scale: 0.9 }} className="w-10 h-10 bg-amber-400 hover:bg-amber-300 rounded-xl flex items-center justify-center transition-colors flex-shrink-0" disabled={!input.trim()}>
+                  <svg className="w-4 h-4 text-black" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
+                </motion.button>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   )

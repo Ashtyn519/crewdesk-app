@@ -1,242 +1,157 @@
 'use client'
-
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import clsx from 'clsx'
-import {
-  Building2, Users, FileText, ChevronRight, ChevronLeft,
-  Check, Camera, Film, Mic, Clapperboard, Sparkles,
-  ArrowRight, Loader2, Star
-} from 'lucide-react'
-
-const STEPS = [
-  { id: 1, title: 'Your Workspace', desc: 'Set up your production company' },
-  { id: 2, title: 'Your Role', desc: 'Tell us what you do' },
-  { id: 3, title: "You're all set!", desc: 'Ready to go live' },
-]
-
-const ROLES = [
-  { id: 'dop', label: 'Director of Photography', icon: Camera },
-  { id: 'director', label: 'Director', icon: Clapperboard },
-  { id: 'producer', label: 'Producer', icon: Film },
-  { id: 'sound', label: 'Sound Recordist', icon: Mic },
-  { id: 'editor', label: 'Editor / Post', icon: FileText },
-  { id: 'other', label: 'Other / Freelancer', icon: Users },
-]
-
-const TEAM_SIZES = ['Just me', '2–5 people', '6–15 people', '16–50 people', '50+ people']
-
 export const dynamic = 'force-dynamic'
+import { useState } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { useRouter } from 'next/navigation'
+
+const STEPS = ['Your Profile', 'Your Workspace', 'Invite Your Crew']
 
 export default function OnboardingPage() {
   const router = useRouter()
-  const [step, setStep] = useState(1)
-  const [completing, setCompleting] = useState(false)
-  const [form, setForm] = useState({
-    workspace: '',
-    industry: 'Film & TV Production',
-    teamSize: '',
-    role: '',
-  })
+  const [step, setStep] = useState(0)
+  const [profile, setProfile] = useState({ name: '', role: 'Director', company: '', phone: '' })
+  const [workspace, setWorkspace] = useState({ name: '', currency: 'GBP', timezone: 'Europe/London', type: 'Production Company' })
+  const [emails, setEmails] = useState([''])
+  const [done, setDone] = useState(false)
 
-  function next() { if (step < 3) setStep(s => s + 1) }
-  function back() { if (step > 1) setStep(s => s - 1) }
+  const next = () => { if (step < 2) setStep(s => s + 1); else setDone(true) }
+  const back = () => setStep(s => s - 1)
 
-  async function complete() {
-    setCompleting(true)
-    await new Promise(r => setTimeout(r, 1500))
-    router.push('/dashboard')
-  }
-
-  const canProceed = {
-    1: form.workspace.trim().length >= 2 && form.teamSize,
-    2: !!form.role,
-    3: true,
-  }[step]
+  if (done) return (
+    <div className="min-h-screen bg-[#04080F] flex items-center justify-center">
+      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center max-w-md px-8">
+        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', delay: 0.2 }} className="w-24 h-24 rounded-full bg-amber-400/20 border-2 border-amber-400 flex items-center justify-center mx-auto mb-6">
+          <span className="text-4xl">🎬</span>
+        </motion.div>
+        <h1 className="text-3xl font-bold text-white mb-3">You&apos;re all set!</h1>
+        <p className="text-gray-400 mb-8">Welcome to CrewDesk, {profile.name || 'Director'}. Your workspace is ready.</p>
+        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => router.push('/dashboard')} className="w-full py-3 bg-amber-400 hover:bg-amber-300 text-black font-bold rounded-xl text-lg transition-colors">
+          Go to Dashboard →
+        </motion.button>
+      </motion.div>
+    </div>
+  )
 
   return (
-    <div className="min-h-screen bg-[#04080F] flex flex-col items-center justify-center p-6 relative overflow-hidden">
+    <div className="min-h-screen bg-[#04080F] flex items-center justify-center px-4">
       {/* Background orbs */}
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-amber-500/5 blur-3xl pointer-events-none" />
-      <div className="absolute bottom-0 right-0 w-[400px] h-[400px] rounded-full bg-blue-500/5 blur-3xl pointer-events-none" />
-
-      {/* Logo */}
-      <div className="mb-8 flex items-center gap-2.5">
-        <div className="w-8 h-8 rounded-xl bg-amber-500 flex items-center justify-center">
-          <Sparkles className="w-4 h-4 text-black" />
-        </div>
-        <span className="text-white font-bold text-lg tracking-tight">CrewDesk</span>
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-amber-400/5 rounded-full blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-blue-400/5 rounded-full blur-3xl" />
       </div>
 
-      {/* Progress */}
-      <div className="flex items-center gap-0 mb-10 w-full max-w-md">
-        {STEPS.map((s, i) => (
-          <div key={s.id} className="flex items-center flex-1 last:flex-none">
-            <div className="flex flex-col items-center">
-              <div className={clsx(
-                'w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold border-2 transition-all',
-                step > s.id ? 'bg-amber-500 border-amber-500 text-black' :
-                step === s.id ? 'border-amber-500 bg-amber-500/10 text-amber-400' :
-                'border-white/10 bg-transparent text-white/30'
-              )}>
-                {step > s.id ? <Check className="w-4 h-4" /> : s.id}
-              </div>
-              <span className={clsx(
-                'text-xs mt-1.5 font-medium whitespace-nowrap',
-                step === s.id ? 'text-white' : step > s.id ? 'text-amber-400' : 'text-white/25'
-              )}>{s.title}</span>
+      <div className="w-full max-w-lg relative">
+        {/* Logo */}
+        <div className="text-center mb-8">
+          <div className="flex items-center justify-center gap-2 mb-2">
+            <div className="w-8 h-8 bg-amber-400 rounded-lg flex items-center justify-center">
+              <span className="text-black font-bold text-sm">C</span>
             </div>
-            {i < STEPS.length - 1 && (
-              <div className={clsx('flex-1 h-px mx-2 -mt-5 transition-all', step > s.id ? 'bg-amber-500/50' : 'bg-white/[0.06]')} />
+            <span className="text-white font-bold text-xl">CrewDesk</span>
+          </div>
+          <p className="text-gray-500 text-sm">Set up your workspace in 3 quick steps</p>
+        </div>
+
+        {/* Progress */}
+        <div className="flex items-center gap-2 mb-8">
+          {STEPS.map((s, i) => (
+            <div key={i} className="flex items-center flex-1">
+              <div className="flex items-center gap-2 flex-1">
+                <motion.div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 transition-colors ${i < step ? 'bg-amber-400 text-black' : i === step ? 'bg-amber-400 text-black' : 'bg-white/10 text-gray-500'}`}
+                  animate={{ scale: i === step ? 1.1 : 1 }}>
+                  {i < step ? '✓' : i + 1}
+                </motion.div>
+                <span className={`text-xs transition-colors ${i === step ? 'text-white font-medium' : 'text-gray-500'}`}>{s}</span>
+              </div>
+              {i < STEPS.length - 1 && <div className={`h-px flex-1 mx-2 transition-colors ${i < step ? 'bg-amber-400' : 'bg-white/10'}`} />}
+            </div>
+          ))}
+        </div>
+
+        {/* Card */}
+        <div className="bg-[#0A1020] border border-white/[0.08] rounded-2xl p-8 shadow-2xl">
+          <AnimatePresence mode="wait">
+            {step === 0 && (
+              <motion.div key="step0" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                <h2 className="text-xl font-bold text-white mb-1">Tell us about yourself</h2>
+                <p className="text-gray-400 text-sm mb-6">This helps personalise your CrewDesk experience.</p>
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="col-span-2"><label className="text-xs text-gray-400 mb-1.5 block">Your Name</label>
+                      <input className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:border-amber-400/50 focus:outline-none placeholder-gray-600" value={profile.name} onChange={e => setProfile({...profile, name: e.target.value})} placeholder="e.g. Ashtyn Cole" /></div>
+                    <div><label className="text-xs text-gray-400 mb-1.5 block">Your Role</label>
+                      <select className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:border-amber-400/50 focus:outline-none" value={profile.role} onChange={e => setProfile({...profile, role: e.target.value})}>
+                        {['Director', 'Producer', 'Production Manager', 'DOP', 'Editor', 'Other'].map(r => <option key={r} value={r}>{r}</option>)}
+                      </select></div>
+                    <div><label className="text-xs text-gray-400 mb-1.5 block">Company / Studio</label>
+                      <input className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:border-amber-400/50 focus:outline-none placeholder-gray-600" value={profile.company} onChange={e => setProfile({...profile, company: e.target.value})} placeholder="Optional" /></div>
+                    <div className="col-span-2"><label className="text-xs text-gray-400 mb-1.5 block">Phone</label>
+                      <input className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:border-amber-400/50 focus:outline-none placeholder-gray-600" value={profile.phone} onChange={e => setProfile({...profile, phone: e.target.value})} placeholder="+44 7700 900000" /></div>
+                  </div>
+                </div>
+              </motion.div>
             )}
-          </div>
-        ))}
-      </div>
 
-      {/* Card */}
-      <div className="w-full max-w-md bg-[#0A1020] border border-white/[0.06] rounded-3xl overflow-hidden shadow-2xl">
-
-        {/* Step 1: Workspace */}
-        {step === 1 && (
-          <div className="p-8">
-            <div className="w-12 h-12 rounded-2xl bg-blue-500/10 flex items-center justify-center mb-4">
-              <Building2 className="w-6 h-6 text-blue-400" />
-            </div>
-            <h2 className="text-xl font-bold text-white mb-1">Set up your workspace</h2>
-            <p className="text-sm text-white/40 mb-6">This is how your production company will appear in CrewDesk</p>
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-white/50 mb-1.5">Production Company Name *</label>
-                <input value={form.workspace} onChange={e => setForm(f => ({ ...f, workspace: e.target.value }))}
-                  placeholder="e.g. Pinewood Productions"
-                  className="w-full px-4 py-3 bg-[#060C18] border border-white/10 rounded-xl text-sm text-white placeholder-white/20 focus:outline-none focus:border-amber-500/50 focus:ring-1 focus:ring-amber-500/20 transition-all" />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-white/50 mb-1.5">Industry</label>
-                <select value={form.industry} onChange={e => setForm(f => ({ ...f, industry: e.target.value }))}
-                  className="w-full px-4 py-3 bg-[#060C18] border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-amber-500/50 transition-all">
-                  <option>Film &amp; TV Production</option>
-                  <option>Commercial Production</option>
-                  <option>Music Videos</option>
-                  <option>Documentary</option>
-                  <option>Events &amp; Weddings</option>
-                  <option>Corporate Video</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-white/50 mb-2">Team Size *</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {TEAM_SIZES.map(s => (
-                    <button key={s} onClick={() => setForm(f => ({ ...f, teamSize: s }))}
-                      className={clsx(
-                        'py-2 rounded-xl text-xs font-medium border transition-all',
-                        form.teamSize === s
-                          ? 'bg-amber-500/10 border-amber-500/40 text-amber-400'
-                          : 'bg-[#060C18] border-white/10 text-white/50 hover:text-white/80 hover:border-white/20'
-                      )}>
-                      {s}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Step 2: Role */}
-        {step === 2 && (
-          <div className="p-8">
-            <div className="w-12 h-12 rounded-2xl bg-purple-500/10 flex items-center justify-center mb-4">
-              <Users className="w-6 h-6 text-purple-400" />
-            </div>
-            <h2 className="text-xl font-bold text-white mb-1">What's your primary role?</h2>
-            <p className="text-sm text-white/40 mb-6">We'll personalise your CrewDesk experience based on how you work</p>
-            <div className="grid grid-cols-2 gap-3">
-              {ROLES.map(r => (
-                <button key={r.id} onClick={() => setForm(f => ({ ...f, role: r.id }))}
-                  className={clsx(
-                    'flex flex-col items-start gap-2 p-4 rounded-2xl border transition-all text-left',
-                    form.role === r.id
-                      ? 'bg-amber-500/10 border-amber-500/40'
-                      : 'bg-[#060C18] border-white/[0.06] hover:border-white/20 hover:bg-[#0C1428]'
-                  )}>
-                  <div className={clsx(
-                    'w-8 h-8 rounded-xl flex items-center justify-center',
-                    form.role === r.id ? 'bg-amber-500/20' : 'bg-white/5'
-                  )}>
-                    <r.icon className={clsx('w-4 h-4', form.role === r.id ? 'text-amber-400' : 'text-white/40')} />
+            {step === 1 && (
+              <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                <h2 className="text-xl font-bold text-white mb-1">Set up your workspace</h2>
+                <p className="text-gray-400 text-sm mb-6">Configure your workspace settings for your team.</p>
+                <div className="space-y-4">
+                  <div><label className="text-xs text-gray-400 mb-1.5 block">Workspace Name</label>
+                    <input className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:border-amber-400/50 focus:outline-none placeholder-gray-600" value={workspace.name} onChange={e => setWorkspace({...workspace, name: e.target.value})} placeholder="e.g. Neon Films Studio" /></div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div><label className="text-xs text-gray-400 mb-1.5 block">Currency</label>
+                      <select className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:border-amber-400/50 focus:outline-none" value={workspace.currency} onChange={e => setWorkspace({...workspace, currency: e.target.value})}>
+                        {['GBP (£)', 'USD ($)', 'EUR (€)', 'AUD (A$)'].map(c => <option key={c}>{c}</option>)}
+                      </select></div>
+                    <div><label className="text-xs text-gray-400 mb-1.5 block">Timezone</label>
+                      <select className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:border-amber-400/50 focus:outline-none" value={workspace.timezone} onChange={e => setWorkspace({...workspace, timezone: e.target.value})}>
+                        {['Europe/London', 'America/New_York', 'America/Los_Angeles', 'Australia/Sydney'].map(t => <option key={t}>{t}</option>)}
+                      </select></div>
                   </div>
-                  <span className={clsx('text-xs font-medium leading-tight', form.role === r.id ? 'text-white' : 'text-white/60')}>
-                    {r.label}
-                  </span>
-                  {form.role === r.id && (
-                    <div className="absolute top-3 right-3">
-                      <Check className="w-3.5 h-3.5 text-amber-400" />
+                  <div><label className="text-xs text-gray-400 mb-1.5 block">Business Type</label>
+                    <div className="grid grid-cols-2 gap-2">
+                      {['Production Company', 'Freelancer', 'Post House', 'Agency'].map(type => (
+                        <button key={type} onClick={() => setWorkspace({...workspace, type})} className={`py-2.5 px-4 rounded-xl text-sm border transition-all ${workspace.type === type ? 'bg-amber-400/10 border-amber-400 text-amber-400' : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'}`}>{type}</button>
+                      ))}
                     </div>
-                  )}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Step 3: Complete */}
-        {step === 3 && (
-          <div className="p-8 text-center">
-            <div className="w-16 h-16 rounded-3xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center mx-auto mb-6">
-              <Sparkles className="w-8 h-8 text-emerald-400" />
-            </div>
-            <h2 className="text-2xl font-bold text-white mb-2">You're all set!</h2>
-            <p className="text-sm text-white/50 mb-6 max-w-xs mx-auto">
-              Welcome to CrewDesk. Your workspace <span className="text-white font-medium">{form.workspace || 'CrewDesk'}</span> is ready to go.
-            </p>
-            <div className="space-y-2 mb-6 text-left">
-              {[
-                { icon: Building2, text: 'Workspace configured', color: 'text-blue-400', bg: 'bg-blue-400/10' },
-                { icon: Users, text: `Role set as ${ROLES.find(r => r.id === form.role)?.label ?? 'Freelancer'}`, color: 'text-purple-400', bg: 'bg-purple-400/10' },
-                { icon: Star, text: 'Pro features unlocked', color: 'text-amber-400', bg: 'bg-amber-400/10' },
-              ].map(item => (
-                <div key={item.text} className="flex items-center gap-3 p-3 bg-[#060C18] rounded-xl border border-white/[0.06]">
-                  <div className={clsx('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0', item.bg)}>
-                    <item.icon className={clsx('w-4 h-4', item.color)} />
                   </div>
-                  <span className="text-sm text-white/70">{item.text}</span>
-                  <Check className="w-4 h-4 text-emerald-400 ml-auto flex-shrink-0" />
                 </div>
-              ))}
-            </div>
+              </motion.div>
+            )}
+
+            {step === 2 && (
+              <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
+                <h2 className="text-xl font-bold text-white mb-1">Invite your crew</h2>
+                <p className="text-gray-400 text-sm mb-6">Add your team members — you can also do this later.</p>
+                <div className="space-y-3">
+                  {emails.map((email, i) => (
+                    <div key={i} className="flex gap-2">
+                      <input type="email" className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:border-amber-400/50 focus:outline-none placeholder-gray-600" value={email} onChange={e => setEmails(emails.map((em, j) => j === i ? e.target.value : em))} placeholder={`crew${i + 1}@example.com`} />
+                      {emails.length > 1 && <button onClick={() => setEmails(emails.filter((_, j) => j !== i))} className="p-3 rounded-xl bg-white/5 text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors">×</button>}
+                    </div>
+                  ))}
+                  {emails.length < 5 && <button onClick={() => setEmails([...emails, ''])} className="text-amber-400 text-sm hover:text-amber-300 transition-colors">+ Add another</button>}
+                </div>
+                <div className="mt-4 bg-amber-400/5 border border-amber-400/20 rounded-xl p-4">
+                  <p className="text-amber-400 text-xs font-medium mb-1">✨ Invite bonus</p>
+                  <p className="text-gray-400 text-xs">Invite 3+ crew members and get 30 days of Pro free.</p>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          <div className="flex gap-3 mt-8">
+            {step > 0 && <button onClick={back} className="flex-1 py-3 rounded-xl border border-white/10 text-gray-400 text-sm font-medium hover:bg-white/5 transition-colors">← Back</button>}
+            <motion.button onClick={next} whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} className="flex-1 py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-bold text-sm transition-colors">
+              {step < 2 ? 'Continue →' : '🚀 Launch CrewDesk'}
+            </motion.button>
           </div>
-        )}
-
-        {/* Footer */}
-        <div className="px-8 pb-8 flex items-center gap-3">
-          {step > 1 && step < 3 && (
-            <button onClick={back}
-              className="flex items-center gap-2 px-4 py-3 border border-white/10 rounded-xl text-sm text-white/50 hover:text-white hover:border-white/20 transition-all">
-              <ChevronLeft className="w-4 h-4" />Back
-            </button>
-          )}
-          {step < 3 ? (
-            <button onClick={next} disabled={!canProceed}
-              className="flex-1 flex items-center justify-center gap-2 py-3 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 disabled:cursor-not-allowed text-black text-sm font-semibold rounded-xl transition-all hover:shadow-lg hover:shadow-amber-500/25">
-              Continue <ChevronRight className="w-4 h-4" />
-            </button>
-          ) : (
-            <button onClick={complete} disabled={completing}
-              className="flex-1 flex items-center justify-center gap-2 py-3 bg-amber-500 hover:bg-amber-400 text-black text-sm font-semibold rounded-xl transition-all hover:shadow-lg hover:shadow-amber-500/25">
-              {completing ? (
-                <><Loader2 className="w-4 h-4 animate-spin" />Setting up...</>
-              ) : (
-                <>Go to Dashboard <ArrowRight className="w-4 h-4" /></>
-              )}
-            </button>
-          )}
+          {step === 2 && <button onClick={() => router.push('/dashboard')} className="w-full mt-3 text-gray-500 text-xs hover:text-gray-400 transition-colors">Skip for now</button>}
         </div>
-      </div>
 
-      <p className="text-xs text-white/20 mt-6">
-        You can change all of these settings later in Settings
-      </p>
+        <p className="text-center text-gray-600 text-xs mt-6">Already have an account? <a href="/login" className="text-amber-400 hover:text-amber-300">Sign in</a></p>
+      </div>
     </div>
   )
 }
