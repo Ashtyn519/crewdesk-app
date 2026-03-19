@@ -20,6 +20,8 @@ const searchResults = [
 ]
 
 export default function TopHeader() {
+  const pathname = usePathname()
+  const pageName = (pathname.slice(1) || "dashboard").split("/")[0].charAt(0).toUpperCase() + (pathname.slice(1) || "dashboard").split("/")[0].slice(1)
   const [notifOpen, setNotifOpen] = useState(false)
   const [searchOpen, setSearchOpen] = useState(false)
   const [searchQ, setSearchQ] = useState('')
@@ -57,7 +59,7 @@ export default function TopHeader() {
       <div className="flex items-center gap-2 text-sm">
         <span className="text-slate-500">CrewDesk</span>
         <span className="text-slate-600">›</span>
-        <span className="text-white font-medium">Dashboard</span>
+        <span className="text-white font-medium">{pageName}</span>
       </div>
 
       {/* Right: Search + Notifications + Avatar */}
