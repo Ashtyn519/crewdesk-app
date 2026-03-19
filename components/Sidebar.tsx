@@ -107,7 +107,7 @@ export function Sidebar() {
           <span className="text-xs font-bold text-amber-400">Upgrade to Pro</span>
         </div>
         <p className="text-[11px] text-slate-500 mb-2">Unlock unlimited crew, advanced analytics and priority support.</p>
-        <button className="w-full py-1.5 text-[11px] font-bold text-black bg-amber-400 rounded-lg hover:bg-amber-300 transition-colors">
+        <button className="w-full py-1.5 text-[11px] font-bold text-black bg-amber-400 rounded-lg hover:bg-amber-300 transition-colors" onClick={() => { window.location.href = "/pricing" }}>
           View Plans
         </button>
       </div>
