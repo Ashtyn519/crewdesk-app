@@ -28,13 +28,6 @@ const TESTIMONIALS = [
   { name: 'Priya Sharma', role: 'Head of Production, MediaLab', text: 'Same power as the desktop, but in my pocket. The offline sync works flawlessly on set.', rating: 5 },
 ];
 
-const STATS = [
-  { value: '12,000+', label: 'Freelancers Managed' },
-  { value: '48M+', label: 'Invoices Processed' },
-  { value: '4.9 stars', label: 'App Store Rating' },
-  { value: '99.9%', label: 'Uptime SLA' },
-];
-
 export default function MobileAppPage() {
   const featuresRef = useRef(null);
   return (
@@ -59,6 +52,7 @@ export default function MobileAppPage() {
           </div>
         </div>
       </nav>
+
       <section className="relative min-h-screen flex items-center justify-center pt-16 overflow-hidden">
         <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full bg-amber-400/5 blur-3xl pointer-events-none" />
         <div className="absolute bottom-1/4 right-1/4 w-80 h-80 rounded-full bg-blue-500/5 blur-3xl pointer-events-none" />
@@ -161,16 +155,7 @@ export default function MobileAppPage() {
           </motion.div>
         </div>
       </section>
-      <section className="py-20 border-y border-[#1A2540]">
-        <div className="max-w-6xl mx-auto px-6 grid grid-cols-2 md:grid-cols-4 gap-10">
-          {STATS.map((s, i) => (
-            <motion.div key={s.label} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ delay: i * 0.1 }} className="text-center">
-              <div className="text-3xl md:text-4xl font-black text-amber-400 mb-2">{s.value}</div>
-              <div className="text-sm text-slate-500">{s.label}</div>
-            </motion.div>
-          ))}
-        </div>
-      </section>
+
       <section ref={featuresRef} className="py-24 px-6">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
@@ -195,6 +180,7 @@ export default function MobileAppPage() {
           </div>
         </div>
       </section>
+
       <section className="py-24 px-6 bg-[#040A16] border-y border-[#1A2540]">
         <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-16 items-center">
           <motion.div initial={{ opacity: 0, x: -30 }} whileInView={{ opacity: 1, x: 0 }} viewport={{ once: true }}>
@@ -204,9 +190,9 @@ export default function MobileAppPage() {
             </div>
             <h2 className="text-4xl md:text-5xl font-black tracking-tight mb-6">
               Built for<br />
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-amber-200">production professionals</span>
+              <span className="text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-amber-200">business</span>
             </h2>
-            <p className="text-slate-400 text-lg leading-relaxed mb-8">Bank-grade encryption, biometric authentication, and role-based access controls. Your crew data is safe on set or in the office.</p>
+            <p className="text-slate-400 text-lg leading-relaxed mb-8">Bank-grade encryption, biometric authentication, and role-based access controls. Your crew data is safe wherever business takes you.</p>
             <div className="space-y-3 mb-10">
               {['Face ID & Touch ID authentication','End-to-end encrypted messaging','Remote wipe for lost devices','SOC 2 Type II compliant'].map(item => (
                 <div key={item} className="flex items-center gap-3">
@@ -240,6 +226,7 @@ export default function MobileAppPage() {
           </motion.div>
         </div>
       </section>
+
       <section className="py-24 px-6">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
@@ -264,6 +251,7 @@ export default function MobileAppPage() {
           </div>
         </div>
       </section>
+
       <section className="py-24 px-6">
         <div className="max-w-4xl mx-auto text-center">
           <motion.div initial={{ opacity: 0, scale: 0.95 }} whileInView={{ opacity: 1, scale: 1 }} viewport={{ once: true }} className="p-12 rounded-3xl bg-gradient-to-br from-amber-400/10 to-amber-600/5 border border-amber-400/20 relative overflow-hidden">
@@ -299,6 +287,7 @@ export default function MobileAppPage() {
           </motion.div>
         </div>
       </section>
+
       <footer className="border-t border-[#1A2540] py-10 px-6">
         <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-6">
           <div className="flex items-center gap-2">
