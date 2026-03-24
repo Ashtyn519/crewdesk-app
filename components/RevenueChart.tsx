@@ -1,17 +1,21 @@
 'use client';
-import { useRef } from 'react';
-import { motion, useInView } from 'framer-motion';
+import { useState, useEffect } from 'react';
+import { motion } from 'framer-motion';
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 const DATA = [4200, 6800, 5900, 8400, 9200, 7600, 11000, 9800, 12400, 10900, 13800, 15200];
 const MAX = Math.max(...DATA);
 
 export function RevenueChart() {
-  const ref = useRef(null);
-  const inView = useInView(ref, { once: true });
+  const [animate, setAnimate] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setAnimate(true), 100);
+    return () => clearTimeout(t);
+  }, []);
 
   return (
-    <div ref={ref} className="bg-[#0A1020] rounded-2xl border border-[#1A2540] p-6">
+    <div className="bg-[#0A1020] rounded-2xl border border-[#1A2540] p-6">
       <div className="flex items-start justify-between mb-6">
         <div>
           <h3 className="text-base font-bold text-white mb-1">Revenue Overview</h3>
@@ -33,11 +37,13 @@ export function RevenueChart() {
         {DATA.map((val, i) => {
           const h = (val / MAX) * 100;
           return (
-            <div key={i} className="flex-1 group relative">
+            <div key={i} className="flex-1 group relative flex items-end" style={{ height: '100%' }}>
               <motion.div
-                initial={{ height: 0 }} animate={inView ? { height: `${h}%` } : { height: 0 }}
+                initial={{ height: 0 }}
+                animate={animate ? { height: h + '%' } : { height: 0 }}
                 transition={{ delay: i * 0.06, duration: 0.5, ease: 'easeOut' }}
-                className="w-full rounded-t-lg bg-gradient-to-t from-amber-500/60 to-amber-400 group-hover:from-amber-500/80 group-hover:to-amber-300 transition-colors cursor-pointer"
+                className="w-full rounded-t-lg bg-gradient-to-t from-amber-500/60 to-amber-400 group-hover:from-amber-500/80 group-hover:to-amber-300 transition-colors cursor-pointer relative"
+                style={{ minHeight: '4px' }}
               >
                 <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-[#060C18] border border-[#1A2540] rounded-lg px-2 py-1 text-[10px] text-white font-bold whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity z-10 pointer-events-none">
                   £{(val/1000).toFixed(1)}k
@@ -54,4 +60,4 @@ export function RevenueChart() {
   );
 }
 
-export default RevenueChart
+export default RevenueChart;
