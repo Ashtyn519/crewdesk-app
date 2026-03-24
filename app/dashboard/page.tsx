@@ -21,7 +21,7 @@ const recentActivity = [
   { id: 3, type: 'contract', text: 'Contract for "City Lights" signed', time: '1 hr ago', icon: '✍️', color: 'text-blue-400' },
   { id: 4, type: 'project', text: 'New project "Apex Documentary" created', time: '3 hrs ago', icon: '🆕', color: 'text-purple-400' },
   { id: 5, type: 'payment', text: 'Payment £3,200 received from BFI', time: '5 hrs ago', icon: '💷', color: 'text-emerald-400' },
-  { id: 6, type: 'message', text: 'James O\'Brien sent 3 new messages', time: 'Yesterday', icon: '💬', color: 'text-sky-400' },
+  { id: 6, type: 'message', text: "James O'Brien sent 3 new messages", time: 'Yesterday', icon: '💬', color: 'text-sky-400' },
 ]
 
 const quickActions = [
@@ -63,20 +63,25 @@ export default function DashboardPage() {
   }, [])
 
   useEffect(() => {
-    const timers = kpis.map((_, i) => setTimeout(() => {
-      setCounters(prev => { const n = [...prev]; n[i] = 1; return n })
-    }, i * 150))
+    const timers = kpis.map((_, i) =>
+      setTimeout(() => {
+        setCounters(prev => { const n = [...prev]; n[i] = 1; return n })
+      }, i * 150)
+    )
     return () => timers.forEach(clearTimeout)
   }, [])
 
-  const filtered = activityFilter === 'all' ? recentActivity : recentActivity.filter(a => a.type === activityFilter)
+  const filtered = activityFilter === 'all'
+    ? recentActivity
+    : recentActivity.filter(a => a.type === activityFilter)
 
   return (
     <div className="flex min-h-screen" style={{ background: '#04080F' }}>
       <Sidebar />
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col ml-64">
         <TopHeader />
         <main className="flex-1 p-6 overflow-y-auto">
+
           {/* Greeting */}
           <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
             <div className="flex items-center justify-between">
@@ -222,6 +227,7 @@ export default function DashboardPage() {
               </AnimatePresence>
             </div>
           </motion.div>
+
         </main>
       </div>
     </div>
