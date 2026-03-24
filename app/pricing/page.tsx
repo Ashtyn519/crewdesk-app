@@ -12,7 +12,7 @@ const BUSINESS_PLANS = [
                   icon: Zap,
                       color: 'text-gray-400',
                           iconBg: 'bg-gray-400/10',
-                              desc: 'Best for solo operators and small teams getting startedh.',
+                              desc: 'Best for solo operators and small teams getting started.',
                                   features: [
                                         'Up to 3 user seats',
                                               '20 job postings per month',
