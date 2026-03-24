@@ -2,159 +2,178 @@
 import { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
+import { TrendingUp, FolderKanban, Users, FileText, Receipt, MessageSquare, AlertCircle } from 'lucide-react'
 import RevenueChart from '@/components/RevenueChart'
 
 export const dynamic = 'force-dynamic'
 
+const ICON_MAP = { TrendingUp, FolderKanban, Users, FileText, Receipt, MessageSquare }
+
 const kpis = [
-  { label: 'Total Revenue', value: '£48,200', change: '+23.4%', up: true, icon: '💷', sparkline: [30,45,38,55,48,62,58,70,65,78,72,85] },
-  { label: 'Active Projects', value: '12', change: '+3 this month', up: true, icon: '📁', sparkline: [5,6,7,6,8,9,10,9,11,10,12,12] },
-  { label: 'Crew Members', value: '28', change: '+5 new', up: true, icon: '👥', sparkline: [18,19,20,21,21,22,23,24,25,26,27,28] },
-  { label: 'Pending Invoices', value: '£7,840', change: '3 outstanding', up: false, icon: '📄', sparkline: [2,4,3,5,4,6,5,7,6,5,4,3] },
-]
+  { label: 'Total Revenue', value: '\u00a348,200', change: '+23.4%', up: true, iconKey: 'TrendingUp', iconColor: 'text-amber-400', sparkline: [30,45,38,55,48,62,58,70,65,78,72,85] },
+  { label: 'Active Projects', value: '12', change: '+3 this month', up: true, iconKey: 'FolderKanban', iconColor: 'text-blue-400', sparkline: [5,6,7,6,8,9,10,9,11,10,12,12] },
+  { label: 'Crew Members', value: '28', change: '+5 new', up: true, iconKey: 'Users', iconColor: 'text-purple-400', sparkline: [18,19,20,21,21,22,23,24,25,26,27,28] },
+  { label: 'Pending Invoices', value: '\u00a37,840', change: '3 outstanding', up: false, iconKey: 'Receipt', iconColor: 'text-rose-400', sparkline: [2,4,3,5,4,6,5,7,6,5,4,3] },
+  ]
 
 const recentActivity = [
-  { id: 1, type: 'invoice', text: 'Invoice #INV-2024 sent to Neon Films', time: '2 min ago', icon: '📤', color: 'text-amber-400' },
-  { id: 2, type: 'crew', text: 'Sarah Chen accepted crew invitation', time: '18 min ago', icon: '✅', color: 'text-green-400' },
-  { id: 3, type: 'contract', text: 'Contract for City Lights signed', time: '1 hr ago', icon: '✍️', color: 'text-blue-400' },
-  { id: 4, type: 'project', text: 'New project Apex Documentary created', time: '3 hrs ago', icon: '🆕', color: 'text-purple-400' },
-  { id: 5, type: 'payment', text: 'Payment 3200 received from BFI', time: '5 hrs ago', icon: '💷', color: 'text-emerald-400' },
-  { id: 6, type: 'message', text: 'James OBrien sent 3 new messages', time: 'Yesterday', icon: '💬', color: 'text-sky-400' },
-]
+  { id: 1, type: 'invoice', text: 'Invoice #INV-2024 sent to Neon Films', time: '2 min ago', iconKey: 'Receipt', color: 'text-amber-400' },
+  { id: 2, type: 'crew', text: 'Sarah Chen accepted crew invitation', time: '18 min ago', iconKey: 'Users', color: 'text-green-400' },
+  { id: 3, type: 'contract', text: 'Contract for City Lights signed', time: '1 hr ago', iconKey: 'FileText', color: 'text-blue-400' },
+  { id: 4, type: 'project', text: 'New project Apex Documentary created', time: '3 hrs ago', iconKey: 'FolderKanban', color: 'text-purple-400' },
+  { id: 5, type: 'payment', text: 'Payment received from BFI', time: '5 hrs ago', iconKey: 'TrendingUp', color: 'text-emerald-400' },
+  { id: 6, type: 'message', text: 'James OBrien sent 3 new messages', time: 'Yesterday', iconKey: 'MessageSquare', color: 'text-sky-400' },
+  ]
 
 const quickActions = [
-  { label: 'New Project', icon: '📁', href: '/projects', color: 'bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20' },
-  { label: 'Create Invoice', icon: '📄', href: '/invoices', color: 'bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20' },
-  { label: 'Add Crew', icon: '👤', href: '/crew', color: 'bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20' },
-  { label: 'New Contract', icon: '📝', href: '/contracts', color: 'bg-green-500/10 hover:bg-green-500/20 border border-green-500/20' },
-]
+  { label: 'New Project', iconKey: 'FolderKanban', href: '/projects', color: 'bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20' },
+  { label: 'Create Invoice', iconKey: 'Receipt', href: '/invoices', color: 'bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20' },
+  { label: 'Add Crew', iconKey: 'Users', href: '/crew', color: 'bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20' },
+  { label: 'New Contract', iconKey: 'FileText', href: '/contracts', color: 'bg-green-500/10 hover:bg-green-500/20 border border-green-500/20' },
+  ]
 
 const upcomingDeadlines = [
   { project: 'Neon Nights', task: 'Final cut delivery', due: 'Tomorrow', urgent: true },
   { project: 'City Lights', task: 'Contract signing', due: 'Mar 22', urgent: true },
   { project: 'Apex Documentary', task: 'Rough cut review', due: 'Mar 25', urgent: false },
   { project: 'Midnight Run', task: 'Invoice submission', due: 'Mar 28', urgent: false },
-]
+  ]
 
 function Sparkline({ data, color }: { data: number[], color: string }) {
-  const max = Math.max(...data), min = Math.min(...data), range = max - min || 1
-  const w = 80, h = 28
-  const pts = data.map((v, i) => ((i / (data.length - 1)) * w).toFixed(1) + ',' + (h - ((v - min) / range) * h).toFixed(1)).join(' ')
-  return <svg width={w} height={h} className="opacity-60"><polyline fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" points={pts} /></svg>
-}
-
-export default function DashboardPage() {
-  const [greeting, setGreeting] = useState('Good morning')
-  const [counters, setCounters] = useState(kpis.map(() => 0))
-  const [activityFilter, setActivityFilter] = useState('all')
-
-  useEffect(() => {
-    const h = new Date().getHours()
-    if (h >= 12 && h < 18) setGreeting('Good afternoon')
-    else if (h >= 18) setGreeting('Good evening')
-  }, [])
-
-  useEffect(() => {
-    const timers = kpis.map((_, i) => setTimeout(() => setCounters(prev => { const n = [...prev]; n[i] = 1; return n }), i * 150))
-    return () => timers.forEach(clearTimeout)
-  }, [])
-
-  const filtered = activityFilter === 'all' ? recentActivity : recentActivity.filter(a => a.type === activityFilter)
-
-  return (
-    <div className="p-6 overflow-y-auto">
-      <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-white">{greeting}, Ashtyn</h1>
-            <p className="text-slate-400 text-sm mt-1">Here is what is happening with your workforce today.</p>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="text-right">
-              <p className="text-xs text-slate-500">Workspace health</p>
-              <p className="text-sm font-semibold text-emerald-400">All systems live</p>
-            </div>
-            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
-          </div>
-        </div>
-      </motion.div>
-
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
-        {kpis.map((k, i) => (
-          <motion.div key={k.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }} className="rounded-2xl p-5 border border-white/5 relative overflow-hidden hover:border-amber-400/20 transition-all duration-300" style={{ background: '#0A1020' }}>
-            <div className="flex items-start justify-between mb-3">
-              <span className="text-2xl">{k.icon}</span>
-              <Sparkline data={k.sparkline} color={k.up ? '#fbbf24' : '#f87171'} />
-            </div>
-            <motion.p initial={{ opacity: 0 }} animate={{ opacity: counters[i] }} transition={{ duration: 0.5, delay: i * 0.15 }} className="text-2xl font-bold text-white mb-1">{k.value}</motion.p>
-            <p className="text-xs text-slate-400">{k.label}</p>
-            <span className={"text-xs font-medium mt-2 block " + (k.up ? 'text-emerald-400' : 'text-rose-400')}>{k.up ? '+' : ''}{k.change}</span>
-          </motion.div>
-        ))}
-      </div>
-
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="mb-8">
-        <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Quick Actions</h2>
-        <div className="grid grid-cols-4 gap-3">
-          {quickActions.map(a => (
-            <Link key={a.label} href={a.href}>
-              <motion.div whileHover={{ scale: 1.03, y: -2 }} whileTap={{ scale: 0.97 }} className={"flex flex-col items-center justify-center gap-2 p-4 rounded-xl cursor-pointer transition-all duration-200 " + a.color}>
-                <span className="text-2xl">{a.icon}</span>
-                <span className="text-xs font-medium text-white">{a.label}</span>
-              </motion.div>
-            </Link>
-          ))}
-        </div>
-      </motion.div>
-
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
-        <div className="xl:col-span-2"><RevenueChart /></div>
-        <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 }}>
-          <div className="rounded-2xl border border-white/5 p-5 h-full" style={{ background: '#0A1020' }}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-sm font-semibold text-white">Upcoming Deadlines</h3>
-              <span className="text-xs text-amber-400 font-medium">{upcomingDeadlines.filter(d => d.urgent).length} urgent</span>
-            </div>
-            <div className="space-y-3">
-              {upcomingDeadlines.map((d, i) => (
-                <motion.div key={i} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.6 + i * 0.1 }} className="flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-white/[0.08] transition-colors">
-                  <div>
-                    <p className="text-xs font-semibold text-white">{d.project}</p>
-                    <p className="text-xs text-slate-400">{d.task}</p>
-                  </div>
-                  <span className={"text-xs font-medium px-2 py-1 rounded-full " + (d.urgent ? 'bg-rose-500/20 text-rose-400' : 'bg-slate-500/20 text-slate-400')}>{d.due}</span>
-                </motion.div>
-              ))}
-            </div>
-          </div>
-        </motion.div>
-      </div>
-
-      <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
-        <div className="rounded-2xl border border-white/5 p-6" style={{ background: '#0A1020' }}>
-          <div className="flex items-center justify-between mb-5">
-            <h3 className="text-sm font-semibold text-white">Recent Activity</h3>
-            <div className="flex gap-2">
-              {['all', 'invoice', 'crew', 'contract', 'project'].map(f => (
-                <button key={f} onClick={() => setActivityFilter(f)} className={"text-xs px-3 py-1 rounded-full transition-all " + (activityFilter === f ? 'bg-amber-500 text-black font-semibold' : 'text-slate-400 hover:text-white bg-white/5')}>
-                  {f.charAt(0).toUpperCase() + f.slice(1)}
-                </button>
-              ))}
-            </div>
-          </div>
-          <AnimatePresence mode="popLayout">
-            <div className="space-y-1">
-              {filtered.map(item => (
-                <motion.div key={item.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} layout className="flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors group cursor-pointer">
-                  <span className="text-xl">{item.icon}</span>
-                  <div className="flex-1"><p className={"text-sm " + item.color + " font-medium"}>{item.text}</p></div>
-                  <span className="text-xs text-slate-500 group-hover:text-slate-400 transition-colors">{item.time}</span>
-                </motion.div>
-              ))}
-            </div>
-          </AnimatePresence>
-        </div>
-      </motion.div>
-    </div>
-  )
-}
+    const max = Math.max(...data), min = Math.min(...data), range = max - min || 1
+    const w = 80, h = 28
+    const pts = data.map((v, i) => ((i / (data.length - 1)) * w).toFixed(1) + ',' + (h - ((v - min) / range) * h).toFixed(1)).join(' ')
+    return <svg width={w} height={h} className="opacity-60"><polyline fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" points={pts} /></svg>svg>
+      }
+      
+      export default function DashboardPage() {
+          const [greeting, setGreeting] = useState('Good morning')
+              const [counters, setCounters] = useState(kpis.map(() => 0))
+                  const [activityFilter, setActivityFilter] = useState('all')
+                    
+                      useEffect(() => {
+                            const h = new Date().getHours()
+                                  if (h >= 12 && h < 18) setGreeting('Good afternoon')
+                                        else if (h >= 18) setGreeting('Good evening')
+                      }, [])
+                        
+                          useEffect(() => {
+                                const timers = kpis.map((_, i) => setTimeout(() => setCounters(prev => { const n = [...prev]; n[i] = 1; return n }), i * 150))
+                                      return () => timers.forEach(clearTimeout)
+                          }, [])
+                            
+                              const filtered = activityFilter === 'all' ? recentActivity : recentActivity.filter(a => a.type === activityFilter)
+                                
+                                  return (
+                                        <div className="p-6 overflow-y-auto">
+                                              <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="mb-8">
+                                                      <div className="flex items-center justify-between">
+                                                                <div>
+                                                                            <h1 className="text-2xl font-bold text-white">{greeting}</h1>h1>
+                                                                            <p className="text-slate-400 text-sm mt-1">Here is what is happening with your workforce today.</p>p>
+                                                                </div>div>
+                                                                <div className="flex items-center gap-3">
+                                                                            <div className="text-right">
+                                                                                          <p className="text-xs text-slate-500">Workspace health</p>p>
+                                                                                          <p className="text-sm font-semibold text-emerald-400">All systems live</p>p>
+                                                                            </div>div>
+                                                                            <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                                                                </div>div>
+                                                      </div>div>
+                                              </motion.div>motion.div>
+                                        
+                                              <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 mb-8">
+                                                {kpis.map((k, i) => {
+                                                    const Icon = ICON_MAP[k.iconKey as keyof typeof ICON_MAP]
+                                                                return (
+                                                                              <motion.div key={k.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.1 }} className="rounded-2xl p-5 border border-white/5 relative overflow-hidden hover:border-amber-400/20 transition-all duration-300" style={{ background: '#0A1020' }}>
+                                                                                            <div className="flex items-start justify-between mb-3">
+                                                                                                            <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/5">
+                                                                                                                              <Icon className={`w-4 h-4 ${k.iconColor}`} />
+                                                                                                              </div>div>
+                                                                                                            <Sparkline data={k.sparkline} color={k.up ? '#fbbf24' : '#f87171'} />
+                                                                                              </div>div>
+                                                                                            <motion.p initial={{ opacity: 0 }} animate={{ opacity: counters[i] }} transition={{ duration: 0.5, delay: i * 0.15 }} className="text-2xl font-bold text-white mb-1">{k.value}</motion.p>motion.p>
+                                                                                            <p className="text-xs text-slate-400">{k.label}</p>p>
+                                                                                            <span className={"text-xs font-medium mt-2 block " + (k.up ? 'text-emerald-400' : 'text-rose-400')}>{k.up ? '+' : ''}{k.change}</span>span>
+                                                                              </motion.div>motion.div>
+                                                                            )
+                                        })}
+                                              </div>div>
+                                        
+                                              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.4 }} className="mb-8">
+                                                      <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wider mb-3">Quick Actions</h2>h2>
+                                                      <div className="grid grid-cols-4 gap-3">
+                                                        {quickActions.map(a => {
+                                                      const AIcon = ICON_MAP[a.iconKey as keyof typeof ICON_MAP]
+                                                                    return (
+                                                                                    <Link key={a.label} href={a.href}>
+                                                                                                    <motion.div whileHover={{ scale: 1.03, y: -2 }} whileTap={{ scale: 0.97 }} className={"flex flex-col items-center justify-center gap-2 p-4 rounded-xl cursor-pointer transition-all duration-200 " + a.color}>
+                                                                                                                      <AIcon className="w-5 h-5 text-white" />
+                                                                                                                      <span className="text-xs font-medium text-white">{a.label}</span>span>
+                                                                                                      </motion.div>motion.div>
+                                                                                    </Link>Link>
+                                                                                  )
+                                        })}
+                                                      </div>div>
+                                              </motion.div>motion.div>
+                                        
+                                              <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
+                                                      <div className="xl:col-span-2"><RevenueChart /></div>div>
+                                                      <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.5 }}>
+                                                                <div className="rounded-2xl border border-white/5 p-5 h-full" style={{ background: '#0A1020' }}>
+                                                                            <div className="flex items-center justify-between mb-4">
+                                                                                          <h3 className="text-sm font-semibold text-white">Upcoming Deadlines</h3>h3>
+                                                                                          <span className="text-xs text-amber-400 font-medium">{upcomingDeadlines.filter(d => d.urgent).length} urgent</span>span>
+                                                                            </div>div>
+                                                                            <div className="space-y-3">
+                                                                              {upcomingDeadlines.map((d, i) => (
+                                                          <motion.div key={i} initial={{ opacity: 0, x: 10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.6 + i * 0.1 }} className="flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-white/[0.08] transition-colors">
+                                                                            <div>
+                                                                                                <p className="text-xs font-semibold text-white">{d.project}</p>p>
+                                                                                                <p className="text-xs text-slate-400">{d.task}</p>p>
+                                                                            </div>div>
+                                                                            <div className="flex items-center gap-1.5">
+                                                                              {d.urgent && <AlertCircle className="w-3 h-3 text-rose-400" />}
+                                                                                                <span className={"text-xs font-medium px-2 py-1 rounded-full " + (d.urgent ? 'bg-rose-500/20 text-rose-400' : 'bg-slate-500/20 text-slate-400')}>{d.due}</span>span>
+                                                                            </div>div>
+                                                          </motion.div>motion.div>
+                                                        ))}
+                                                                            </div>div>
+                                                                </div>div>
+                                                      </motion.div>motion.div>
+                                              </div>div>
+                                        
+                                              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.6 }}>
+                                                      <div className="rounded-2xl border border-white/5 p-6" style={{ background: '#0A1020' }}>
+                                                                <div className="flex items-center justify-between mb-5">
+                                                                            <h3 className="text-sm font-semibold text-white">Recent Activity</h3>h3>
+                                                                            <div className="flex gap-2">
+                                                                              {['all', 'invoice', 'crew', 'contract', 'project'].map(f => (
+                                                          <button key={f} onClick={() => setActivityFilter(f)} className={"text-xs px-3 py-1 rounded-full transition-all " + (activityFilter === f ? 'bg-amber-500 text-black font-semibold' : 'text-slate-400 hover:text-white bg-white/5')}>
+                                                            {f.charAt(0).toUpperCase() + f.slice(1)}
+                                                          </button>button>
+                                                        ))}
+                                                                            </div>div>
+                                                                </div>div>
+                                                                <AnimatePresence mode="popLayout">
+                                                                            <div className="space-y-1">
+                                                                              {filtered.map(item => {
+                                                          const ItemIcon = ICON_MAP[item.iconKey as keyof typeof ICON_MAP]
+                                                                            return (
+                                                                                                <motion.div key={item.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: 10 }} layout className="flex items-center gap-4 p-3 rounded-xl hover:bg-white/5 transition-colors group cursor-pointer">
+                                                                                                                    <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-white/5 flex-shrink-0">
+                                                                                                                                          <ItemIcon className={`w-4 h-4 ${item.color}`} />
+                                                                                                                      </div>div>
+                                                                                                                    <div className="flex-1"><p className={"text-sm " + item.color + " font-medium"}>{item.text}</p>p></div>div>
+                                                                                                                    <span className="text-xs text-slate-500 group-hover:text-slate-400 transition-colors">{item.time}</span>span>
+                                                                                                  </motion.div>motion.div>
+                                                                                              )
+                                        })}
+                                                                            </div>div>
+                                                                </AnimatePresence>AnimatePresence>
+                                                      </div>div>
+                                              </motion.div>motion.div>
+                                        </div>div>
+                                      )
+                                    }</svg>
