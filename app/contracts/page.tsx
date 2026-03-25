@@ -1,6 +1,5 @@
 'use client'
 import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
 import Sidebar from '@/components/Sidebar'
 import TopHeader from '@/components/TopHeader'
 import { Plus, Search, X, Trash2, FileText, ChevronRight, ArrowRight } from 'lucide-react'
@@ -8,16 +7,7 @@ import { Plus, Search, X, Trash2, FileText, ChevronRight, ArrowRight } from 'luc
 export const dynamic = 'force-dynamic'
 
 type ContractStatus = 'draft' | 'sent' | 'signed' | 'expired'
-
-type Contract = {
-  id: string
-  title: string
-  client: string
-  value: string
-  date: string
-  status: ContractStatus
-  type: string
-}
+type Contract = { id: string; title: string; client: string; value: string; date: string; status: ContractStatus; type: string }
 
 const initialContracts: Contract[] = [
   { id: 'c1', title: 'Neon Nights - Production Agreement', client: 'Neon Films Ltd', value: '£14,500', date: 'Mar 20, 2026', status: 'signed', type: 'Production' },
@@ -47,7 +37,6 @@ const COLUMNS: { status: ContractStatus; label: string }[] = [
 function NewContractModal({ onClose, onSave }: { onClose: () => void; onSave: (c: Contract) => void }) {
   const [form, setForm] = useState({ title: '', client: '', value: '', type: 'Production', date: '' })
   const set = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }))
-
   const submit = () => {
     if (!form.title.trim() || !form.client.trim()) return
     onSave({
@@ -60,23 +49,12 @@ function NewContractModal({ onClose, onSave }: { onClose: () => void; onSave: (c
       type: form.type,
     })
   }
-
   return (
-    <motion.div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      onClick={onClose}
-    >
-      <motion.div
-        className="bg-[#0A1020] border border-white/10 rounded-2xl p-7 w-full max-w-lg shadow-2xl"
-        initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
-        onClick={e => e.stopPropagation()}
-      >
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-[#0A1020] border border-white/10 rounded-2xl p-7 w-full max-w-lg shadow-2xl" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-bold text-white">New Contract</h2>
-          <button onClick={onClose} className="text-slate-400 hover:text-white p-1">
-            <X size={18} />
-          </button>
+          <button onClick={onClose} className="text-slate-400 hover:text-white p-1"><X size={18} /></button>
         </div>
         <div className="space-y-4 mb-6">
           <div>
@@ -96,7 +74,7 @@ function NewContractModal({ onClose, onSave }: { onClose: () => void; onSave: (c
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-slate-400 mb-1 block">Type</label>
-              <select value={form.type} onChange={e => set('type', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400/50">
+              <select value={form.type} onChange={e => set('type', e.target.value)} className="w-full bg-[#0A1020] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400/50">
                 {['Production', 'Director', 'Crew', 'Service', 'NDA', 'Freelance'].map(t => (
                   <option key={t} value={t} className="bg-[#0A1020]">{t}</option>
                 ))}
@@ -108,11 +86,9 @@ function NewContractModal({ onClose, onSave }: { onClose: () => void; onSave: (c
             </div>
           </div>
         </div>
-        <button onClick={submit} disabled={!form.title.trim() || !form.client.trim()} className="w-full py-3 bg-amber-400 text-black font-bold rounded-xl text-sm hover:bg-amber-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
-          Create Contract
-        </button>
-      </motion.div>
-    </motion.div>
+        <button onClick={submit} disabled={!form.title.trim() || !form.client.trim()} className="w-full py-3 bg-amber-400 text-black font-bold rounded-xl text-sm hover:bg-amber-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">Create Contract</button>
+      </div>
+    </div>
   )
 }
 
@@ -144,20 +120,17 @@ export default function ContractsPage() {
     if (selected?.id === id) setSelected(null)
   }
 
-  const saveNew = (c: Contract) => {
-    setContracts(prev => [c, ...prev])
-    setShowModal(false)
-  }
+  const saveNew = (c: Contract) => { setContracts(prev => [c, ...prev]); setShowModal(false) }
 
   const total = contracts.length
   const signed = contracts.filter(c => c.status === 'signed').length
   const pending = contracts.filter(c => c.status === 'sent').length
-  const totalValue = contracts.filter(c => c.value !== '-').reduce((sum, c) => sum + parseFloat(c.value.replace(/[^\d.]/g, '') || '0'), 0)
+  const totalValue = contracts.filter(c => c.value !== '-').reduce((sum, c) => sum + parseFloat(c.value.replace(/[^d.]/g, '') || '0'), 0)
 
   return (
     <div className="flex h-screen bg-[#04080F] overflow-hidden">
       <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden ml-64">
         <TopHeader />
         <main className="flex-1 overflow-y-auto p-6">
           <div className="flex items-center justify-between mb-6">
@@ -166,10 +139,10 @@ export default function ContractsPage() {
               <p className="text-slate-400 text-sm mt-0.5">Manage agreements, NDAs, and production contracts</p>
             </div>
             <button onClick={() => setShowModal(true)} className="flex items-center gap-2 px-4 py-2 bg-amber-400 text-black font-semibold rounded-xl text-sm hover:bg-amber-300 transition-colors">
-              <Plus size={16} />
-              New Contract
+              <Plus size={16} />New Contract
             </button>
           </div>
+
           <div className="grid grid-cols-4 gap-4 mb-6">
             {[
               { label: 'Total Contracts', value: total, color: 'text-white' },
@@ -183,6 +156,7 @@ export default function ContractsPage() {
               </div>
             ))}
           </div>
+
           <div className="flex items-center justify-between gap-4 mb-5">
             <div className="relative flex-1 max-w-sm">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
@@ -194,6 +168,7 @@ export default function ContractsPage() {
               ))}
             </div>
           </div>
+
           {view === 'kanban' && (
             <div className="grid grid-cols-4 gap-4">
               {COLUMNS.map(col => {
@@ -206,14 +181,14 @@ export default function ContractsPage() {
                     </div>
                     <div className="space-y-3">
                       {colContracts.map(c => (
-                        <motion.div key={c.id} layout className="bg-[#0F1A2E] border border-white/5 rounded-lg p-3 cursor-pointer hover:border-amber-400/30 transition-colors" onClick={() => setSelected(c)}>
+                        <div key={c.id} className="bg-[#0F1A2E] border border-white/5 rounded-lg p-3 cursor-pointer hover:border-amber-400/30 transition-colors" onClick={() => setSelected(c)}>
                           <p className="text-sm font-medium text-white mb-1 leading-tight">{c.title}</p>
                           <p className="text-xs text-slate-400 mb-2">{c.client}</p>
                           <div className="flex items-center justify-between">
                             <span className="text-xs text-amber-400 font-semibold">{c.value}</span>
                             <span className="text-xs text-slate-500">{c.type}</span>
                           </div>
-                        </motion.div>
+                        </div>
                       ))}
                       {colContracts.length === 0 && <p className="text-xs text-slate-600 text-center py-4">No contracts</p>}
                     </div>
@@ -222,6 +197,7 @@ export default function ContractsPage() {
               })}
             </div>
           )}
+
           {view === 'list' && (
             <div className="bg-[#0A1020] border border-white/5 rounded-xl overflow-hidden">
               <table className="w-full">
@@ -255,60 +231,55 @@ export default function ContractsPage() {
           )}
         </main>
       </div>
-      <AnimatePresence>
-        {selected && (
-          <motion.div className="fixed inset-0 z-40 flex" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelected(null)}>
-            <div className="flex-1 bg-black/40" />
-            <motion.div className="w-96 bg-[#0A1020] border-l border-white/10 h-full overflow-y-auto p-6" initial={{ x: 80 }} animate={{ x: 0 }} exit={{ x: 80 }} onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-base font-bold text-white">Contract Detail</h2>
-                <button onClick={() => setSelected(null)} className="text-slate-400 hover:text-white"><X size={18} /></button>
+
+      {selected && (
+        <div className="fixed inset-0 z-40 flex" onClick={() => setSelected(null)}>
+          <div className="flex-1 bg-black/40" />
+          <div className="w-96 bg-[#0A1020] border-l border-white/10 h-full overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-base font-bold text-white">Contract Detail</h2>
+              <button onClick={() => setSelected(null)} className="text-slate-400 hover:text-white"><X size={18} /></button>
+            </div>
+            <div className="space-y-4">
+              <div><p className="text-xs text-slate-400 mb-1">Title</p><p className="text-sm font-medium text-white">{selected.title}</p></div>
+              <div className="grid grid-cols-2 gap-4">
+                <div><p className="text-xs text-slate-400 mb-1">Client</p><p className="text-sm text-white">{selected.client}</p></div>
+                <div><p className="text-xs text-slate-400 mb-1">Type</p><p className="text-sm text-white">{selected.type}</p></div>
               </div>
-              <div className="space-y-4">
-                <div><p className="text-xs text-slate-400 mb-1">Title</p><p className="text-sm font-medium text-white">{selected.title}</p></div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div><p className="text-xs text-slate-400 mb-1">Client</p><p className="text-sm text-white">{selected.client}</p></div>
-                  <div><p className="text-xs text-slate-400 mb-1">Type</p><p className="text-sm text-white">{selected.type}</p></div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div><p className="text-xs text-slate-400 mb-1">Value</p><p className="text-sm font-semibold text-amber-400">{selected.value}</p></div>
-                  <div><p className="text-xs text-slate-400 mb-1">Date</p><p className="text-sm text-white">{selected.date}</p></div>
-                </div>
-                <div><p className="text-xs text-slate-400 mb-1">Status</p><span className={`text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_STYLE[selected.status]}`}>{selected.status.charAt(0).toUpperCase() + selected.status.slice(1)}</span></div>
+              <div className="grid grid-cols-2 gap-4">
+                <div><p className="text-xs text-slate-400 mb-1">Value</p><p className="text-sm font-semibold text-amber-400">{selected.value}</p></div>
+                <div><p className="text-xs text-slate-400 mb-1">Date</p><p className="text-sm text-white">{selected.date}</p></div>
               </div>
-              <div className="mt-6 space-y-3">
-                {selected.status !== 'expired' && (
-                  <button onClick={() => { advanceStatus(selected.id); setSelected(prev => { if (!prev) return null; const idx = STATUS_ORDER.indexOf(prev.status); return { ...prev, status: STATUS_ORDER[Math.min(idx + 1, STATUS_ORDER.length - 1)] } }) }} className="w-full flex items-center justify-center gap-2 py-2.5 bg-amber-400 text-black font-semibold rounded-xl text-sm hover:bg-amber-300 transition-colors">
-                    <ChevronRight size={16} />
-                    Advance Status
-                  </button>
-                )}
-                <button onClick={() => setDeleteConfirm(selected.id)} className="w-full flex items-center justify-center gap-2 py-2.5 bg-rose-500/10 text-rose-400 border border-rose-500/20 font-semibold rounded-xl text-sm hover:bg-rose-500/20 transition-colors">
-                  <Trash2 size={16} />
-                  Delete Contract
+              <div><p className="text-xs text-slate-400 mb-1">Status</p><span className={`text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_STYLE[selected.status]}`}>{selected.status.charAt(0).toUpperCase() + selected.status.slice(1)}</span></div>
+            </div>
+            <div className="mt-6 space-y-3">
+              {selected.status !== 'expired' && (
+                <button onClick={() => { advanceStatus(selected.id); setSelected(prev => { if (!prev) return null; const idx = STATUS_ORDER.indexOf(prev.status); return { ...prev, status: STATUS_ORDER[Math.min(idx + 1, STATUS_ORDER.length - 1)] } }) }} className="w-full flex items-center justify-center gap-2 py-2.5 bg-amber-400 text-black font-semibold rounded-xl text-sm hover:bg-amber-300 transition-colors">
+                  <ChevronRight size={16} />Advance Status
                 </button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      <AnimatePresence>
-        {showModal && <NewContractModal onClose={() => setShowModal(false)} onSave={saveNew} />}
-      </AnimatePresence>
-      <AnimatePresence>
-        {deleteConfirm && (
-          <motion.div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <motion.div className="bg-[#0A1020] border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl" initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }}>
-              <h3 className="text-base font-bold text-white mb-2">Delete Contract</h3>
-              <p className="text-sm text-slate-400 mb-6">This action cannot be undone. Are you sure?</p>
-              <div className="flex gap-3">
-                <button onClick={() => setDeleteConfirm(null)} className="flex-1 py-2.5 border border-white/10 text-slate-300 rounded-xl text-sm hover:bg-white/5 transition-colors">Cancel</button>
-                <button onClick={() => deleteContract(deleteConfirm)} className="flex-1 py-2.5 bg-rose-500 text-white font-semibold rounded-xl text-sm hover:bg-rose-600 transition-colors">Delete</button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              )}
+              <button onClick={() => setDeleteConfirm(selected.id)} className="w-full flex items-center justify-center gap-2 py-2.5 bg-rose-500/10 text-rose-400 border border-rose-500/20 font-semibold rounded-xl text-sm hover:bg-rose-500/20 transition-colors">
+                <Trash2 size={16} />Delete Contract
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showModal && <NewContractModal onClose={() => setShowModal(false)} onSave={saveNew} />}
+
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#0A1020] border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+            <h3 className="text-base font-bold text-white mb-2">Delete Contract</h3>
+            <p className="text-sm text-slate-400 mb-6">This action cannot be undone. Are you sure?</p>
+            <div className="flex gap-3">
+              <button onClick={() => setDeleteConfirm(null)} className="flex-1 py-2.5 border border-white/10 text-slate-300 rounded-xl text-sm hover:bg-white/5 transition-colors">Cancel</button>
+              <button onClick={() => deleteContract(deleteConfirm)} className="flex-1 py-2.5 bg-rose-500 text-white font-semibold rounded-xl text-sm hover:bg-rose-600 transition-colors">Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
