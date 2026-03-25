@@ -1,9 +1,8 @@
 'use client'
 export const dynamic = 'force-dynamic'
 import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
 import { useRouter } from 'next/navigation'
-import { Check, ArrowRight, ArrowLeft, Plus, X, Briefcase, User, Building2, Film } from 'lucide-react'
+import { Check, ArrowRight, ArrowLeft, Plus, X, Briefcase, User, Building2, Film, Zap } from 'lucide-react'
 
 const STEPS = ['Your Profile', 'Your Workspace', 'Invite Your Crew']
 const ROLES = ['Director', 'Producer', 'Production Manager', 'DOP', 'Editor', 'Sound Designer', 'VFX Artist', 'Colorist', 'Other']
@@ -44,21 +43,24 @@ export default function OnboardingPage() {
 
   if (done) return (
     <div className="min-h-screen bg-[#04080F] flex items-center justify-center px-4">
-      <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} className="text-center max-w-md">
-        <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', delay: 0.2 }} className="w-24 h-24 rounded-full bg-amber-400/20 border-2 border-amber-400 flex items-center justify-center mx-auto mb-6">
+      <div className="text-center max-w-md">
+        <div className="w-24 h-24 rounded-full bg-amber-400/20 border-2 border-amber-400 flex items-center justify-center mx-auto mb-6">
           <Check className="w-10 h-10 text-amber-400" strokeWidth={2.5} />
-        </motion.div>
+        </div>
         <h1 className="text-3xl font-bold text-white mb-3">You&apos;re all set!</h1>
-        <p className="text-gray-400 mb-2">Welcome to CrewDesk, <span className="text-white font-medium">{profile.name || 'Director'}</span>.</p>
+        <p className="text-gray-400 mb-2">Welcome to CrewDesk, <span className="text-white font-medium">{profile.name || 'there'}</span>.</p>
         <p className="text-gray-500 text-sm mb-6">Your workspace <span className="text-amber-400">{workspace.name || 'CrewDesk'}</span> is ready. Your 14-day free trial has started.</p>
         <div className="bg-[#0A1020] border border-amber-400/20 rounded-xl p-4 mb-8 text-left">
           <p className="text-amber-400 text-xs font-semibold uppercase tracking-wide mb-1">Trial included</p>
           <p className="text-gray-400 text-sm">14 days of full access. No credit card required until your trial ends.</p>
         </div>
-        <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }} onClick={() => router.push('/dashboard')} className="w-full py-3.5 bg-amber-400 hover:bg-amber-300 text-black font-bold rounded-xl text-base transition-colors flex items-center justify-center gap-2">
+        <button
+          onClick={() => router.push('/dashboard')}
+          className="w-full py-3.5 bg-amber-400 hover:bg-amber-300 text-black font-bold rounded-xl text-base transition-colors flex items-center justify-center gap-2"
+        >
           Go to Dashboard <ArrowRight className="w-4 h-4" />
-        </motion.button>
-      </motion.div>
+        </button>
+      </div>
     </div>
   )
 
@@ -72,127 +74,204 @@ export default function OnboardingPage() {
         <div className="text-center mb-8">
           <div className="flex items-center justify-center gap-2 mb-2">
             <div className="w-8 h-8 bg-amber-400 rounded-lg flex items-center justify-center">
-              <span className="text-black font-bold text-sm">C</span>
+              <Zap className="w-4 h-4 text-black" strokeWidth={2.5} />
             </div>
             <span className="text-white font-bold text-xl">CrewDesk</span>
           </div>
           <p className="text-gray-500 text-sm">Set up your workspace in 3 quick steps</p>
         </div>
+
         <div className="flex items-center mb-8">
           {STEPS.map((s, i) => (
             <div key={i} className="flex items-center flex-1">
               <div className="flex items-center gap-2">
-                <motion.div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 transition-colors ${i < step ? 'bg-amber-400 text-black' : i === step ? 'bg-amber-400 text-black ring-4 ring-amber-400/20' : 'bg-white/10 text-gray-500'}`} animate={{ scale: i === step ? 1.1 : 1 }}>
+                <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 transition-colors ${i < step ? 'bg-amber-400 text-black' : i === step ? 'bg-amber-400 text-black ring-4 ring-amber-400/20' : 'bg-white/10 text-gray-500'}`}>
                   {i < step ? <Check className="w-3.5 h-3.5" strokeWidth={3} /> : i + 1}
-                </motion.div>
+                </div>
                 <span className={`text-xs whitespace-nowrap transition-colors ${i === step ? 'text-white font-medium' : i < step ? 'text-amber-400' : 'text-gray-600'}`}>{s}</span>
               </div>
               {i < STEPS.length - 1 && <div className={`h-px flex-1 mx-3 transition-colors ${i < step ? 'bg-amber-400' : 'bg-white/10'}`} />}
             </div>
           ))}
         </div>
+
         <div className="bg-[#0A1020] border border-white/[0.08] rounded-2xl p-8 shadow-2xl">
-          <AnimatePresence mode="wait">
-            {step === 0 && (
-              <motion.div key="step0" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                <h2 className="text-xl font-bold text-white mb-1">Tell us about yourself</h2>
-                <p className="text-gray-400 text-sm mb-6">This helps personalise your CrewDesk experience.</p>
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-xs text-gray-400 mb-1.5 block">Your Name <span className="text-red-400">*</span></label>
-                    <input className={`w-full bg-white/5 border rounded-xl px-4 py-3 text-white text-sm focus:outline-none placeholder-gray-600 transition-colors ${errors.name ? 'border-red-500/50' : 'border-white/10 focus:border-amber-400/50'}`} value={profile.name} onChange={e => { setProfile({ ...profile, name: e.target.value }); setErrors({ ...errors, name: '' }) }} placeholder="e.g. Ashtyn Cole" />
-                    {errors.name && <p className="text-red-400 text-xs mt-1">{errors.name}</p>}
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-xs text-gray-400 mb-1.5 block">Your Role</label>
-                      <select className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:border-amber-400/50 focus:outline-none" value={profile.role} onChange={e => setProfile({ ...profile, role: e.target.value })}>
-                        {ROLES.map(r => <option key={r} value={r} className="bg-[#0A1020]">{r}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-400 mb-1.5 block">Company / Studio</label>
-                      <input className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:border-amber-400/50 focus:outline-none placeholder-gray-600" value={profile.company} onChange={e => setProfile({ ...profile, company: e.target.value })} placeholder="Optional" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="text-xs text-gray-400 mb-1.5 block">Phone</label>
-                    <input className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:border-amber-400/50 focus:outline-none placeholder-gray-600" value={profile.phone} onChange={e => setProfile({ ...profile, phone: e.target.value })} placeholder="+44 7700 900000" />
-                  </div>
+          {step === 0 && (
+            <div>
+              <h2 className="text-xl font-bold text-white mb-1">Tell us about yourself</h2>
+              <p className="text-gray-400 text-sm mb-6">This helps personalise your CrewDesk experience.</p>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs text-gray-400 mb-1.5 block">Your Name <span className="text-red-400">*</span></label>
+                  <input
+                    className={`w-full bg-white/5 border rounded-xl px-4 py-3 text-white text-sm focus:outline-none placeholder-gray-600 transition-colors ${errors.name ? 'border-red-500/50' : 'border-white/10 focus:border-amber-400/50'}`}
+                    value={profile.name}
+                    onChange={e => { setProfile({ ...profile, name: e.target.value }); setErrors({ ...errors, name: '' }) }}
+                    placeholder="e.g. Alex Cole"
+                  />
+                  {errors.name && <p className="text-red-400 text-xs mt-1">{errors.name}</p>}
                 </div>
-              </motion.div>
-            )}
-            {step === 1 && (
-              <motion.div key="step1" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                <h2 className="text-xl font-bold text-white mb-1">Set up your workspace</h2>
-                <p className="text-gray-400 text-sm mb-6">Configure your workspace settings for your team.</p>
-                <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="text-xs text-gray-400 mb-1.5 block">Workspace Name <span className="text-red-400">*</span></label>
-                    <input className={`w-full bg-white/5 border rounded-xl px-4 py-3 text-white text-sm focus:outline-none placeholder-gray-600 transition-colors ${errors.workspaceName ? 'border-red-500/50' : 'border-white/10 focus:border-amber-400/50'}`} value={workspace.name} onChange={e => { setWorkspace({ ...workspace, name: e.target.value }); setErrors({ ...errors, workspaceName: '' }) }} placeholder="e.g. Neon Films Studio" />
-                    {errors.workspaceName && <p className="text-red-400 text-xs mt-1">{errors.workspaceName}</p>}
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-xs text-gray-400 mb-1.5 block">Currency</label>
-                      <select className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:border-amber-400/50 focus:outline-none" value={workspace.currency} onChange={e => setWorkspace({ ...workspace, currency: e.target.value })}>
-                        {CURRENCIES.map(c => <option key={c} className="bg-[#0A1020]">{c}</option>)}
-                      </select>
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-400 mb-1.5 block">Timezone</label>
-                      <select className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:border-amber-400/50 focus:outline-none" value={workspace.timezone} onChange={e => setWorkspace({ ...workspace, timezone: e.target.value })}>
-                        {TIMEZONES.map(t => <option key={t} className="bg-[#0A1020]">{t}</option>)}
-                      </select>
-                    </div>
+                    <label className="text-xs text-gray-400 mb-1.5 block">Your Role</label>
+                    <select
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:border-amber-400/50 focus:outline-none"
+                      value={profile.role}
+                      onChange={e => setProfile({ ...profile, role: e.target.value })}
+                    >
+                      {ROLES.map(r => <option key={r} value={r} className="bg-[#0A1020]">{r}</option>)}
+                    </select>
                   </div>
                   <div>
-                    <label className="text-xs text-gray-400 mb-1.5 block">Business Type</label>
-                    <div className="grid grid-cols-2 gap-2">
-                      {BUSINESS_TYPES.map(({ id, label, icon: Icon }) => (
-                        <button key={id} onClick={() => setWorkspace({ ...workspace, type: id })} className={`py-3 px-4 rounded-xl text-sm border transition-all flex items-center gap-2 ${workspace.type === id ? 'bg-amber-400/10 border-amber-400 text-amber-400' : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'}`}>
-                          <Icon className="w-4 h-4" />{label}
-                        </button>
-                      ))}
-                    </div>
+                    <label className="text-xs text-gray-400 mb-1.5 block">Company / Studio</label>
+                    <input
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:border-amber-400/50 focus:outline-none placeholder-gray-600"
+                      value={profile.company}
+                      onChange={e => setProfile({ ...profile, company: e.target.value })}
+                      placeholder="Optional"
+                    />
                   </div>
                 </div>
-              </motion.div>
-            )}
-            {step === 2 && (
-              <motion.div key="step2" initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}>
-                <h2 className="text-xl font-bold text-white mb-1">Invite your crew</h2>
-                <p className="text-gray-400 text-sm mb-6">Add your team members — you can also do this later.</p>
-                <div className="space-y-2.5">
-                  {emails.map((email, i) => (
-                    <div key={i} className="flex gap-2">
-                      <input type="email" className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:border-amber-400/50 focus:outline-none placeholder-gray-600" value={email} onChange={e => setEmails(emails.map((em, j) => j === i ? e.target.value : em))} placeholder={`crew${i + 1}@example.com`} />
-                      {emails.length > 1 && <button onClick={() => setEmails(emails.filter((_, j) => j !== i))} className="p-3 rounded-xl bg-white/5 text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"><X className="w-4 h-4" /></button>}
-                    </div>
-                  ))}
-                  {emails.length < 8 && <button onClick={() => setEmails([...emails, ''])} className="flex items-center gap-1.5 text-amber-400 text-sm hover:text-amber-300 transition-colors mt-1"><Plus className="w-3.5 h-3.5" />Add another</button>}
+                <div>
+                  <label className="text-xs text-gray-400 mb-1.5 block">Phone</label>
+                  <input
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:border-amber-400/50 focus:outline-none placeholder-gray-600"
+                    value={profile.phone}
+                    onChange={e => setProfile({ ...profile, phone: e.target.value })}
+                    placeholder="+44 7700 900000"
+                  />
                 </div>
-                <div className="mt-5 bg-amber-400/5 border border-amber-400/20 rounded-xl p-4">
-                  <p className="text-amber-400 text-xs font-semibold mb-1">Invite bonus</p>
-                  <p className="text-gray-400 text-xs">{validEmailCount >= 3 ? 'You have 3+ invites. Bonus applied automatically.' : 'Invite 3+ crew members and get 30 days of Pro access free.'}</p>
+              </div>
+            </div>
+          )}
+
+          {step === 1 && (
+            <div>
+              <h2 className="text-xl font-bold text-white mb-1">Set up your workspace</h2>
+              <p className="text-gray-400 text-sm mb-6">Configure your workspace settings for your team.</p>
+              <div className="space-y-4">
+                <div>
+                  <label className="text-xs text-gray-400 mb-1.5 block">Workspace Name <span className="text-red-400">*</span></label>
+                  <input
+                    className={`w-full bg-white/5 border rounded-xl px-4 py-3 text-white text-sm focus:outline-none placeholder-gray-600 transition-colors ${errors.workspaceName ? 'border-red-500/50' : 'border-white/10 focus:border-amber-400/50'}`}
+                    value={workspace.name}
+                    onChange={e => { setWorkspace({ ...workspace, name: e.target.value }); setErrors({ ...errors, workspaceName: '' }) }}
+                    placeholder="e.g. Neon Films Studio"
+                  />
+                  {errors.workspaceName && <p className="text-red-400 text-xs mt-1">{errors.workspaceName}</p>}
                 </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1.5 block">Currency</label>
+                    <select
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:border-amber-400/50 focus:outline-none"
+                      value={workspace.currency}
+                      onChange={e => setWorkspace({ ...workspace, currency: e.target.value })}
+                    >
+                      {CURRENCIES.map(c => <option key={c} className="bg-[#0A1020]">{c}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs text-gray-400 mb-1.5 block">Timezone</label>
+                    <select
+                      className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:border-amber-400/50 focus:outline-none"
+                      value={workspace.timezone}
+                      onChange={e => setWorkspace({ ...workspace, timezone: e.target.value })}
+                    >
+                      {TIMEZONES.map(t => <option key={t} className="bg-[#0A1020]">{t}</option>)}
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-xs text-gray-400 mb-1.5 block">Business Type</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {BUSINESS_TYPES.map(({ id, label, icon: Icon }) => (
+                      <button
+                        key={id}
+                        onClick={() => setWorkspace({ ...workspace, type: id })}
+                        className={`py-3 px-4 rounded-xl text-sm border transition-all flex items-center gap-2 ${workspace.type === id ? 'bg-amber-400/10 border-amber-400 text-amber-400' : 'bg-white/5 border-white/10 text-gray-400 hover:border-white/20'}`}
+                      >
+                        <Icon className="w-4 h-4" />{label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {step === 2 && (
+            <div>
+              <h2 className="text-xl font-bold text-white mb-1">Invite your crew</h2>
+              <p className="text-gray-400 text-sm mb-6">Add your team members — you can also do this later.</p>
+              <div className="space-y-2.5">
+                {emails.map((email, i) => (
+                  <div key={i} className="flex gap-2">
+                    <input
+                      type="email"
+                      className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm focus:border-amber-400/50 focus:outline-none placeholder-gray-600"
+                      value={email}
+                      onChange={e => setEmails(emails.map((em, j) => j === i ? e.target.value : em))}
+                      placeholder={`crew${i + 1}@example.com`}
+                    />
+                    {emails.length > 1 && (
+                      <button
+                        onClick={() => setEmails(emails.filter((_, j) => j !== i))}
+                        className="p-3 rounded-xl bg-white/5 text-gray-500 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+                {emails.length < 8 && (
+                  <button
+                    onClick={() => setEmails([...emails, ''])}
+                    className="flex items-center gap-1.5 text-amber-400 text-sm hover:text-amber-300 transition-colors mt-1"
+                  >
+                    <Plus className="w-3.5 h-3.5" />Add another
+                  </button>
+                )}
+              </div>
+              <div className="mt-5 bg-amber-400/5 border border-amber-400/20 rounded-xl p-4">
+                <p className="text-amber-400 text-xs font-semibold mb-1">Invite bonus</p>
+                <p className="text-gray-400 text-xs">
+                  {validEmailCount >= 3 ? 'You have 3+ invites. Bonus applied automatically.' : 'Invite 3+ crew members and get 30 days of Pro access free.'}
+                </p>
+              </div>
+            </div>
+          )}
+
           <div className="flex gap-3 mt-8">
             {step > 0 && (
-              <button onClick={back} className="flex items-center justify-center gap-1.5 flex-1 py-3 rounded-xl border border-white/10 text-gray-400 text-sm font-medium hover:bg-white/5 transition-colors">
+              <button
+                onClick={back}
+                className="flex items-center justify-center gap-1.5 flex-1 py-3 rounded-xl border border-white/10 text-gray-400 text-sm font-medium hover:bg-white/5 transition-colors"
+              >
                 <ArrowLeft className="w-4 h-4" />Back
               </button>
             )}
-            <motion.button onClick={next} whileHover={{ scale: 1.01 }} whileTap={{ scale: 0.99 }} className="flex-1 py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-bold text-sm transition-colors flex items-center justify-center gap-2">
+            <button
+              onClick={next}
+              className="flex-1 py-3 rounded-xl bg-amber-400 hover:bg-amber-300 text-black font-bold text-sm transition-colors flex items-center justify-center gap-2"
+            >
               {step < 2 ? <>Continue <ArrowRight className="w-4 h-4" /></> : <>Launch CrewDesk <ArrowRight className="w-4 h-4" /></>}
-            </motion.button>
+            </button>
           </div>
-          {step === 2 && <button onClick={() => router.push('/dashboard')} className="w-full mt-3 text-gray-500 text-xs hover:text-gray-400 transition-colors">Skip for now</button>}
+          {step === 2 && (
+            <button
+              onClick={() => router.push('/dashboard')}
+              className="w-full mt-3 text-gray-500 text-xs hover:text-gray-400 transition-colors"
+            >
+              Skip for now
+            </button>
+          )}
         </div>
-        <p className="text-center text-gray-600 text-xs mt-6">Already have an account?{' '}<a href="/login" className="text-amber-400 hover:text-amber-300 transition-colors">Sign in</a></p>
+        <p className="text-center text-gray-600 text-xs mt-6">
+          Already have an account?{' '}
+          <a href="/login" className="text-amber-400 hover:text-amber-300 transition-colors">Sign in</a>
+        </p>
       </div>
     </div>
   )
-      }
+          }
