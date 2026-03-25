@@ -1,7 +1,6 @@
 'use client';
-import { motion, useInView, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
-import { useRef, useState, useEffect } from 'react';
+import { useRef } from 'react';
 import { Zap, Users, FolderKanban, Receipt, FileText, MessageSquare, ArrowRight, CheckCircle, Star, Smartphone, Apple, Play, Shield } from 'lucide-react';
 
 const FEATURES = [
@@ -36,8 +35,6 @@ const NAV_ITEMS = [
 
 export default function LandingPage() {
   const featuresRef = useRef(null);
-  const featuresInView = useInView(featuresRef, { once: true, margin: '-100px' });
-
   return (
     <div className="min-h-screen bg-[#04080F] text-white overflow-x-hidden">
       {/* Nav */}
@@ -64,40 +61,27 @@ export default function LandingPage() {
       {/* Hero */}
       <section className="pt-32 pb-24 px-6">
         <div className="max-w-5xl mx-auto text-center">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-          >
-            <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-400 text-xs font-medium mb-6">
-              <Zap className="w-3 h-3" />
-              Now with AI-powered crew matching
-            </div>
-            <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold leading-tight mb-6">
-              The operating system<br />
-              <span className="text-amber-400">for your freelance</span><br />
-              workforce
-            </h1>
-            <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-10">
-              Manage projects, contracts, invoices, and your entire crew from a single platform. Built for ambitious agencies and production companies.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Link
-                href="/signup"
-                className="flex items-center gap-2 bg-amber-400 hover:bg-amber-300 text-black font-semibold px-8 py-3.5 rounded-xl transition-colors text-base"
-              >
-                Start free trial
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-              <Link
-                href="/pricing"
-                className="flex items-center gap-2 text-slate-400 hover:text-white border border-white/10 hover:border-white/20 px-8 py-3.5 rounded-xl transition-colors text-base"
-              >
-                View pricing
-              </Link>
-            </div>
-            <p className="text-sm text-slate-600 mt-4">14-day free trial. No credit card required.</p>
-          </motion.div>
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-400 text-xs font-medium mb-6">
+            <Zap className="w-3 h-3" />
+            Built for production companies and creative agencies
+          </div>
+          <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold leading-tight mb-6">
+            The operating system<br />
+            <span className="text-amber-400">for your freelance</span><br />
+            workforce
+          </h1>
+          <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-10">
+            Manage projects, contracts, invoices, and your entire crew from a single platform. Built for ambitious agencies and production companies.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+            <Link href="/signup" className="flex items-center gap-2 bg-amber-400 hover:bg-amber-300 text-black font-semibold px-8 py-3.5 rounded-xl transition-colors text-base">
+              Start free trial <ArrowRight className="w-4 h-4" />
+            </Link>
+            <Link href="/pricing" className="flex items-center gap-2 text-slate-400 hover:text-white border border-white/10 hover:border-white/20 px-8 py-3.5 rounded-xl transition-colors text-base">
+              View pricing
+            </Link>
+          </div>
+          <p className="text-sm text-slate-600 mt-4">14-day free trial. No credit card required.</p>
         </div>
       </section>
 
@@ -109,24 +93,17 @@ export default function LandingPage() {
             <p className="text-slate-400 max-w-xl mx-auto">One platform to replace the scattered tools slowing your team down.</p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {FEATURES.map((feature, i) => {
+            {FEATURES.map((feature) => {
               const Icon = feature.icon;
               const colors = COLOR_MAP[feature.color];
               return (
-                <motion.div
-                  key={feature.title}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={featuresInView ? { opacity: 1, y: 0 } : {}}
-                  transition={{ delay: i * 0.08 }}
-                  className="rounded-2xl border border-white/5 p-6"
-                  style={{ background: '#0A1020' }}
-                >
+                <div key={feature.title} className="rounded-2xl border border-white/5 p-6" style={{ background: '#0A1020' }}>
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-4 border ${colors}`}>
                     <Icon className="w-5 h-5" />
                   </div>
                   <h3 className="font-semibold text-white mb-2">{feature.title}</h3>
                   <p className="text-sm text-slate-400 leading-relaxed">{feature.desc}</p>
-                </motion.div>
+                </div>
               );
             })}
           </div>
@@ -148,7 +125,7 @@ export default function LandingPage() {
                     <Star key={i} className="w-4 h-4 text-amber-400 fill-amber-400" />
                   ))}
                 </div>
-                <p className="text-sm text-slate-300 leading-relaxed mb-4">"{t.text}"</p>
+                <p className="text-sm text-slate-300 leading-relaxed mb-4">&ldquo;{t.text}&rdquo;</p>
                 <div>
                   <p className="text-sm font-semibold text-white">{t.name}</p>
                   <p className="text-xs text-slate-500">{t.role}</p>
@@ -164,27 +141,21 @@ export default function LandingPage() {
         <div className="max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 mb-4 text-slate-400">
             <Smartphone className="w-5 h-5" />
-            <span className="text-sm font-medium">Available on iOS & Android</span>
+            <span className="text-sm font-medium">Available on iOS &amp; Android</span>
           </div>
           <h2 className="text-3xl md:text-4xl font-bold mb-4">Your crew, in your pocket</h2>
           <p className="text-slate-400 max-w-xl mx-auto mb-8">
             Approve timesheets, review invoices, and message your crew from anywhere. Full functionality on mobile.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
-            <Link
-              href="/mobile-app"
-              className="flex items-center gap-2.5 bg-white/5 hover:bg-white/10 border border-white/10 px-5 py-3 rounded-xl transition-colors"
-            >
+            <Link href="/mobile-app" className="flex items-center gap-2.5 bg-white/5 hover:bg-white/10 border border-white/10 px-5 py-3 rounded-xl transition-colors">
               <Apple className="w-5 h-5 text-white" />
               <div className="text-left">
                 <p className="text-xs text-slate-400">Download on the</p>
                 <p className="text-sm font-semibold text-white">App Store</p>
               </div>
             </Link>
-            <Link
-              href="/mobile-app"
-              className="flex items-center gap-2.5 bg-white/5 hover:bg-white/10 border border-white/10 px-5 py-3 rounded-xl transition-colors"
-            >
+            <Link href="/mobile-app" className="flex items-center gap-2.5 bg-white/5 hover:bg-white/10 border border-white/10 px-5 py-3 rounded-xl transition-colors">
               <Play className="w-5 h-5 text-white fill-white" />
               <div className="text-left">
                 <p className="text-xs text-slate-400">Get it on</p>
@@ -204,12 +175,8 @@ export default function LandingPage() {
             <p className="text-slate-400 mb-8">
               Join production teams and agencies managing their freelance workforce with CrewDesk.
             </p>
-            <Link
-              href="/signup"
-              className="inline-flex items-center gap-2 bg-amber-400 hover:bg-amber-300 text-black font-semibold px-8 py-3.5 rounded-xl transition-colors"
-            >
-              Start your free trial
-              <ArrowRight className="w-4 h-4" />
+            <Link href="/signup" className="inline-flex items-center gap-2 bg-amber-400 hover:bg-amber-300 text-black font-semibold px-8 py-3.5 rounded-xl transition-colors">
+              Start your free trial <ArrowRight className="w-4 h-4" />
             </Link>
             <p className="text-xs text-slate-600 mt-4">14-day free trial. No credit card required.</p>
           </div>
@@ -230,9 +197,9 @@ export default function LandingPage() {
             <Link href="/mobile-app" className="hover:text-white transition-colors">Mobile App</Link>
             <a href="mailto:info@crewdeskapp.com" className="hover:text-white transition-colors">Contact</a>
           </div>
-          <p className="text-xs text-slate-600">© 2026 CrewDesk. All rights reserved.</p>
+          <p className="text-xs text-slate-600">&copy; 2026 CrewDesk. All rights reserved.</p>
         </div>
       </footer>
     </div>
   );
-                  }
+      }
