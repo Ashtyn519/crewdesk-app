@@ -1,14 +1,12 @@
 'use client'
 import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
 import Sidebar from '@/components/Sidebar'
 import TopHeader from '@/components/TopHeader'
-import { Plus, Search, X, Star, Mail, Phone, Trash2, Edit2 } from 'lucide-react'
+import { Plus, Search, X, Star, Mail, Phone, Trash2, Edit2, ChevronDown } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
 
 type Status = 'available' | 'on-project' | 'unavailable'
-
 type CrewMember = {
   id: string
   name: string
@@ -70,7 +68,6 @@ function MemberModal({ mode, member, onClose, onSave }: {
     rating: member?.rating ?? 4,
   })
   const set = (k: string, v: string | number) => setForm(p => ({ ...p, [k]: v }))
-
   const submit = () => {
     if (!form.name.trim() || !form.role.trim()) return
     onSave({
@@ -87,23 +84,12 @@ function MemberModal({ mode, member, onClose, onSave }: {
       bio: form.bio.trim(),
     })
   }
-
   return (
-    <motion.div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
-      initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-      onClick={onClose}
-    >
-      <motion.div
-        className="bg-[#0A1020] border border-white/10 rounded-2xl p-7 w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto"
-        initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }}
-        onClick={e => e.stopPropagation()}
-      >
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-[#0A1020] border border-white/10 rounded-2xl p-7 w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-bold text-white">{mode === 'add' ? 'Add Crew Member' : 'Edit Member'}</h2>
-          <button onClick={onClose} className="text-slate-500 hover:text-white">
-            <X className="w-5 h-5" />
-          </button>
+          <button onClick={onClose} className="text-slate-500 hover:text-white"><X className="w-5 h-5" /></button>
         </div>
         <div className="space-y-4 mb-6">
           <div className="grid grid-cols-2 gap-3">
@@ -119,13 +105,13 @@ function MemberModal({ mode, member, onClose, onSave }: {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs text-slate-400 mb-1 block">Department</label>
-              <select value={form.department} onChange={e => set('department', e.target.value)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400/50">
+              <select value={form.department} onChange={e => set('department', e.target.value)} className="w-full bg-[#0A1020] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400/50">
                 {DEPARTMENTS.filter(d => d !== 'All').map(d => <option key={d} value={d} className="bg-[#0A1020]">{d}</option>)}
               </select>
             </div>
             <div>
               <label className="text-xs text-slate-400 mb-1 block">Status</label>
-              <select value={form.status} onChange={e => set('status', e.target.value as Status)} className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400/50">
+              <select value={form.status} onChange={e => set('status', e.target.value as Status)} className="w-full bg-[#0A1020] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400/50">
                 <option value="available" className="bg-[#0A1020]">Available</option>
                 <option value="on-project" className="bg-[#0A1020]">On Project</option>
                 <option value="unavailable" className="bg-[#0A1020]">Unavailable</option>
@@ -164,8 +150,8 @@ function MemberModal({ mode, member, onClose, onSave }: {
         <button onClick={submit} disabled={!form.name.trim() || !form.role.trim()} className="w-full py-3 bg-amber-400 text-black font-bold rounded-xl text-sm hover:bg-amber-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
           {mode === 'add' ? 'Add to Roster' : 'Save Changes'}
         </button>
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   )
 }
 
@@ -214,7 +200,7 @@ export default function CrewPage() {
   return (
     <div className="flex h-screen bg-[#04080F] overflow-hidden">
       <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden ml-64">
         <TopHeader />
         <main className="flex-1 overflow-y-auto p-6">
           <div className="flex items-center justify-between mb-6">
@@ -223,10 +209,10 @@ export default function CrewPage() {
               <p className="text-slate-400 text-sm mt-0.5">Manage your freelancers and production crew</p>
             </div>
             <button onClick={() => setModal({ mode: 'add' })} className="flex items-center gap-2 px-4 py-2 bg-amber-400 text-black font-semibold rounded-xl text-sm hover:bg-amber-300 transition-colors">
-              <Plus size={16} />
-              Add Member
+              <Plus size={16} />Add Member
             </button>
           </div>
+
           <div className="grid grid-cols-4 gap-4 mb-6">
             {[
               { label: 'Total Crew', value: crew.length, color: 'text-white' },
@@ -240,6 +226,7 @@ export default function CrewPage() {
               </div>
             ))}
           </div>
+
           <div className="flex items-center gap-3 mb-5">
             <div className="relative flex-1 max-w-sm">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
@@ -251,9 +238,10 @@ export default function CrewPage() {
               ))}
             </div>
           </div>
+
           <div className="space-y-3">
             {filtered.map(member => (
-              <motion.div key={member.id} layout className="bg-[#0A1020] border border-white/5 rounded-xl overflow-hidden">
+              <div key={member.id} className="bg-[#0A1020] border border-white/5 rounded-xl overflow-hidden">
                 <div className="flex items-center justify-between p-4 cursor-pointer" onClick={() => setExpanded(expanded === member.id ? null : member.id)}>
                   <div className="flex items-center gap-4">
                     <div className="w-10 h-10 rounded-full bg-amber-400/10 border border-amber-400/20 flex items-center justify-center">
@@ -272,25 +260,24 @@ export default function CrewPage() {
                     <span className="text-sm font-semibold text-amber-400">£{member.rate}/day</span>
                     <button onClick={e => { e.stopPropagation(); setModal({ mode: 'edit', member }) }} className="text-slate-500 hover:text-white transition-colors p-1"><Edit2 size={14} /></button>
                     <button onClick={e => { e.stopPropagation(); setDeleteConfirm(member.id) }} className="text-slate-500 hover:text-rose-400 transition-colors p-1"><Trash2 size={14} /></button>
+                    <ChevronDown size={14} className={`text-slate-500 transition-transform ${expanded === member.id ? 'rotate-180' : ''}`} />
                   </div>
                 </div>
-                <AnimatePresence>
-                  {expanded === member.id && (
-                    <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="border-t border-white/5 px-4 pb-4 pt-3">
-                      <p className="text-sm text-slate-300 mb-3">{member.bio}</p>
-                      <div className="flex flex-wrap gap-2 mb-3">
-                        {member.skills.map(skill => (
-                          <span key={skill} className="text-xs bg-white/5 border border-white/10 text-slate-300 px-2 py-1 rounded-full">{skill}</span>
-                        ))}
-                      </div>
-                      <div className="flex gap-4 text-xs text-slate-400">
-                        {member.email && <a href={`mailto:${member.email}`} className="flex items-center gap-1 hover:text-amber-400 transition-colors"><Mail size={12} />{member.email}</a>}
-                        {member.phone && <span className="flex items-center gap-1"><Phone size={12} />{member.phone}</span>}
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
-              </motion.div>
+                {expanded === member.id && (
+                  <div className="border-t border-white/5 px-4 pb-4 pt-3">
+                    <p className="text-sm text-slate-300 mb-3">{member.bio}</p>
+                    <div className="flex flex-wrap gap-2 mb-3">
+                      {member.skills.map(skill => (
+                        <span key={skill} className="text-xs bg-white/5 border border-white/10 text-slate-300 px-2 py-1 rounded-full">{skill}</span>
+                      ))}
+                    </div>
+                    <div className="flex gap-4 text-xs text-slate-400">
+                      {member.email && <a href={`mailto:${member.email}`} className="flex items-center gap-1 hover:text-amber-400 transition-colors"><Mail size={12} />{member.email}</a>}
+                      {member.phone && <span className="flex items-center gap-1"><Phone size={12} />{member.phone}</span>}
+                    </div>
+                  </div>
+                )}
+              </div>
             ))}
             {filtered.length === 0 && (
               <div className="text-center py-12">
@@ -300,23 +287,21 @@ export default function CrewPage() {
           </div>
         </main>
       </div>
-      <AnimatePresence>
-        {modal && <MemberModal mode={modal.mode} member={modal.member} onClose={() => setModal(null)} onSave={saveMember} />}
-      </AnimatePresence>
-      <AnimatePresence>
-        {deleteConfirm && (
-          <motion.div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <motion.div className="bg-[#0A1020] border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl" initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }}>
-              <h3 className="text-base font-bold text-white mb-2">Remove Crew Member</h3>
-              <p className="text-sm text-slate-400 mb-6">This will remove them from the roster. Are you sure?</p>
-              <div className="flex gap-3">
-                <button onClick={() => setDeleteConfirm(null)} className="flex-1 py-2.5 border border-white/10 text-slate-300 rounded-xl text-sm hover:bg-white/5 transition-colors">Cancel</button>
-                <button onClick={() => deleteMember(deleteConfirm)} className="flex-1 py-2.5 bg-rose-500 text-white font-semibold rounded-xl text-sm hover:bg-rose-600 transition-colors">Remove</button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+
+      {modal && <MemberModal mode={modal.mode} member={modal.member} onClose={() => setModal(null)} onSave={saveMember} />}
+
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#0A1020] border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+            <h3 className="text-base font-bold text-white mb-2">Remove Crew Member</h3>
+            <p className="text-sm text-slate-400 mb-6">This will remove them from the roster. Are you sure?</p>
+            <div className="flex gap-3">
+              <button onClick={() => setDeleteConfirm(null)} className="flex-1 py-2.5 border border-white/10 text-slate-300 rounded-xl text-sm hover:bg-white/5 transition-colors">Cancel</button>
+              <button onClick={() => deleteMember(deleteConfirm)} className="flex-1 py-2.5 bg-rose-500 text-white font-semibold rounded-xl text-sm hover:bg-rose-600 transition-colors">Remove</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
-}
+                }
