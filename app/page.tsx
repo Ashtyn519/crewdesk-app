@@ -32,7 +32,6 @@ const NAV_ITEMS = [
   { label: 'Features', href: '/#features' },
   { label: 'Pricing', href: '/pricing' },
   { label: 'Mobile App', href: '/mobile-app' },
-  { label: 'Blog', href: '#' },
 ];
 
 export default function LandingPage() {
