@@ -12,394 +12,405 @@ const TABS = [
   { id: 'billing', label: 'Billing', Icon: CreditCard },
   { id: 'notifications', label: 'Notifications', Icon: Bell },
   { id: 'security', label: 'Security', Icon: Lock },
-  ]
+]
 
 function Toggle({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
-    return (
-          <button
-                  onClick={() => onChange(!on)}
-                  className={`relative w-10 h-5 rounded-full transition-all duration-300 ${on ? 'bg-amber-500' : 'bg-white/10'}`}
-                >
-                <motion.div
-                          animate={{ x: on ? 20 : 2 }}
-                          transition={{ type: 'spring', stiffness: 500, damping: 30 }}
-                          className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-md"
-                        />
-          </button>button>
-        )
+  return (
+    <button
+      onClick={() => onChange(!on)}
+      className={`relative w-10 h-5 rounded-full transition-all duration-300 ${on ? 'bg-amber-500' : 'bg-white/10'}`}
+    >
+      <motion.div
+        animate={{ x: on ? 20 : 2 }}
+        transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+        className="absolute top-0.5 w-4 h-4 rounded-full bg-white shadow-md"
+      />
+    </button>
+  )
 }
 
 function SettingsSection({ title, children }: { title: string; children: React.ReactNode }) {
-    return (
-          <div className="rounded-2xl border border-white/5 p-6 mb-4" style={{ background: '#0A1020' }}>
-                <h3 className="text-sm font-semibold text-white mb-5">{title}</h3>h3>
-            {children}
-          </div>div>
-        )
+  return (
+    <div className="rounded-2xl border border-white/5 p-6 mb-4" style={{ background: '#0A1020' }}>
+      <h3 className="text-sm font-semibold text-white mb-5">{title}</h3>
+      {children}
+    </div>
+  )
 }
 
 function SettingsRow({ label, desc, children }: { label: string; desc?: string; children: React.ReactNode }) {
-    return (
-          <div className="flex items-center justify-between py-3 border-b border-white/5 last:border-0">
-                <div>
-                        <p className="text-sm font-medium text-white">{label}</p>p>
-                  {desc && <p className="text-xs text-slate-500 mt-0.5">{desc}</p>p>}
-                </div>div>
-                <div className="ml-4">{children}</div>div>
-          </div>div>
-        )
+  return (
+    <div className="flex items-center justify-between py-3 border-b border-white/5 last:border-0">
+      <div>
+        <p className="text-sm font-medium text-white">{label}</p>
+        {desc && <p className="text-xs text-slate-500 mt-0.5">{desc}</p>}
+      </div>
+      <div className="ml-4">{children}</div>
+    </div>
+  )
 }
 
 export default function SettingsPage() {
-    const [activeTab, setActiveTab] = useState('profile')
-        const [saved, setSaved] = useState(false)
-            const [profile, setProfile] = useState({
-                  name: 'Ashtyn519',
-                  email: 'ashtyn@crewdesk.app',
-                  role: 'Production Manager',
-                  bio: 'Freelance production manager based in London.',
-                  phone: '+44 7700 900123'
-            })
-                const [notifs, setNotifs] = useState({
-                      newMessage: true, invoicePaid: true, contractSigned: true,
-                      crewAdded: false, weeklyReport: true, marketing: false
-                })
-                    const [workspace, setWorkspace] = useState({
-                          name: 'My Workspace', currency: 'GBP', timezone: 'Europe/London', dateFormat: 'DD/MM/YYYY'
-                    })
-                        const [passwords, setPasswords] = useState({ current: '', next: '', confirm: '' })
-                            const [pwError, setPwError] = useState('')
-                                const [pwSuccess, setPwSuccess] = useState(false)
-                                  
-                                    const save = () => {
-                                          setSaved(true)
-                                                setTimeout(() => setSaved(false), 2500)
-                                    }
-                                      
-                                        const changePassword = () => {
-                                              setPwError('')
-                                                    setPwSuccess(false)
-                                                          if (!passwords.current) { setPwError('Please enter your current password.'); return }
-                                              if (passwords.next.length < 8) { setPwError('New password must be at least 8 characters.'); return }
-                                              if (passwords.next !== passwords.confirm) { setPwError('Passwords do not match.'); return }
-                                              setPwSuccess(true)
-                                                    setPasswords({ current: '', next: '', confirm: '' })
-                                                          setTimeout(() => setPwSuccess(false), 3000)
-                                        }
-                                          
-                                            return (
-                                                  <div className="flex h-screen bg-[#04080F] overflow-hidden">
-                                                        <Sidebar />
-                                                        <div className="flex flex-col flex-1 min-w-0 ml-64 overflow-hidden">
-                                                                <TopHeader />
-                                                                <div className="flex-1 overflow-y-auto p-8">
-                                                                          <div className="max-w-4xl mx-auto">
-                                                                                      <div className="mb-8">
-                                                                                                    <h1 className="text-2xl font-black text-white tracking-tight">Settings</h1>h1>
-                                                                                                    <p className="text-slate-400 text-sm mt-1">Manage your account, workspace, and preferences</p>p>
-                                                                                      </div>div>
-                                                                          
-                                                                            {/* Tab bar */}
-                                                                                      <div className="flex gap-1 mb-8 bg-white/5 p-1 rounded-xl w-fit border border-white/5">
-                                                                                        {TABS.map(tab => (
-                                                                    <button
-                                                                                        key={tab.id}
-                                                                                        onClick={() => setActiveTab(tab.id)}
-                                                                                        className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                                                                                                              activeTab === tab.id
-                                                                                                                ? 'bg-amber-400 text-black shadow-sm'
-                                                                                                                : 'text-slate-400 hover:text-white'
-                                                                                          }`}
-                                                                                      >
-                                                                                      <tab.Icon className="w-3.5 h-3.5" />
-                                                                      {tab.label}
-                                                                    </button>button>
-                                                                  ))}
-                                                                                      </div>div>
-                                                                          
-                                                                                      <AnimatePresence mode="wait">
-                                                                                                    <motion.div
-                                                                                                                      key={activeTab}
-                                                                                                                      initial={{ opacity: 0, y: 8 }}
-                                                                                                                      animate={{ opacity: 1, y: 0 }}
-                                                                                                                      exit={{ opacity: 0, y: -8 }}
-                                                                                                                      transition={{ duration: 0.15 }}
-                                                                                                                    >
-                                                                                                      {/* PROFILE */}
-                                                                                                      {activeTab === 'profile' && (
-                                                                                                                                        <div>
-                                                                                                                                                            <SettingsSection title="Personal Information">
-                                                                                                                                                                                  <div className="grid grid-cols-2 gap-4 mb-4">
-                                                                                                                                                                                                          <div>
-                                                                                                                                                                                                                                    <label className="text-xs text-slate-400 mb-1 block">Full Name</label>label>
-                                                                                                                                                                                                                                    <input
-                                                                                                                                                                                                                                                                  value={profile.name}
-                                                                                                                                                                                                                                                                  onChange={e => setProfile(p => ({ ...p, name: e.target.value }))}
-                                                                                                                                                                                                                                                                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-400/50"
-                                                                                                                                                                                                                                                                />
-                                                                                                                                                                                                                                  </div>div>
-                                                                                                                                                                                                          <div>
-                                                                                                                                                                                                                                    <label className="text-xs text-slate-400 mb-1 block">Email Address</label>label>
-                                                                                                                                                                                                                                    <input
-                                                                                                                                                                                                                                                                  value={profile.email}
-                                                                                                                                                                                                                                                                  onChange={e => setProfile(p => ({ ...p, email: e.target.value }))}
-                                                                                                                                                                                                                                                                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-400/50"
-                                                                                                                                                                                                                                                                />
-                                                                                                                                                                                                                                  </div>div>
-                                                                                                                                                                                                          <div>
-                                                                                                                                                                                                                                    <label className="text-xs text-slate-400 mb-1 block">Role</label>label>
-                                                                                                                                                                                                                                    <input
-                                                                                                                                                                                                                                                                  value={profile.role}
-                                                                                                                                                                                                                                                                  onChange={e => setProfile(p => ({ ...p, role: e.target.value }))}
-                                                                                                                                                                                                                                                                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-400/50"
-                                                                                                                                                                                                                                                                />
-                                                                                                                                                                                                                                  </div>div>
-                                                                                                                                                                                                          <div>
-                                                                                                                                                                                                                                    <label className="text-xs text-slate-400 mb-1 block">Phone</label>label>
-                                                                                                                                                                                                                                    <input
-                                                                                                                                                                                                                                                                  value={profile.phone}
-                                                                                                                                                                                                                                                                  onChange={e => setProfile(p => ({ ...p, phone: e.target.value }))}
-                                                                                                                                                                                                                                                                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-400/50"
-                                                                                                                                                                                                                                                                />
-                                                                                                                                                                                                                                  </div>div>
-                                                                                                                                                                                                          <div className="col-span-2">
-                                                                                                                                                                                                                                    <label className="text-xs text-slate-400 mb-1 block">Bio</label>label>
-                                                                                                                                                                                                                                    <textarea
-                                                                                                                                                                                                                                                                  value={profile.bio}
-                                                                                                                                                                                                                                                                  onChange={e => setProfile(p => ({ ...p, bio: e.target.value }))}
-                                                                                                                                                                                                                                                                  rows={3}
-                                                                                                                                                                                                                                                                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-400/50 resize-none"
-                                                                                                                                                                                                                                                                />
-                                                                                                                                                                                                                                  </div>div>
-                                                                                                                                                                                                        </div>div>
-                                                                                                                                                                                  <div className="flex items-center gap-3">
-                                                                                                                                                                                                          <button
-                                                                                                                                                                                                                                      onClick={save}
-                                                                                                                                                                                                                                      className="px-5 py-2 bg-amber-400 text-black font-bold text-sm rounded-xl hover:bg-amber-300 transition-colors"
-                                                                                                                                                                                                                                    >
-                                                                                                                                                                                                                                    Save Changes
-                                                                                                                                                                                                                                  </button>button>
-                                                                                                                                                                                                          <AnimatePresence>
-                                                                                                                                                                                                                                    {saved && (
-                                                                                                                                                                      <motion.div
-                                                                                                                                                                                                      initial={{ opacity: 0, x: -8 }}
-                                                                                                                                                                                                      animate={{ opacity: 1, x: 0 }}
-                                                                                                                                                                                                      exit={{ opacity: 0 }}
-                                                                                                                                                                                                      className="flex items-center gap-1.5 text-emerald-400 text-sm"
-                                                                                                                                                                                                    >
-                                                                                                                                                                                                    <Check className="w-4 h-4" /> Saved
-                                                                                                                                                                        </motion.div>motion.div>
-                                                                                                                                                                    )}
-                                                                                                                                                                                                                                  </AnimatePresence>AnimatePresence>
-                                                                                                                                                                                                        </div>div>
-                                                                                                                                                              </SettingsSection>SettingsSection>
-                                                                                                                                          </div>div>
-                                                                                                                    )}
-                                                                                                    
-                                                                                                      {/* WORKSPACE */}
-                                                                                                      {activeTab === 'workspace' && (
-                                                                                                                                        <div>
-                                                                                                                                                            <SettingsSection title="Workspace Settings">
-                                                                                                                                                                                  <div className="grid grid-cols-2 gap-4 mb-4">
-                                                                                                                                                                                                          <div>
-                                                                                                                                                                                                                                    <label className="text-xs text-slate-400 mb-1 block">Workspace Name</label>label>
-                                                                                                                                                                                                                                    <input
-                                                                                                                                                                                                                                                                  value={workspace.name}
-                                                                                                                                                                                                                                                                  onChange={e => setWorkspace(w => ({ ...w, name: e.target.value }))}
-                                                                                                                                                                                                                                                                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-400/50"
-                                                                                                                                                                                                                                                                />
-                                                                                                                                                                                                                                  </div>div>
-                                                                                                                                                                                                          <div>
-                                                                                                                                                                                                                                    <label className="text-xs text-slate-400 mb-1 block">Currency</label>label>
-                                                                                                                                                                                                                                    <select
-                                                                                                                                                                                                                                                                  value={workspace.currency}
-                                                                                                                                                                                                                                                                  onChange={e => setWorkspace(w => ({ ...w, currency: e.target.value }))}
-                                                                                                                                                                                                                                                                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-400/50"
-                                                                                                                                                                                                                                                                >
-                                                                                                                                                                                                                                                                {['GBP', 'USD', 'EUR', 'CAD', 'AUD'].map(c => <option key={c} value={c} className="bg-[#0A1020]">{c}</option>option>)}
-                                                                                                                                                                                                                                                              </select>select>
-                                                                                                                                                                                                                                  </div>div>
-                                                                                                                                                                                                          <div>
-                                                                                                                                                                                                                                    <label className="text-xs text-slate-400 mb-1 block">Timezone</label>label>
-                                                                                                                                                                                                                                    <select
-                                                                                                                                                                                                                                                                  value={workspace.timezone}
-                                                                                                                                                                                                                                                                  onChange={e => setWorkspace(w => ({ ...w, timezone: e.target.value }))}
-                                                                                                                                                                                                                                                                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-400/50"
-                                                                                                                                                                                                                                                                >
-                                                                                                                                                                                                                                                                {['Europe/London', 'America/New_York', 'America/Los_Angeles', 'Europe/Paris', 'Asia/Tokyo'].map(tz => (
-                                                                                                                                                                                                                                                                                                <option key={tz} value={tz} className="bg-[#0A1020]">{tz}</option>option>
-                                                                                                                                                                                                                                                                                              ))}
-                                                                                                                                                                                                                                                              </select>select>
-                                                                                                                                                                                                                                  </div>div>
-                                                                                                                                                                                                          <div>
-                                                                                                                                                                                                                                    <label className="text-xs text-slate-400 mb-1 block">Date Format</label>label>
-                                                                                                                                                                                                                                    <select
-                                                                                                                                                                                                                                                                  value={workspace.dateFormat}
-                                                                                                                                                                                                                                                                  onChange={e => setWorkspace(w => ({ ...w, dateFormat: e.target.value }))}
-                                                                                                                                                                                                                                                                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-400/50"
-                                                                                                                                                                                                                                                                >
-                                                                                                                                                                                                                                                                {['DD/MM/YYYY', 'MM/DD/YYYY', 'YYYY-MM-DD'].map(f => <option key={f} value={f} className="bg-[#0A1020]">{f}</option>option>)}
-                                                                                                                                                                                                                                                              </select>select>
-                                                                                                                                                                                                                                  </div>div>
-                                                                                                                                                                                                        </div>div>
-                                                                                                                                                                                  <button onClick={save} className="px-5 py-2 bg-amber-400 text-black font-bold text-sm rounded-xl hover:bg-amber-300 transition-colors">
-                                                                                                                                                                                                          Save Changes
-                                                                                                                                                                                                        </button>button>
-                                                                                                                                                              </SettingsSection>SettingsSection>
-                                                                                                                                          </div>div>
-                                                                                                                    )}
-                                                                                                    
-                                                                                                      {/* BILLING */}
-                                                                                                      {activeTab === 'billing' && (
-                                                                                                                                        <div>
-                                                                                                                                                            <SettingsSection title="Current Plan">
-                                                                                                                                                                                  <div className="flex items-start justify-between p-4 rounded-xl bg-amber-400/5 border border-amber-400/20 mb-4">
-                                                                                                                                                                                                          <div>
-                                                                                                                                                                                                                                    <p className="text-sm font-bold text-white mb-0.5">Growth Plan</p>p>
-                                                                                                                                                                                                                                    <p className="text-xs text-slate-400">£99/month · Renews 25 April 2026</p>p>
-                                                                                                                                                                                                                                    <div className="flex items-center gap-1.5 mt-2">
-                                                                                                                                                                                                                                                                <div className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                                                                                                                                                                                                                                                                <span className="text-xs text-emerald-400 font-medium">Active</span>span>
-                                                                                                                                                                                                                                                              </div>div>
-                                                                                                                                                                                                                                  </div>div>
-                                                                                                                                                                                                          <a
-                                                                                                                                                                                                                                      href="mailto:info@crewdeskapp.com?subject=Upgrade Plan"
-                                                                                                                                                                                                                                      className="flex items-center gap-1.5 px-4 py-2 bg-amber-400 text-black font-bold text-xs rounded-xl hover:bg-amber-300 transition-colors"
-                                                                                                                                                                                                                                    >
-                                                                                                                                                                                                                                    Upgrade Plan
-                                                                                                                                                                                                                                    <ChevronRight className="w-3.5 h-3.5" />
-                                                                                                                                                                                                                                  </a>a>
-                                                                                                                                                                                                        </div>div>
-                                                                                                                                                                                  <SettingsRow label="Invoices" desc="Download past invoices and receipts">
-                                                                                                                                                                                                          <button className="text-xs text-amber-400 hover:text-amber-300 font-medium flex items-center gap-1">
-                                                                                                                                                                                                                                    View all <ExternalLink className="w-3 h-3" />
-                                                                                                                                                                                                                                  </button>button>
-                                                                                                                                                                                                        </SettingsRow>SettingsRow>
-                                                                                                                                                                                  <SettingsRow label="Payment Method" desc="Visa ending in 4242">
-                                                                                                                                                                                                          <button className="text-xs text-slate-400 hover:text-white font-medium">Update</button>button>
-                                                                                                                                                                                                        </SettingsRow>SettingsRow>
-                                                                                                                                                              </SettingsSection>SettingsSection>
-                                                                                                                                                            <SettingsSection title="Need Help with Billing?">
-                                                                                                                                                                                  <p className="text-sm text-slate-400 mb-4">For billing enquiries, plan changes, or to talk to our team, reach out directly.</p>p>
-                                                                                                                                                                                  <a
-                                                                                                                                                                                                            href="mailto:info@crewdeskapp.com"
-                                                                                                                                                                                                            className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm font-medium text-white hover:bg-white/10 transition-colors"
-                                                                                                                                                                                                          >
-                                                                                                                                                                                                          <Mail className="w-4 h-4 text-amber-400" />
-                                                                                                                                                                                                          info@crewdeskapp.com
-                                                                                                                                                                                                        </a>a>
-                                                                                                                                                              </SettingsSection>SettingsSection>
-                                                                                                                                          </div>div>
-                                                                                                                    )}
-                                                                                                    
-                                                                                                      {/* NOTIFICATIONS */}
-                                                                                                      {activeTab === 'notifications' && (
-                                                                                                                                        <div>
-                                                                                                                                                            <SettingsSection title="Email Notifications">
-                                                                                                                                                                                  <SettingsRow label="New message" desc="When a crew member sends you a message">
-                                                                                                                                                                                                          <Toggle on={notifs.newMessage} onChange={v => setNotifs(n => ({ ...n, newMessage: v }))} />
-                                                                                                                                                                                                        </SettingsRow>SettingsRow>
-                                                                                                                                                                                  <SettingsRow label="Invoice paid" desc="When a client pays an invoice">
-                                                                                                                                                                                                          <Toggle on={notifs.invoicePaid} onChange={v => setNotifs(n => ({ ...n, invoicePaid: v }))} />
-                                                                                                                                                                                                        </SettingsRow>SettingsRow>
-                                                                                                                                                                                  <SettingsRow label="Contract signed" desc="When a contract is signed by all parties">
-                                                                                                                                                                                                          <Toggle on={notifs.contractSigned} onChange={v => setNotifs(n => ({ ...n, contractSigned: v }))} />
-                                                                                                                                                                                                        </SettingsRow>SettingsRow>
-                                                                                                                                                                                  <SettingsRow label="Crew member added" desc="When someone joins your workspace">
-                                                                                                                                                                                                          <Toggle on={notifs.crewAdded} onChange={v => setNotifs(n => ({ ...n, crewAdded: v }))} />
-                                                                                                                                                                                                        </SettingsRow>SettingsRow>
-                                                                                                                                                                                  <SettingsRow label="Weekly report" desc="Summary of activity every Monday morning">
-                                                                                                                                                                                                          <Toggle on={notifs.weeklyReport} onChange={v => setNotifs(n => ({ ...n, weeklyReport: v }))} />
-                                                                                                                                                                                                        </SettingsRow>SettingsRow>
-                                                                                                                                                                                  <SettingsRow label="Product updates" desc="New features and announcements from CrewDesk">
-                                                                                                                                                                                                          <Toggle on={notifs.marketing} onChange={v => setNotifs(n => ({ ...n, marketing: v }))} />
-                                                                                                                                                                                                        </SettingsRow>SettingsRow>
-                                                                                                                                                              </SettingsSection>SettingsSection>
-                                                                                                                                          </div>div>
-                                                                                                                    )}
-                                                                                                    
-                                                                                                      {/* SECURITY */}
-                                                                                                      {activeTab === 'security' && (
-                                                                                                                                        <div>
-                                                                                                                                                            <SettingsSection title="Change Password">
-                                                                                                                                                                                  <div className="space-y-3 mb-4">
-                                                                                                                                                                                                          <div>
-                                                                                                                                                                                                                                    <label className="text-xs text-slate-400 mb-1 block">Current Password</label>label>
-                                                                                                                                                                                                                                    <input
-                                                                                                                                                                                                                                                                  type="password"
-                                                                                                                                                                                                                                                                  value={passwords.current}
-                                                                                                                                                                                                                                                                  onChange={e => setPasswords(p => ({ ...p, current: e.target.value }))}
-                                                                                                                                                                                                                                                                  placeholder="••••••••"
-                                                                                                                                                                                                                                                                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-400/50"
-                                                                                                                                                                                                                                                                />
-                                                                                                                                                                                                                                  </div>div>
-                                                                                                                                                                                                          <div>
-                                                                                                                                                                                                                                    <label className="text-xs text-slate-400 mb-1 block">New Password</label>label>
-                                                                                                                                                                                                                                    <input
-                                                                                                                                                                                                                                                                  type="password"
-                                                                                                                                                                                                                                                                  value={passwords.next}
-                                                                                                                                                                                                                                                                  onChange={e => setPasswords(p => ({ ...p, next: e.target.value }))}
-                                                                                                                                                                                                                                                                  placeholder="••••••••"
-                                                                                                                                                                                                                                                                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-400/50"
-                                                                                                                                                                                                                                                                />
-                                                                                                                                                                                                                                  </div>div>
-                                                                                                                                                                                                          <div>
-                                                                                                                                                                                                                                    <label className="text-xs text-slate-400 mb-1 block">Confirm New Password</label>label>
-                                                                                                                                                                                                                                    <input
-                                                                                                                                                                                                                                                                  type="password"
-                                                                                                                                                                                                                                                                  value={passwords.confirm}
-                                                                                                                                                                                                                                                                  onChange={e => setPasswords(p => ({ ...p, confirm: e.target.value }))}
-                                                                                                                                                                                                                                                                  placeholder="••••••••"
-                                                                                                                                                                                                                                                                  className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:outline-none focus:border-amber-400/50"
-                                                                                                                                                                                                                                                                />
-                                                                                                                                                                                                                                  </div>div>
-                                                                                                                                                                                                        </div>div>
-                                                                                                                                                                                  <AnimatePresence>
-                                                                                                                                                                                                          {pwError && (
-                                                                                                                                                                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                                                                                                                                                                                                  className="flex items-center gap-2 text-red-400 text-xs mb-3">
-                                                                                                                                                                                                <AlertCircle className="w-3.5 h-3.5" />{pwError}
-                                                                                                                                                                      </motion.div>motion.div>
-                                                                                                                                                                  )}
-                                                                                                                                                                                                          {pwSuccess && (
-                                                                                                                                                                    <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                                                                                                                                                                                                  className="flex items-center gap-2 text-emerald-400 text-xs mb-3">
-                                                                                                                                                                                                <Check className="w-3.5 h-3.5" />Password updated successfully
-                                                                                                                                                                      </motion.div>motion.div>
-                                                                                                                                                                  )}
-                                                                                                                                                                                                        </AnimatePresence>AnimatePresence>
-                                                                                                                                                                                  <button
-                                                                                                                                                                                                            onClick={changePassword}
-                                                                                                                                                                                                            className="px-5 py-2 bg-amber-400 text-black font-bold text-sm rounded-xl hover:bg-amber-300 transition-colors"
-                                                                                                                                                                                                          >
-                                                                                                                                                                                                          Update Password
-                                                                                                                                                                                                        </button>button>
-                                                                                                                                                              </SettingsSection>SettingsSection>
-                                                                                                                                                            <SettingsSection title="Two-Factor Authentication">
-                                                                                                                                                                                  <SettingsRow label="Authenticator app" desc="Use an authenticator app for additional security">
-                                                                                                                                                                                                          <button className="text-xs text-amber-400 hover:text-amber-300 font-medium">Set up</button>button>
-                                                                                                                                                                                                        </SettingsRow>SettingsRow>
-                                                                                                                                                                                  <SettingsRow label="SMS verification" desc="Receive a code via text message">
-                                                                                                                                                                                                          <button className="text-xs text-slate-400 hover:text-white font-medium">Enable</button>button>
-                                                                                                                                                                                                        </SettingsRow>SettingsRow>
-                                                                                                                                                              </SettingsSection>SettingsSection>
-                                                                                                                                                            <SettingsSection title="Support">
-                                                                                                                                                                                  <p className="text-sm text-slate-400 mb-4">For account security issues or to contact our team:</p>p>
-                                                                                                                                                                                  <a
-                                                                                                                                                                                                            href="mailto:info@crewdeskapp.com"
-                                                                                                                                                                                                            className="inline-flex items-center gap-2 px-5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm font-medium text-white hover:bg-white/10 transition-colors"
-                                                                                                                                                                                                          >
-                                                                                                                                                                                                          <Mail className="w-4 h-4 text-amber-400" />
-                                                                                                                                                                                                          info@crewdeskapp.com
-                                                                                                                                                                                                        </a>a>
-                                                                                                                                                              </SettingsSection>SettingsSection>
-                                                                                                                                          </div>div>
-                                                                                                                    )}
-                                                                                                      </motion.div>motion.div>
-                                                                                      </AnimatePresence>AnimatePresence>
-                                                                          </div>div>
-                                                                </div>div>
-                                                        </div>div>
-                                                  </div>div>
-                                                )
-                                              }</button>
+  const [activeTab, setActiveTab] = useState('profile')
+  const [saved, setSaved] = useState(false)
+  const [notifs, setNotifs] = useState({
+    projectUpdates: true,
+    newMessages: true,
+    invoicePaid: true,
+    weeklyDigest: false,
+    marketingEmails: false,
+  })
+  const [security, setSecurity] = useState({
+    twoFactor: false,
+    sessionAlerts: true,
+  })
+
+  function handleSave() {
+    setSaved(true)
+    setTimeout(() => setSaved(false), 3000)
+  }
+
+  return (
+    <div className="flex h-screen overflow-hidden" style={{ background: '#04080F' }}>
+      <Sidebar />
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <TopHeader />
+        <main className="flex-1 overflow-y-auto p-6">
+          <div className="max-w-3xl mx-auto">
+            <h1 className="text-xl font-bold text-white mb-6">Settings</h1>
+
+            {/* Tab Navigation */}
+            <div className="flex gap-1 mb-6 p-1 rounded-xl" style={{ background: '#0A1020' }}>
+              {TABS.map(({ id, label, Icon }) => (
+                <button
+                  key={id}
+                  onClick={() => setActiveTab(id)}
+                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
+                    activeTab === id
+                      ? 'bg-amber-500 text-black'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  {label}
+                </button>
+              ))}
+            </div>
+
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={activeTab}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.15 }}
+              >
+                {/* PROFILE TAB */}
+                {activeTab === 'profile' && (
+                  <div>
+                    <SettingsSection title="Personal Information">
+                      <div className="grid grid-cols-2 gap-4 mb-4">
+                        <div>
+                          <label className="block text-xs text-slate-400 mb-1">First Name</label>
+                          <input
+                            type="text"
+                            defaultValue="Alex"
+                            className="w-full px-3 py-2 rounded-lg text-sm text-white border border-white/10 focus:border-amber-500 outline-none transition-colors"
+                            style={{ background: '#04080F' }}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs text-slate-400 mb-1">Last Name</label>
+                          <input
+                            type="text"
+                            defaultValue="Morgan"
+                            className="w-full px-3 py-2 rounded-lg text-sm text-white border border-white/10 focus:border-amber-500 outline-none transition-colors"
+                            style={{ background: '#04080F' }}
+                          />
+                        </div>
+                      </div>
+                      <div className="mb-4">
+                        <label className="block text-xs text-slate-400 mb-1">Email Address</label>
+                        <input
+                          type="email"
+                          defaultValue="alex@example.com"
+                          className="w-full px-3 py-2 rounded-lg text-sm text-white border border-white/10 focus:border-amber-500 outline-none transition-colors"
+                          style={{ background: '#04080F' }}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">Phone Number</label>
+                        <input
+                          type="tel"
+                          defaultValue="+44 7700 900000"
+                          className="w-full px-3 py-2 rounded-lg text-sm text-white border border-white/10 focus:border-amber-500 outline-none transition-colors"
+                          style={{ background: '#04080F' }}
+                        />
+                      </div>
+                    </SettingsSection>
+
+                    <SettingsSection title="Profile">
+                      <div className="mb-4">
+                        <label className="block text-xs text-slate-400 mb-1">Bio</label>
+                        <textarea
+                          defaultValue="Creative director and brand strategist with 8 years of experience working with high-growth startups."
+                          rows={3}
+                          className="w-full px-3 py-2 rounded-lg text-sm text-white border border-white/10 focus:border-amber-500 outline-none transition-colors resize-none"
+                          style={{ background: '#04080F' }}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">Location</label>
+                        <input
+                          type="text"
+                          defaultValue="London, UK"
+                          className="w-full px-3 py-2 rounded-lg text-sm text-white border border-white/10 focus:border-amber-500 outline-none transition-colors"
+                          style={{ background: '#04080F' }}
+                        />
+                      </div>
+                    </SettingsSection>
+                  </div>
+                )}
+
+                {/* WORKSPACE TAB */}
+                {activeTab === 'workspace' && (
+                  <div>
+                    <SettingsSection title="Workspace Details">
+                      <div className="mb-4">
+                        <label className="block text-xs text-slate-400 mb-1">Workspace Name</label>
+                        <input
+                          type="text"
+                          defaultValue="My Workspace"
+                          className="w-full px-3 py-2 rounded-lg text-sm text-white border border-white/10 focus:border-amber-500 outline-none transition-colors"
+                          style={{ background: '#04080F' }}
+                        />
+                      </div>
+                      <div className="mb-4">
+                        <label className="block text-xs text-slate-400 mb-1">Industry</label>
+                        <select
+                          className="w-full px-3 py-2 rounded-lg text-sm text-white border border-white/10 focus:border-amber-500 outline-none transition-colors"
+                          style={{ background: '#04080F' }}
+                        >
+                          <option>Creative &amp; Design</option>
+                          <option>Technology</option>
+                          <option>Marketing &amp; Communications</option>
+                          <option>Finance &amp; Consulting</option>
+                          <option>Other</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">Company Size</label>
+                        <select
+                          className="w-full px-3 py-2 rounded-lg text-sm text-white border border-white/10 focus:border-amber-500 outline-none transition-colors"
+                          style={{ background: '#04080F' }}
+                        >
+                          <option>1-5 people</option>
+                          <option>6-20 people</option>
+                          <option>21-50 people</option>
+                          <option>50+ people</option>
+                        </select>
+                      </div>
+                    </SettingsSection>
+
+                    <SettingsSection title="Preferences">
+                      <SettingsRow label="Currency" desc="Used for invoices and payments">
+                        <select
+                          className="px-3 py-1.5 rounded-lg text-sm text-white border border-white/10 outline-none"
+                          style={{ background: '#04080F' }}
+                        >
+                          <option>GBP (£)</option>
+                          <option>USD ($)</option>
+                          <option>EUR (€)</option>
+                        </select>
+                      </SettingsRow>
+                      <SettingsRow label="Date Format" desc="How dates appear across the app">
+                        <select
+                          className="px-3 py-1.5 rounded-lg text-sm text-white border border-white/10 outline-none"
+                          style={{ background: '#04080F' }}
+                        >
+                          <option>DD/MM/YYYY</option>
+                          <option>MM/DD/YYYY</option>
+                          <option>YYYY-MM-DD</option>
+                        </select>
+                      </SettingsRow>
+                    </SettingsSection>
+                  </div>
+                )}
+
+                {/* BILLING TAB */}
+                {activeTab === 'billing' && (
+                  <div>
+                    <SettingsSection title="Current Plan">
+                      <div className="flex items-center justify-between p-4 rounded-xl border border-amber-500/30" style={{ background: '#04080F' }}>
+                        <div>
+                          <p className="text-sm font-semibold text-white">Growth Plan</p>
+                          <p className="text-xs text-slate-400 mt-0.5">£99 / month · Billed monthly</p>
+                        </div>
+                        <span className="text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2.5 py-1 rounded-full font-medium">Active</span>
+                      </div>
+                      <div className="mt-4 grid grid-cols-3 gap-3">
+                        {[
+                          { label: 'Active Projects', value: '12' },
+                          { label: 'Team Members', value: '8' },
+                          { label: 'Storage Used', value: '4.2 GB' },
+                        ].map(({ label, value }) => (
+                          <div key={label} className="p-3 rounded-xl border border-white/5" style={{ background: '#0F1A2E' }}>
+                            <p className="text-lg font-bold text-white">{value}</p>
+                            <p className="text-xs text-slate-500 mt-0.5">{label}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </SettingsSection>
+
+                    <SettingsSection title="Payment Method">
+                      <div className="flex items-center justify-between p-4 rounded-xl border border-white/5" style={{ background: '#04080F' }}>
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-6 rounded bg-blue-600 flex items-center justify-center">
+                            <span className="text-xs font-bold text-white">VISA</span>
+                          </div>
+                          <div>
+                            <p className="text-sm text-white">Visa ending 4242</p>
+                            <p className="text-xs text-slate-500">Expires 12/26</p>
+                          </div>
+                        </div>
+                        <button className="text-xs text-amber-400 hover:text-amber-300 transition-colors">Update</button>
+                      </div>
+                    </SettingsSection>
+
+                    <SettingsSection title="Billing History">
+                      {[
+                        { date: 'Mar 1, 2026', amount: '£99.00', status: 'Paid' },
+                        { date: 'Feb 1, 2026', amount: '£99.00', status: 'Paid' },
+                        { date: 'Jan 1, 2026', amount: '£99.00', status: 'Paid' },
+                      ].map((item) => (
+                        <div key={item.date} className="flex items-center justify-between py-3 border-b border-white/5 last:border-0">
+                          <div>
+                            <p className="text-sm text-white">{item.date}</p>
+                            <p className="text-xs text-slate-500">Growth Plan — Monthly</p>
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <span className="text-sm text-white">{item.amount}</span>
+                            <span className="text-xs bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full">{item.status}</span>
+                            <button className="text-slate-500 hover:text-slate-300 transition-colors">
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </SettingsSection>
+
+                    <div className="text-center mt-4">
+                      <p className="text-xs text-slate-500">
+                        Questions about billing?{' '}
+                        <a href="mailto:info@crewdeskapp.com" className="text-amber-400 hover:text-amber-300 transition-colors">
+                          Contact support
+                        </a>
+                      </p>
+                    </div>
+                  </div>
+                )}
+
+                {/* NOTIFICATIONS TAB */}
+                {activeTab === 'notifications' && (
+                  <div>
+                    <SettingsSection title="Email Notifications">
+                      <SettingsRow label="Project Updates" desc="When a project status changes or a new file is added">
+                        <Toggle on={notifs.projectUpdates} onChange={(v) => setNotifs({ ...notifs, projectUpdates: v })} />
+                      </SettingsRow>
+                      <SettingsRow label="New Messages" desc="When you receive a message in a project thread">
+                        <Toggle on={notifs.newMessages} onChange={(v) => setNotifs({ ...notifs, newMessages: v })} />
+                      </SettingsRow>
+                      <SettingsRow label="Invoice Paid" desc="When a client pays an invoice">
+                        <Toggle on={notifs.invoicePaid} onChange={(v) => setNotifs({ ...notifs, invoicePaid: v })} />
+                      </SettingsRow>
+                      <SettingsRow label="Weekly Digest" desc="A weekly summary of your workspace activity">
+                        <Toggle on={notifs.weeklyDigest} onChange={(v) => setNotifs({ ...notifs, weeklyDigest: v })} />
+                      </SettingsRow>
+                      <SettingsRow label="Marketing Emails" desc="Product updates, tips, and offers from CrewDesk">
+                        <Toggle on={notifs.marketingEmails} onChange={(v) => setNotifs({ ...notifs, marketingEmails: v })} />
+                      </SettingsRow>
+                    </SettingsSection>
+                  </div>
+                )}
+
+                {/* SECURITY TAB */}
+                {activeTab === 'security' && (
+                  <div>
+                    <SettingsSection title="Authentication">
+                      <SettingsRow label="Two-Factor Authentication" desc="Require a code each time you sign in">
+                        <Toggle on={security.twoFactor} onChange={(v) => setSecurity({ ...security, twoFactor: v })} />
+                      </SettingsRow>
+                      <SettingsRow label="Session Alerts" desc="Get notified when a new device signs in">
+                        <Toggle on={security.sessionAlerts} onChange={(v) => setSecurity({ ...security, sessionAlerts: v })} />
+                      </SettingsRow>
+                    </SettingsSection>
+
+                    <SettingsSection title="Password">
+                      <div className="mb-4">
+                        <label className="block text-xs text-slate-400 mb-1">Current Password</label>
+                        <input
+                          type="password"
+                          placeholder="••••••••"
+                          className="w-full px-3 py-2 rounded-lg text-sm text-white border border-white/10 focus:border-amber-500 outline-none transition-colors"
+                          style={{ background: '#04080F' }}
+                        />
+                      </div>
+                      <div className="mb-4">
+                        <label className="block text-xs text-slate-400 mb-1">New Password</label>
+                        <input
+                          type="password"
+                          placeholder="••••••••"
+                          className="w-full px-3 py-2 rounded-lg text-sm text-white border border-white/10 focus:border-amber-500 outline-none transition-colors"
+                          style={{ background: '#04080F' }}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs text-slate-400 mb-1">Confirm New Password</label>
+                        <input
+                          type="password"
+                          placeholder="••••••••"
+                          className="w-full px-3 py-2 rounded-lg text-sm text-white border border-white/10 focus:border-amber-500 outline-none transition-colors"
+                          style={{ background: '#04080F' }}
+                        />
+                      </div>
+                    </SettingsSection>
+
+                    <SettingsSection title="Danger Zone">
+                      <div className="flex items-start gap-3 p-4 rounded-xl border border-red-500/20" style={{ background: '#1a0808' }}>
+                        <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium text-white">Delete Account</p>
+                          <p className="text-xs text-slate-500 mt-0.5">Permanently delete your account and all associated data. This cannot be undone.</p>
+                        </div>
+                        <button className="text-xs text-red-400 hover:text-red-300 border border-red-500/30 px-3 py-1.5 rounded-lg transition-colors shrink-0">
+                          Delete
+                        </button>
+                      </div>
+                    </SettingsSection>
+                  </div>
+                )}
+              </motion.div>
+            </AnimatePresence>
+
+            {/* Save Button */}
+            <div className="flex justify-end mt-2">
+              <button
+                onClick={handleSave}
+                className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-semibold text-sm transition-all"
+              >
+                {saved ? (
+                  <>
+                    <Check className="w-4 h-4" />
+                    Saved
+                  </>
+                ) : (
+                  'Save Changes'
+                )}
+              </button>
+            </div>
+          </div>
+        </main>
+      </div>
+    </div>
+  )
+                              }
