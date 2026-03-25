@@ -1,6 +1,5 @@
 'use client'
 import { useState, useRef, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
 import Sidebar from '@/components/Sidebar'
 import TopHeader from '@/components/TopHeader'
 import { Send, Plus, X, Trash2, Search, Check, CheckCheck } from 'lucide-react'
@@ -37,9 +36,14 @@ export default function MessagesPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const active = threads.find(t => t.id === activeId) ?? threads[0]
-  const filteredThreads = threads.filter(t => t.name.toLowerCase().includes(search.toLowerCase()) || t.lastMessage.toLowerCase().includes(search.toLowerCase()))
+  const filteredThreads = threads.filter(t =>
+    t.name.toLowerCase().includes(search.toLowerCase()) ||
+    t.lastMessage.toLowerCase().includes(search.toLowerCase())
+  )
 
-  useEffect(() => { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }) }, [activeId, active?.messages.length])
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [activeId, active?.messages.length])
 
   const selectThread = (id: string) => {
     setThreads(prev => prev.map(t => t.id === id ? { ...t, unread: 0, messages: t.messages.map(m => ({ ...m, read: true })) } : t))
@@ -80,7 +84,7 @@ export default function MessagesPage() {
   return (
     <div className="flex h-screen bg-[#04080F] overflow-hidden">
       <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden ml-64">
         <TopHeader />
         <div className="flex flex-1 overflow-hidden">
           <div className="w-72 border-r border-white/5 flex flex-col bg-[#0A1020]">
@@ -107,6 +111,7 @@ export default function MessagesPage() {
               ))}
             </div>
           </div>
+
           {active ? (
             <div className="flex-1 flex flex-col">
               <div className="flex items-center gap-3 px-5 py-3 border-b border-white/5 bg-[#0A1020]">
@@ -140,31 +145,29 @@ export default function MessagesPage() {
           )}
         </div>
       </div>
-      <AnimatePresence>
-        {showCompose && (
-          <motion.div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setShowCompose(false)}>
-            <motion.div className="bg-[#0A1020] border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl" initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }} onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-5"><h2 className="text-base font-bold text-white">New Conversation</h2><button onClick={() => setShowCompose(false)} className="text-slate-400 hover:text-white"><X size={18} /></button></div>
-              <div className="space-y-3 mb-5">
-                <div><label className="text-xs text-slate-400 mb-1 block">Name *</label><input value={composeName} onChange={e => setComposeName(e.target.value)} placeholder="Contact name" className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400/50" /></div>
-                <div><label className="text-xs text-slate-400 mb-1 block">Role</label><input value={composeRole} onChange={e => setComposeRole(e.target.value)} placeholder="e.g. Director, Editor" className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400/50" /></div>
-              </div>
-              <button onClick={createThread} disabled={!composeName.trim()} className="w-full py-2.5 bg-amber-400 text-black font-bold rounded-xl text-sm hover:bg-amber-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">Start Conversation</button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      <AnimatePresence>
-        {deleteConfirm && (
-          <motion.div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <motion.div className="bg-[#0A1020] border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl" initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }}>
-              <h3 className="text-base font-bold text-white mb-2">Delete Conversation</h3>
-              <p className="text-sm text-slate-400 mb-6">This will permanently remove the thread. Are you sure?</p>
-              <div className="flex gap-3"><button onClick={() => setDeleteConfirm(null)} className="flex-1 py-2.5 border border-white/10 text-slate-300 rounded-xl text-sm hover:bg-white/5 transition-colors">Cancel</button><button onClick={() => deleteThread(deleteConfirm)} className="flex-1 py-2.5 bg-rose-500 text-white font-semibold rounded-xl text-sm hover:bg-rose-600 transition-colors">Delete</button></div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+
+      {showCompose && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={() => setShowCompose(false)}>
+          <div className="bg-[#0A1020] border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-5"><h2 className="text-base font-bold text-white">New Conversation</h2><button onClick={() => setShowCompose(false)} className="text-slate-400 hover:text-white"><X size={18} /></button></div>
+            <div className="space-y-3 mb-5">
+              <div><label className="text-xs text-slate-400 mb-1 block">Name *</label><input value={composeName} onChange={e => setComposeName(e.target.value)} placeholder="Contact name" className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400/50" /></div>
+              <div><label className="text-xs text-slate-400 mb-1 block">Role</label><input value={composeRole} onChange={e => setComposeRole(e.target.value)} placeholder="e.g. Director, Editor" className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400/50" /></div>
+            </div>
+            <button onClick={createThread} disabled={!composeName.trim()} className="w-full py-2.5 bg-amber-400 text-black font-bold rounded-xl text-sm hover:bg-amber-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">Start Conversation</button>
+          </div>
+        </div>
+      )}
+
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#0A1020] border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+            <h3 className="text-base font-bold text-white mb-2">Delete Conversation</h3>
+            <p className="text-sm text-slate-400 mb-6">This will permanently remove the thread. Are you sure?</p>
+            <div className="flex gap-3"><button onClick={() => setDeleteConfirm(null)} className="flex-1 py-2.5 border border-white/10 text-slate-300 rounded-xl text-sm hover:bg-white/5 transition-colors">Cancel</button><button onClick={() => deleteThread(deleteConfirm)} className="flex-1 py-2.5 bg-rose-500 text-white font-semibold rounded-xl text-sm hover:bg-rose-600 transition-colors">Delete</button></div>
+          </div>
+        </div>
+      )}
     </div>
   )
-}
+                }
