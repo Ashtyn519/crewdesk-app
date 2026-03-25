@@ -1,13 +1,11 @@
 'use client'
+export const dynamic = 'force-dynamic'
 import { useState, useEffect } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
 import Link from 'next/link'
 import { TrendingUp, FolderKanban, Users, FileText, Receipt, MessageSquare, AlertCircle, ArrowRight, X, Clock } from 'lucide-react'
 import Sidebar from '@/components/Sidebar'
 import TopHeader from '@/components/TopHeader'
 import RevenueChart from '@/components/RevenueChart'
-
-export const dynamic = 'force-dynamic'
 
 const ICON_MAP = { TrendingUp, FolderKanban, Users, FileText, Receipt, MessageSquare }
 
@@ -24,7 +22,7 @@ const recentActivity = [
   { id: 3, type: 'contract', text: 'Contract for City Lights signed', time: '1 hr ago', iconKey: 'FileText', color: 'text-blue-400' },
   { id: 4, type: 'project', text: 'New project Apex Documentary created', time: '3 hrs ago', iconKey: 'FolderKanban', color: 'text-purple-400' },
   { id: 5, type: 'payment', text: 'Payment received from BFI', time: '5 hrs ago', iconKey: 'TrendingUp', color: 'text-emerald-400' },
-  { id: 6, type: 'message', text: 'James OBrien sent 3 new messages', time: 'Yesterday', iconKey: 'MessageSquare', color: 'text-sky-400' },
+  { id: 6, type: 'message', text: "James O'Brien sent 3 new messages", time: 'Yesterday', iconKey: 'MessageSquare', color: 'text-sky-400' },
 ]
 
 const quickActions = [
@@ -50,7 +48,6 @@ function Sparkline({ data, color }: { data: number[]; color: string }) {
 
 export default function DashboardPage() {
   const [greeting, setGreeting] = useState('Good morning')
-  const [counters, setCounters] = useState(kpis.map(() => 0))
   const [activityFilter, setActivityFilter] = useState('all')
   const [showTrialBanner, setShowTrialBanner] = useState(true)
   const TRIAL_DAYS_LEFT = 11
@@ -58,8 +55,6 @@ export default function DashboardPage() {
   useEffect(() => {
     const h = new Date().getHours()
     setGreeting(h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening')
-    const timers = kpis.map((_, i) => setTimeout(() => setCounters(c => c.map((v, j) => j === i ? 1 : v)), i * 150))
-    return () => timers.forEach(clearTimeout)
   }, [])
 
   const filteredActivity = activityFilter === 'all' ? recentActivity : recentActivity.filter(a => a.type === activityFilter)
@@ -69,19 +64,19 @@ export default function DashboardPage() {
       <Sidebar />
       <div className="flex flex-col flex-1 min-w-0 ml-64 overflow-hidden">
         <TopHeader />
-        <AnimatePresence>
-          {showTrialBanner && (
-            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="bg-amber-400/10 border-b border-amber-400/20 px-6 py-2.5 flex items-center justify-between">
-              <div className="flex items-center gap-2 text-sm">
-                <Clock className="w-4 h-4 text-amber-400 flex-shrink-0" />
-                <span className="text-amber-400 font-semibold">{TRIAL_DAYS_LEFT} days left on your free trial.</span>
-                <span className="text-slate-400">Upgrade to keep full access to all features.</span>
-                <Link href="/pricing" className="text-amber-400 font-bold hover:text-amber-300 underline underline-offset-2 ml-1">View plans</Link>
-              </div>
-              <button onClick={() => setShowTrialBanner(false)} className="text-slate-500 hover:text-white ml-4"><X className="w-4 h-4" /></button>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        {showTrialBanner && (
+          <div className="bg-amber-400/10 border-b border-amber-400/20 px-6 py-2.5 flex items-center justify-between">
+            <div className="flex items-center gap-2 text-sm">
+              <Clock className="w-4 h-4 text-amber-400 flex-shrink-0" />
+              <span className="text-amber-400 font-semibold">{TRIAL_DAYS_LEFT} days left on your free trial.</span>
+              <span className="text-slate-400">Upgrade to keep full access to all features.</span>
+              <Link href="/pricing" className="text-amber-400 font-bold hover:text-amber-300 underline underline-offset-2 ml-1">View plans</Link>
+            </div>
+            <button onClick={() => setShowTrialBanner(false)} className="text-slate-500 hover:text-white ml-4">
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
         <div className="flex-1 overflow-y-auto p-8">
           <div className="max-w-7xl mx-auto">
             <div className="flex items-end justify-between mb-8">
@@ -95,24 +90,26 @@ export default function DashboardPage() {
                 </p>
               </div>
             </div>
+
             <div className="grid grid-cols-4 gap-4 mb-8">
-              {kpis.map((kpi, i) => {
+              {kpis.map((kpi) => {
                 const Icon = ICON_MAP[kpi.iconKey as keyof typeof ICON_MAP]
                 return (
-                  <motion.div key={kpi.label} initial={{ opacity: 0, y: 20 }} animate={{ opacity: counters[i] ? 1 : 0, y: counters[i] ? 0 : 20 }} transition={{ duration: 0.4 }} className="bg-[#0A1020] border border-[#1A2540] rounded-2xl p-5">
+                  <div key={kpi.label} className="bg-[#0A1020] border border-[#1A2540] rounded-2xl p-5">
                     <div className="flex items-start justify-between mb-3">
                       <div className="w-9 h-9 rounded-xl bg-white/5 flex items-center justify-center">
-                        <Icon className={`w-4.5 h-4.5 ${kpi.iconColor}`} />
+                        <Icon className={`w-4 h-4 ${kpi.iconColor}`} />
                       </div>
                       <Sparkline data={kpi.sparkline} color={kpi.up ? '#10B981' : '#EF4444'} />
                     </div>
                     <p className="text-2xl font-black text-white mb-1">{kpi.value}</p>
                     <p className="text-xs text-slate-500 mb-1">{kpi.label}</p>
                     <span className={`text-xs font-semibold ${kpi.up ? 'text-emerald-400' : 'text-rose-400'}`}>{kpi.change}</span>
-                  </motion.div>
+                  </div>
                 )
               })}
             </div>
+
             <div className="grid grid-cols-3 gap-6 mb-6">
               <div className="col-span-2 bg-[#0A1020] border border-[#1A2540] rounded-2xl p-6">
                 <div className="flex items-center justify-between mb-6">
@@ -128,33 +125,38 @@ export default function DashboardPage() {
                     const Icon = ICON_MAP[action.iconKey as keyof typeof ICON_MAP]
                     return (
                       <Link key={action.label} href={action.href}>
-                        <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }} className={`rounded-xl p-3.5 cursor-pointer transition-all ${action.color}`}>
+                        <div className={`rounded-xl p-3.5 cursor-pointer transition-all ${action.color}`}>
                           <Icon className="w-5 h-5 text-white mb-2 opacity-80" />
                           <p className="text-xs font-semibold text-white leading-snug">{action.label}</p>
-                        </motion.div>
+                        </div>
                       </Link>
                     )
                   })}
                 </div>
               </div>
             </div>
+
             <div className="grid grid-cols-3 gap-6">
               <div className="col-span-2 bg-[#0A1020] border border-[#1A2540] rounded-2xl p-6">
                 <div className="flex items-center justify-between mb-5">
                   <h2 className="text-base font-bold text-white">Recent Activity</h2>
                   <div className="flex items-center gap-1">
                     {['all', 'invoice', 'crew', 'project'].map(f => (
-                      <button key={f} onClick={() => setActivityFilter(f)} className={`px-2.5 py-1 rounded-lg text-xs font-medium capitalize transition-all ${activityFilter === f ? 'bg-amber-400 text-black' : 'text-slate-400 hover:text-white'}`}>
+                      <button
+                        key={f}
+                        onClick={() => setActivityFilter(f)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-medium capitalize transition-all ${activityFilter === f ? 'bg-amber-400 text-black' : 'text-slate-400 hover:text-white'}`}
+                      >
                         {f}
                       </button>
                     ))}
                   </div>
                 </div>
                 <div className="space-y-3">
-                  {filteredActivity.map((item, i) => {
+                  {filteredActivity.map((item) => {
                     const Icon = ICON_MAP[item.iconKey as keyof typeof ICON_MAP]
                     return (
-                      <motion.div key={item.id} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.05 }} className="flex items-start gap-3">
+                      <div key={item.id} className="flex items-start gap-3">
                         <div className="w-7 h-7 rounded-lg bg-white/5 flex items-center justify-center flex-shrink-0 mt-0.5">
                           <Icon className={`w-3.5 h-3.5 ${item.color}`} />
                         </div>
@@ -162,7 +164,7 @@ export default function DashboardPage() {
                           <p className="text-sm text-slate-300 leading-snug">{item.text}</p>
                           <p className="text-xs text-slate-600 mt-0.5">{item.time}</p>
                         </div>
-                      </motion.div>
+                      </div>
                     )
                   })}
                   {filteredActivity.length === 0 && (
@@ -196,4 +198,4 @@ export default function DashboardPage() {
       </div>
     </div>
   )
-                                     }
+              }
