@@ -4,7 +4,7 @@ import { NextResponse, type NextRequest } from "next/server";
 export async function middleware(request: NextRequest) {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  
+
   // If no Supabase config, allow all requests
   if (!supabaseUrl || !supabaseKey) {
     return NextResponse.next();
@@ -28,10 +28,20 @@ export async function middleware(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   const { pathname } = request.nextUrl;
 
-  const publicPaths = ["/login", "/signup", "/auth/callback", "/auth/signout", "/onboarding"];
-  const isPublic = publicPaths.some(p => pathname.startsWith(p));
+  // Public paths — no auth required
+  const publicPaths = [
+    "/",
+    "/login",
+    "/signup",
+    "/pricing",
+    "/mobile-app",
+    "/auth/callback",
+    "/auth/signout",
+    "/onboarding",
+  ];
+  const isPublic = publicPaths.some(p => pathname === p || pathname.startsWith(p + "/"));
 
-  if (!user && !isPublic && pathname !== "/") {
+  if (!user && !isPublic) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
