@@ -1,6 +1,5 @@
 'use client'
 import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
 import Sidebar from '@/components/Sidebar'
 import TopHeader from '@/components/TopHeader'
 import { Plus, Search, X, Trash2, CheckCircle, FileText, Download } from 'lucide-react'
@@ -40,13 +39,23 @@ function InvoiceModal({ onClose, onSave }: { onClose: () => void; onSave: (inv: 
   const removeItem = (i: number) => setItems(p => p.filter((_, idx) => idx !== i))
   const submit = () => {
     if (!form.client.trim() || !form.project.trim()) return
-    onSave({ id: 'i' + Date.now(), number: 'INV-' + String(Date.now()).slice(-4), client: form.client.trim(), project: form.project.trim(), items, status: 'draft', date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }), dueDate: form.dueDate || '', notes: form.notes.trim() })
+    onSave({
+      id: 'i' + Date.now(),
+      number: 'INV-' + String(Date.now()).slice(-4),
+      client: form.client.trim(),
+      project: form.project.trim(),
+      items,
+      status: 'draft',
+      date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }),
+      dueDate: form.dueDate || '',
+      notes: form.notes.trim()
+    })
   }
   const subtotal = calcSubtotal(items)
   const total = subtotal * (1 + vatRate)
   return (
-    <motion.div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose}>
-      <motion.div className="bg-[#0A1020] border border-white/10 rounded-2xl p-7 w-full max-w-xl shadow-2xl max-h-[90vh] overflow-y-auto" initial={{ scale: 0.95, y: 20 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 20 }} onClick={e => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
+      <div className="bg-[#0A1020] border border-white/10 rounded-2xl p-7 w-full max-w-xl shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-lg font-bold text-white">New Invoice</h2>
           <button onClick={onClose} className="text-slate-500 hover:text-white"><X size={18} /></button>
@@ -91,8 +100,8 @@ function InvoiceModal({ onClose, onSave }: { onClose: () => void; onSave: (inv: 
           </div>
         </div>
         <button onClick={submit} disabled={!form.client.trim() || !form.project.trim()} className="w-full py-3 bg-amber-400 text-black font-bold rounded-xl text-sm hover:bg-amber-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">Create Invoice</button>
-      </motion.div>
-    </motion.div>
+      </div>
+    </div>
   )
 }
 
@@ -105,13 +114,19 @@ export default function InvoicesPage() {
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
 
   const filtered = invoices.filter(inv => {
-    const matchSearch = inv.client.toLowerCase().includes(search.toLowerCase()) || inv.project.toLowerCase().includes(search.toLowerCase()) || inv.number.toLowerCase().includes(search.toLowerCase())
+    const matchSearch = inv.client.toLowerCase().includes(search.toLowerCase()) ||
+      inv.project.toLowerCase().includes(search.toLowerCase()) ||
+      inv.number.toLowerCase().includes(search.toLowerCase())
     const matchStatus = statusFilter === 'all' || inv.status === statusFilter
     return matchSearch && matchStatus
   })
 
   const markPaid = (id: string) => setInvoices(prev => prev.map(inv => inv.id === id ? { ...inv, status: 'paid' } : inv))
-  const deleteInvoice = (id: string) => { setInvoices(prev => prev.filter(inv => inv.id !== id)); setDeleteConfirm(null); if (selected?.id === id) setSelected(null) }
+  const deleteInvoice = (id: string) => {
+    setInvoices(prev => prev.filter(inv => inv.id !== id))
+    setDeleteConfirm(null)
+    if (selected?.id === id) setSelected(null)
+  }
   const saveNew = (inv: Invoice) => { setInvoices(prev => [inv, ...prev]); setShowModal(false) }
 
   const totalPaid = invoices.filter(i => i.status === 'paid').reduce((s, i) => s + calcSubtotal(i.items) * (1 + vatRate), 0)
@@ -121,7 +136,7 @@ export default function InvoicesPage() {
   return (
     <div className="flex h-screen bg-[#04080F] overflow-hidden">
       <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden ml-64">
         <TopHeader />
         <main className="flex-1 overflow-y-auto p-6">
           <div className="flex items-center justify-between mb-6">
@@ -131,6 +146,7 @@ export default function InvoicesPage() {
             </div>
             <button onClick={() => setShowModal(true)} className="flex items-center gap-2 px-4 py-2 bg-amber-400 text-black font-semibold rounded-xl text-sm hover:bg-amber-300 transition-colors"><Plus size={16} />New Invoice</button>
           </div>
+
           <div className="grid grid-cols-4 gap-4 mb-6">
             {[
               { label: 'Total', value: invoices.length, color: 'text-white' },
@@ -144,6 +160,7 @@ export default function InvoicesPage() {
               </div>
             ))}
           </div>
+
           <div className="flex items-center gap-3 mb-5">
             <div className="relative flex-1 max-w-sm">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
@@ -155,6 +172,7 @@ export default function InvoicesPage() {
               ))}
             </div>
           </div>
+
           <div className="bg-[#0A1020] border border-white/5 rounded-xl overflow-hidden">
             <table className="w-full">
               <thead>
@@ -189,64 +207,61 @@ export default function InvoicesPage() {
           </div>
         </main>
       </div>
-      <AnimatePresence>
-        {selected && (
-          <motion.div className="fixed inset-0 z-40 flex" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={() => setSelected(null)}>
-            <div className="flex-1 bg-black/40" />
-            <motion.div className="w-96 bg-[#0A1020] border-l border-white/10 h-full overflow-y-auto p-6" initial={{ x: 80 }} animate={{ x: 0 }} exit={{ x: 80 }} onClick={e => e.stopPropagation()}>
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-base font-bold text-white">{selected.number}</h2>
-                <button onClick={() => setSelected(null)} className="text-slate-400 hover:text-white"><X size={18} /></button>
+
+      {selected && (
+        <div className="fixed inset-0 z-40 flex" onClick={() => setSelected(null)}>
+          <div className="flex-1 bg-black/40" />
+          <div className="w-96 bg-[#0A1020] border-l border-white/10 h-full overflow-y-auto p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-base font-bold text-white">{selected.number}</h2>
+              <button onClick={() => setSelected(null)} className="text-slate-400 hover:text-white"><X size={18} /></button>
+            </div>
+            <div className="space-y-3 mb-5">
+              <div className="grid grid-cols-2 gap-3">
+                <div><p className="text-xs text-slate-400 mb-1">Client</p><p className="text-sm text-white">{selected.client}</p></div>
+                <div><p className="text-xs text-slate-400 mb-1">Project</p><p className="text-sm text-white">{selected.project}</p></div>
               </div>
-              <div className="space-y-3 mb-5">
-                <div className="grid grid-cols-2 gap-3">
-                  <div><p className="text-xs text-slate-400 mb-1">Client</p><p className="text-sm text-white">{selected.client}</p></div>
-                  <div><p className="text-xs text-slate-400 mb-1">Project</p><p className="text-sm text-white">{selected.project}</p></div>
+              <div><p className="text-xs text-slate-400 mb-1">Status</p><span className={`text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_STYLE[selected.status]}`}>{selected.status.charAt(0).toUpperCase() + selected.status.slice(1)}</span></div>
+            </div>
+            <div className="mb-5">
+              <p className="text-xs text-slate-400 mb-2">Line Items</p>
+              {selected.items.map((item, i) => (
+                <div key={i} className="flex justify-between text-sm mb-1">
+                  <span className="text-slate-300">{item.description} x{item.qty}</span>
+                  <span className="text-white">£{(item.qty * item.rate).toLocaleString()}</span>
                 </div>
-                <div><p className="text-xs text-slate-400 mb-1">Status</p><span className={`text-xs font-medium px-2 py-0.5 rounded-full ${STATUS_STYLE[selected.status]}`}>{selected.status.charAt(0).toUpperCase() + selected.status.slice(1)}</span></div>
+              ))}
+              <div className="border-t border-white/10 mt-2 pt-2 space-y-1">
+                <div className="flex justify-between text-sm"><span className="text-slate-400">Subtotal</span><span className="text-white">£{calcSubtotal(selected.items).toLocaleString()}</span></div>
+                <div className="flex justify-between text-sm"><span className="text-slate-400">VAT (20%)</span><span className="text-white">£{Math.round(calcSubtotal(selected.items) * vatRate).toLocaleString()}</span></div>
+                <div className="flex justify-between text-sm font-bold"><span className="text-white">Total</span><span className="text-amber-400">£{Math.round(calcSubtotal(selected.items) * (1 + vatRate)).toLocaleString()}</span></div>
               </div>
-              <div className="mb-5">
-                <p className="text-xs text-slate-400 mb-2">Line Items</p>
-                {selected.items.map((item, i) => (
-                  <div key={i} className="flex justify-between text-sm mb-1">
-                    <span className="text-slate-300">{item.description} x{item.qty}</span>
-                    <span className="text-white">£{(item.qty * item.rate).toLocaleString()}</span>
-                  </div>
-                ))}
-                <div className="border-t border-white/10 mt-2 pt-2 space-y-1">
-                  <div className="flex justify-between text-sm"><span className="text-slate-400">Subtotal</span><span className="text-white">£{calcSubtotal(selected.items).toLocaleString()}</span></div>
-                  <div className="flex justify-between text-sm"><span className="text-slate-400">VAT (20%)</span><span className="text-white">£{Math.round(calcSubtotal(selected.items) * vatRate).toLocaleString()}</span></div>
-                  <div className="flex justify-between text-sm font-bold"><span className="text-white">Total</span><span className="text-amber-400">£{Math.round(calcSubtotal(selected.items) * (1 + vatRate)).toLocaleString()}</span></div>
-                </div>
-              </div>
-              <div className="space-y-2">
-                {selected.status !== 'paid' && (
-                  <button onClick={() => { markPaid(selected.id); setSelected(prev => prev ? { ...prev, status: 'paid' } : null) }} className="w-full flex items-center justify-center gap-2 py-2.5 bg-emerald-500 text-white font-semibold rounded-xl text-sm hover:bg-emerald-600 transition-colors"><CheckCircle size={16} />Mark as Paid</button>
-                )}
-                <button className="w-full flex items-center justify-center gap-2 py-2.5 bg-white/5 text-slate-300 border border-white/10 font-semibold rounded-xl text-sm hover:bg-white/10 transition-colors"><Download size={16} />Download PDF</button>
-                <button onClick={() => setDeleteConfirm(selected.id)} className="w-full flex items-center justify-center gap-2 py-2.5 bg-rose-500/10 text-rose-400 border border-rose-500/20 font-semibold rounded-xl text-sm hover:bg-rose-500/20 transition-colors"><Trash2 size={16} />Delete Invoice</button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      <AnimatePresence>
-        {showModal && <InvoiceModal onClose={() => setShowModal(false)} onSave={saveNew} />}
-      </AnimatePresence>
-      <AnimatePresence>
-        {deleteConfirm && (
-          <motion.div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <motion.div className="bg-[#0A1020] border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl" initial={{ scale: 0.95 }} animate={{ scale: 1 }} exit={{ scale: 0.95 }}>
-              <h3 className="text-base font-bold text-white mb-2">Delete Invoice</h3>
-              <p className="text-sm text-slate-400 mb-6">This action cannot be undone.</p>
-              <div className="flex gap-3">
-                <button onClick={() => setDeleteConfirm(null)} className="flex-1 py-2.5 border border-white/10 text-slate-300 rounded-xl text-sm hover:bg-white/5 transition-colors">Cancel</button>
-                <button onClick={() => deleteInvoice(deleteConfirm)} className="flex-1 py-2.5 bg-rose-500 text-white font-semibold rounded-xl text-sm hover:bg-rose-600 transition-colors">Delete</button>
-              </div>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+            </div>
+            <div className="space-y-2">
+              {selected.status !== 'paid' && (
+                <button onClick={() => { markPaid(selected.id); setSelected(prev => prev ? { ...prev, status: 'paid' } : null) }} className="w-full flex items-center justify-center gap-2 py-2.5 bg-emerald-500 text-white font-semibold rounded-xl text-sm hover:bg-emerald-600 transition-colors"><CheckCircle size={16} />Mark as Paid</button>
+              )}
+              <button className="w-full flex items-center justify-center gap-2 py-2.5 bg-white/5 text-slate-300 border border-white/10 font-semibold rounded-xl text-sm hover:bg-white/10 transition-colors"><Download size={16} />Download PDF</button>
+              <button onClick={() => setDeleteConfirm(selected.id)} className="w-full flex items-center justify-center gap-2 py-2.5 bg-rose-500/10 text-rose-400 border border-rose-500/20 font-semibold rounded-xl text-sm hover:bg-rose-500/20 transition-colors"><Trash2 size={16} />Delete Invoice</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showModal && <InvoiceModal onClose={() => setShowModal(false)} onSave={saveNew} />}
+
+      {deleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
+          <div className="bg-[#0A1020] border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
+            <h3 className="text-base font-bold text-white mb-2">Delete Invoice</h3>
+            <p className="text-sm text-slate-400 mb-6">This action cannot be undone.</p>
+            <div className="flex gap-3">
+              <button onClick={() => setDeleteConfirm(null)} className="flex-1 py-2.5 border border-white/10 text-slate-300 rounded-xl text-sm hover:bg-white/5 transition-colors">Cancel</button>
+              <button onClick={() => deleteInvoice(deleteConfirm)} className="flex-1 py-2.5 bg-rose-500 text-white font-semibold rounded-xl text-sm hover:bg-rose-600 transition-colors">Delete</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
-}
+            }
