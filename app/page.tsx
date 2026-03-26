@@ -63,7 +63,7 @@ export default function LandingPage() {
         <div className="max-w-5xl mx-auto text-center">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-amber-500/30 bg-amber-500/10 text-amber-400 text-xs font-medium mb-6">
             <Zap className="w-3 h-3" />
-            Built for production companies and creative agencies
+            Built for businesses hiring and managing freelancers
           </div>
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold leading-tight mb-6">
             The operating system<br />
@@ -71,7 +71,7 @@ export default function LandingPage() {
             workforce
           </h1>
           <p className="text-lg md:text-xl text-slate-400 max-w-2xl mx-auto mb-10">
-            Manage projects, contracts, invoices, and your entire crew from a single platform. Built for ambitious agencies and production companies.
+            Manage projects, contracts, invoices, and your entire crew from a single platform. Built for any business that hires freelancers.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link href="/signup" className="flex items-center gap-2 bg-amber-400 hover:bg-amber-300 text-black font-semibold px-8 py-3.5 rounded-xl transition-colors text-base">
