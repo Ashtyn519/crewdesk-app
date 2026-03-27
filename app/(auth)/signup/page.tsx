@@ -6,21 +6,21 @@ import Link from 'next/link'
 import { ArrowRight, Eye, EyeOff, Zap, Shield, Users, Check } from 'lucide-react'
 
 const perks = [
-  'Unlimited projects and crew members',
-  'Full contract and invoice suite',
-  'Real-time team messaging',
-  'Advanced analytics dashboard',
+  'Manage your entire freelance roster',
+  'Contracts, invoices and payments in one place',
+  'Real-time project tracking and analytics',
+  'Free 14-day trial — no credit card needed',
 ]
 
 export default function SignupPage() {
   const router = useRouter()
   const [name, setName] = useState('')
+  const [company, setCompany] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPw, setShowPw] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
-  const [done, setDone] = useState(false)
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault()
@@ -30,10 +30,10 @@ export default function SignupPage() {
     const { error: err } = await sb.auth.signUp({
       email,
       password,
-      options: { data: { full_name: name } }
+      options: { data: { full_name: name, company_name: company } }
     })
     if (err) { setError(err.message); setLoading(false) }
-    else { setDone(true) }
+    else { router.push('/onboarding') }
   }
 
   return (
@@ -48,147 +48,115 @@ export default function SignupPage() {
         </div>
         <div className="flex-1 flex flex-col justify-center max-w-lg pt-16">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-amber-400/20 bg-amber-400/5 text-amber-400 text-xs font-medium mb-8 w-fit">
-            <Zap className="w-3.5 h-3.5" />
+            <Zap className="w-3 h-3" />
             Free to get started — no credit card needed
           </div>
           <h1 className="text-[2.75rem] leading-[1.12] font-bold text-white mb-5">
             The operating<br />system for your<br /><span className="text-amber-400">freelance workforce.</span>
           </h1>
           <p className="text-white/45 text-base leading-relaxed mb-10 max-w-sm">
-            Everything you need to hire, manage, pay and communicate with your freelance crew, built for production professionals.
+            Hire, brief, contract, invoice and pay your freelancers — all from one beautifully designed workspace.
           </p>
           <div className="space-y-3">
             {perks.map(p => (
-              <div key={p} className="flex items-center gap-3">
-                <div className="w-5 h-5 rounded-full bg-amber-400/15 flex items-center justify-center shrink-0">
-                  <Check className="w-3 h-3 text-amber-400" strokeWidth={3} />
+              <div key={p} className="flex items-start gap-3 p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
+                <div className="w-8 h-8 rounded-xl bg-amber-400/10 flex items-center justify-center shrink-0">
+                  <Check className="w-4 h-4 text-amber-400" />
                 </div>
-                <span className="text-white/60 text-sm">{p}</span>
+                <p className="text-white text-xs font-semibold mt-1.5">{p}</p>
               </div>
             ))}
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex -space-x-2">
-            {['from-violet-500 to-blue-500','from-amber-500 to-orange-400','from-emerald-500 to-teal-400','from-pink-500 to-rose-400'].map((g, i) => (
-              <div key={i} className={`w-7 h-7 rounded-full bg-gradient-to-br ${g} border-2 border-[#04080F]`} />
-            ))}
+        <div className="flex items-center gap-3 pt-8 border-t border-white/5">
+          <div className="flex items-center gap-1">
+            {[...Array(5)].map((_, i) => <span key={i} className="text-amber-400 text-xs">★</span>)}
           </div>
-          <p className="text-white/35 text-xs">Loved by production teams worldwide</p>
+          <p className="text-slate-500 text-xs">Trusted by 2,400+ businesses worldwide</p>
         </div>
       </div>
 
       {/* Right panel */}
-      <div className="flex-1 flex items-center justify-center px-8 py-14">
-        <div className="w-full max-w-[400px]">
-          <div className="flex lg:hidden items-center gap-2 mb-8">
-            <div className="w-8 h-8 rounded-xl bg-amber-400 flex items-center justify-center">
-              <Zap className="w-4 h-4 text-[#04080F]" strokeWidth={2.5} />
+      <div className="flex-1 flex flex-col justify-center px-8 md:px-16 py-12">
+        <div className="max-w-md w-full mx-auto">
+          <div className="lg:hidden flex items-center gap-2 mb-10">
+            <div className="w-8 h-8 rounded-lg bg-amber-400 flex items-center justify-center">
+              <Zap className="w-4 h-4 text-black fill-black" />
             </div>
             <span className="text-white font-bold text-lg">CrewDesk</span>
           </div>
 
-          {done ? (
-            <div className="text-center">
-              <div className="w-16 h-16 rounded-2xl bg-emerald-400/10 border border-emerald-400/20 flex items-center justify-center mx-auto mb-6">
-                <Check className="w-8 h-8 text-emerald-400" strokeWidth={2.5} />
+          <h2 className="text-2xl font-bold text-white mb-2">Create your account</h2>
+          <p className="text-slate-400 text-sm mb-8">Start your 14-day free trial. No credit card required.</p>
+
+          <form onSubmit={handleSignup} className="space-y-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1.5">Your name</label>
+                <input
+                  type="text" required value={name} onChange={e => setName(e.target.value)}
+                  placeholder="Jane Smith"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder:text-slate-600 focus:outline-none focus:border-amber-400/50 focus:bg-white/[0.07] transition-all"
+                />
               </div>
-              <h2 className="text-2xl font-bold text-white mb-2">Check your email</h2>
-              <p className="text-white/40 text-sm mb-6">
-                We sent a confirmation link to <span className="text-white/70">{email}</span>
-              </p>
-              <Link href="/login" className="inline-flex items-center gap-2 text-amber-400 hover:text-amber-300 text-sm font-medium transition-colors">
-                <ArrowRight className="w-4 h-4 rotate-180" />Back to sign in
-              </Link>
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1.5">Company name</label>
+                <input
+                  type="text" required value={company} onChange={e => setCompany(e.target.value)}
+                  placeholder="Apex Agency"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder:text-slate-600 focus:outline-none focus:border-amber-400/50 focus:bg-white/[0.07] transition-all"
+                />
+              </div>
             </div>
-          ) : (
-            <>
-              <h2 className="text-2xl font-bold text-white mb-1.5">Create your account</h2>
-              <p className="text-white/40 text-sm mb-2">14-day free trial — no credit card required</p>
-              <div className="bg-amber-400/5 border border-amber-400/20 rounded-xl px-3 py-2 mb-6">
-                <p className="text-amber-400 text-xs font-medium">Full access for 14 days, then choose a plan that fits.</p>
-              </div>
-              <form onSubmit={handleSignup} className="space-y-4">
-                <div>
-                  <label className="block text-xs font-medium text-white/50 mb-1.5">Full name</label>
-                  <input
-                    type="text"
-                    required
-                    value={name}
-                    onChange={e => setName(e.target.value)}
-                    placeholder="Your name"
-                    className="w-full bg-white/[0.04] border border-white/[0.08] hover:border-white/[0.14] focus:border-amber-400/50 rounded-xl px-4 py-3 text-sm text-white placeholder-white/25 focus:outline-none transition-colors"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-white/50 mb-1.5">Email address</label>
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={e => setEmail(e.target.value)}
-                    placeholder="you@company.com"
-                    className="w-full bg-white/[0.04] border border-white/[0.08] hover:border-white/[0.14] focus:border-amber-400/50 rounded-xl px-4 py-3 text-sm text-white placeholder-white/25 focus:outline-none transition-colors"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-white/50 mb-1.5">Password</label>
-                  <div className="relative">
-                    <input
-                      type={showPw ? 'text' : 'password'}
-                      required
-                      value={password}
-                      onChange={e => setPassword(e.target.value)}
-                      placeholder="Minimum 8 characters"
-                      className="w-full bg-white/[0.04] border border-white/[0.08] hover:border-white/[0.14] focus:border-amber-400/50 rounded-xl px-4 py-3 pr-11 text-sm text-white placeholder-white/25 focus:outline-none transition-colors"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setShowPw(!showPw)}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
-                    >
-                      {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                    </button>
-                  </div>
-                </div>
-                {error && (
-                  <p className="text-red-400 text-xs bg-red-400/10 border border-red-400/20 rounded-xl px-3 py-2.5">{error}</p>
-                )}
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="w-full bg-amber-400 hover:bg-amber-300 disabled:opacity-50 text-[#04080F] font-semibold py-3 rounded-xl text-sm flex items-center justify-center gap-2 transition-colors shadow-lg shadow-amber-400/20"
-                >
-                  {loading ? (
-                    <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
-                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="31.4" strokeDashoffset="10" />
-                    </svg>
-                  ) : (
-                    <><span>Create account</span><ArrowRight className="w-4 h-4" /></>
-                  )}
+
+            <div>
+              <label className="block text-xs font-medium text-slate-400 mb-1.5">Work email</label>
+              <input
+                type="email" required value={email} onChange={e => setEmail(e.target.value)}
+                placeholder="jane@yourcompany.com"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder:text-slate-600 focus:outline-none focus:border-amber-400/50 focus:bg-white/[0.07] transition-all"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-slate-400 mb-1.5">Password</label>
+              <div className="relative">
+                <input
+                  type={showPw ? 'text' : 'password'} required value={password} onChange={e => setPassword(e.target.value)}
+                  placeholder="Min. 8 characters"
+                  className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 pr-11 text-white text-sm placeholder:text-slate-600 focus:outline-none focus:border-amber-400/50 focus:bg-white/[0.07] transition-all"
+                />
+                <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-3.5 text-slate-500 hover:text-slate-300">
+                  {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
-              </form>
-              <p className="text-white/30 text-xs text-center mt-4">
-                By signing up you agree to our{' '}
-                <a href="mailto:info@crewdeskapp.com?subject=Terms Enquiry" className="text-white/50 hover:text-white/70 transition-colors">Terms</a>
-                {' '}and{' '}
-                <a href="mailto:info@crewdeskapp.com?subject=Privacy Enquiry" className="text-white/50 hover:text-white/70 transition-colors">Privacy Policy</a>
-              </p>
-              <p className="text-center text-white/35 text-xs mt-6">
-                Already have an account?{' '}
-                <Link href="/login" className="text-amber-400 hover:text-amber-300 font-medium transition-colors">Sign in</Link>
-              </p>
-              <div className="flex items-center justify-center gap-4 mt-8 pt-6 border-t border-white/[0.06]">
-                {[{ icon: Shield, label: 'Secure & encrypted' }, { icon: Zap, label: 'Always fast' }, { icon: Users, label: 'Priority support' }].map(b => (
-                  <div key={b.label} className="flex items-center gap-1.5 text-white/25 text-xs">
-                    <b.icon className="w-3 h-3" />{b.label}
-                  </div>
-                ))}
               </div>
-            </>
-          )}
+            </div>
+
+            {error && (
+              <div className="bg-rose-500/10 border border-rose-500/20 rounded-xl px-4 py-3 text-rose-400 text-sm">{error}</div>
+            )}
+
+            <button
+              type="submit" disabled={loading}
+              className="w-full flex items-center justify-center gap-2 bg-amber-400 hover:bg-amber-300 disabled:opacity-50 text-black font-semibold py-3.5 rounded-xl transition-all mt-2 shadow-lg shadow-amber-400/20"
+            >
+              {loading ? 'Creating account…' : (
+                <>Create free account <ArrowRight className="w-4 h-4" /></>
+              )}
+            </button>
+          </form>
+
+          <div className="flex items-center gap-2 mt-5">
+            <Shield className="w-3.5 h-3.5 text-slate-600" />
+            <p className="text-slate-600 text-xs">By signing up you agree to our <Link href="mailto:hello@crewdeskapp.com" className="text-slate-400 hover:text-white underline">Terms</Link> and <Link href="mailto:hello@crewdeskapp.com" className="text-slate-400 hover:text-white underline">Privacy Policy</Link>.</p>
+          </div>
+
+          <p className="text-center text-slate-500 text-sm mt-8">
+            Already have an account?{' '}
+            <Link href="/login" className="text-amber-400 hover:text-amber-300 font-medium">Sign in</Link>
+          </p>
         </div>
       </div>
     </div>
   )
-              }
+}
