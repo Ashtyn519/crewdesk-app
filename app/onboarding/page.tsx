@@ -5,201 +5,229 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { Building2, Users, Briefcase, ChevronRight, ChevronLeft, Check, Loader2, Zap } from 'lucide-react'
 
-const STEPS = ['workspace', 'team', 'usecase', 'done'] as const
+const STEPS = ['workspace', 'industry', 'team', 'done'] as const
 type Step = typeof STEPS[number]
 
-const INDUSTRIES = ['Film & TV', 'Commercial', 'Music Video', 'Events', 'Corporate', 'Documentary', 'Other']
-const TEAM_SIZES = ['Just me', '2-5', '6-15', '16-50', '50+']
+const INDUSTRIES = [
+  { id: 'agency',       label: 'Creative / Marketing Agency', icon: '🎨' },
+  { id: 'production',   label: 'Film, TV & Video Production',  icon: '🎬' },
+  { id: 'events',       label: 'Events & Live Production',     icon: '🎤' },
+  { id: 'tech',         label: 'Tech / Software',              icon: '💻' },
+  { id: 'consulting',   label: 'Consulting / Professional',    icon: '📊' },
+  { id: 'architecture', label: 'Architecture / Design',        icon: '🏛️' },
+  { id: 'pr',           label: 'PR / Communications',          icon: '📣' },
+  { id: 'other',        label: 'Other',                        icon: '✨' },
+]
+
+const TEAM_SIZES = [
+  { id: 'solo',   label: 'Just me',   desc: 'Sole trader or independent' },
+  { id: 'small',  label: '2–10',      desc: 'Small team' },
+  { id: 'medium', label: '11–50',     desc: 'Growing business' },
+  { id: 'large',  label: '50+',       desc: 'Established company' },
+]
+
 const USE_CASES = [
-  { id: 'crew', label: 'Manage crew and schedules', icon: Users },
-  { id: 'invoices', label: 'Send invoices and contracts', icon: Briefcase },
-  { id: 'projects', label: 'Track projects and budgets', icon: Building2 },
-  ]
+  { id: 'roster',    label: 'Manage my freelancer roster' },
+  { id: 'invoicing', label: 'Invoice clients faster' },
+  { id: 'contracts', label: 'Send & sign contracts' },
+  { id: 'projects',  label: 'Track projects and budgets' },
+]
 
 export default function OnboardingPage() {
-    const router = useRouter()
-    const supabase = createClient()
-    const [step, setStep] = useState<Step>('workspace')
-    const [loading, setLoading] = useState(false)
-    const [error, setError] = useState('')
-    const [workspaceName, setWorkspaceName] = useState('')
-    const [industry, setIndustry] = useState('')
-    const [teamSize, setTeamSize] = useState('')
-    const [useCases, setUseCases] = useState<string[]>([])
+  const router = useRouter()
+  const supabase = createClient()
+  const [step, setStep] = useState<Step>('workspace')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [workspaceName, setWorkspaceName] = useState('')
+  const [industry, setIndustry] = useState('')
+  const [teamSize, setTeamSize] = useState('')
+  const [useCases, setUseCases] = useState<string[]>([])
 
   const stepIndex = STEPS.indexOf(step)
-    const progress = (stepIndex / (STEPS.length - 1)) * 100
+  const progress = (stepIndex / (STEPS.length - 1)) * 100
 
   function toggleUseCase(id: string) {
-        setUseCases(prev => prev.includes(id) ? prev.filter(u => u !== id) : [...prev, id])
+    setUseCases(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id])
   }
 
-  async function handleFinish() {
-        if (!workspaceName.trim()) { setError('Workspace name is required'); return }
-        setLoading(true)
-        setError('')
-        try {
-                const { data: { user } } = await supabase.auth.getUser()
-                if (!user) throw new Error('Not authenticated')
-                const slug = workspaceName.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
-                const { error: wsErr } = await supabase.from('workspaces').insert({
-                          name: workspaceName.trim(),
-                          slug,
-                          owner_id: user.id,
-                          industry,
-                          team_size: teamSize,
-                          use_cases: useCases,
-                          onboarding_completed: true,
-                })
-                if (wsErr) throw wsErr
-                await supabase.from('profiles').upsert({ id: user.id, onboarding_completed: true }, { onConflict: 'id' })
-                setStep('done')
-        } catch (e: any) {
-                setError(e.message || 'Something went wrong. Please try again.')
-        } finally {
-                setLoading(false)
-        }
+  async function finish() {
+    setLoading(true); setError('')
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) { router.push('/login'); return }
+      const { error: err } = await supabase.from('workspaces').insert({
+        user_id: user.id,
+        company_name: workspaceName,
+        currency: 'GBP',
+      })
+      if (err) throw err
+      router.push('/dashboard')
+    } catch (e: any) {
+      setError(e.message || 'Something went wrong'); setLoading(false)
+    }
   }
 
   return (
-        <div className="min-h-screen bg-[#04080F] flex items-center justify-center p-4">
-              <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 w-[600px] h-[600px] bg-amber-500/5 rounded-full blur-3xl" />
-              </div>
-              <div className="relative w-full max-w-lg">
-                      <div className="flex items-center justify-center gap-2 mb-8">
-                                <div className="w-9 h-9 bg-amber-400 rounded-xl flex items-center justify-center">
-                                            <Zap className="w-5 h-5 text-black" fill="black" />
-                                </div>
-                                <span className="text-xl font-bold text-white">CrewDesk</span>
-                      </div>
-                {step !== 'done' && (
-                    <div className="mb-8">
-                                <div className="flex justify-between text-xs text-slate-500 mb-2">
-                                              <span>Step {stepIndex + 1} of {STEPS.length - 1}</span>
-                                              <span>{Math.round(progress)}% complete</span>
-                                </div>
-                                <div className="w-full bg-white/5 rounded-full h-1.5">
-                                              <div className="h-1.5 bg-amber-400 rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
-                                </div>
-                    </div>
-                      )}
-                      <div className="bg-[#0A1020] border border-white/5 rounded-2xl p-8">
-                        {step === 'workspace' && (
-                      <div className="space-y-6">
-                                    <div>
-                                                    <h1 className="text-2xl font-bold text-white">Set up your workspace</h1>
-                                                    <p className="text-slate-400 mt-1 text-sm">This is how your team will be identified in CrewDesk.</p>
-                                    </div>
-                                    <div className="space-y-4">
-                                                    <div>
-                                                                      <label className="block text-sm font-medium text-slate-300 mb-2">Workspace Name *</label>
-                                                                      <input
-                                                                                            value={workspaceName}
-                                                                                            onChange={e => setWorkspaceName(e.target.value)}
-                                                                                            placeholder="e.g. Neon Films"
-                                                                                            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-amber-400/50 focus:ring-1 focus:ring-amber-400/20 transition"
-                                                                                          />
-                                                    </div>
-                                                    <div>
-                                                                      <label className="block text-sm font-medium text-slate-300 mb-2">Industry</label>
-                                                                      <div className="grid grid-cols-3 gap-2">
-                                                                        {INDUSTRIES.map(ind => (
-                                              <button key={ind} onClick={() => setIndustry(ind)}
-                                                                        className={`py-2 px-3 rounded-xl text-xs font-medium border transition-all ${industry === ind ? 'bg-amber-400/15 border-amber-400/50 text-amber-400' : 'bg-white/3 border-white/10 text-slate-400 hover:border-white/20 hover:text-white'}`}
-                                                                      >{ind}</button>
-                                            ))}
-                                                                      </div>
-                                                    </div>
-                                    </div>
-                        {error && <p className="text-rose-400 text-sm">{error}</p>}
-                                    <button
-                                                      onClick={() => { if (!workspaceName.trim()) { setError('Please enter a workspace name'); return } setError(''); setStep('team') }}
-                                                      className="w-full bg-amber-400 hover:bg-amber-300 text-black font-semibold py-3 rounded-xl transition flex items-center justify-center gap-2"
-                                                    >Continue <ChevronRight className="w-4 h-4" /></button>
-                      </div>
-                                )}
-                        {step === 'team' && (
-                      <div className="space-y-6">
-                                    <div>
-                                                    <h1 className="text-2xl font-bold text-white">How big is your team?</h1>
-                                                    <p className="text-slate-400 mt-1 text-sm">We will tailor CrewDesk to fit your team size.</p>
-                                    </div>
-                                    <div className="grid grid-cols-1 gap-3">
-                                      {TEAM_SIZES.map(size => (
-                                          <button key={size} onClick={() => setTeamSize(size)}
-                                                                className={`flex items-center gap-3 p-4 rounded-xl border transition-all ${teamSize === size ? 'bg-amber-400/10 border-amber-400/40 text-white' : 'bg-white/3 border-white/10 text-slate-400 hover:border-white/20 hover:text-white'}`}
-                                                              >
-                                                              <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${teamSize === size ? 'border-amber-400 bg-amber-400' : 'border-slate-600'}`}>
-                                                                {teamSize === size && <div className="w-2 h-2 bg-black rounded-full" />}
-                                                              </div>
-                                                              <span className="font-medium">{size}</span>
-                                          </button>
-                                        ))}
-                                    </div>
-                                    <div className="flex gap-3">
-                                                    <button onClick={() => setStep('workspace')} className="flex-1 bg-white/5 hover:bg-white/10 text-white py-3 rounded-xl transition flex items-center justify-center gap-2">
-                                                                      <ChevronLeft className="w-4 h-4" /> Back
-                                                    </button>
-                                                    <button onClick={() => setStep('usecase')} className="flex-1 bg-amber-400 hover:bg-amber-300 text-black font-semibold py-3 rounded-xl transition flex items-center justify-center gap-2">
-                                                                      Continue <ChevronRight className="w-4 h-4" />
-                                                    </button>
-                                    </div>
-                      </div>
-                                )}
-                        {step === 'usecase' && (
-                      <div className="space-y-6">
-                                    <div>
-                                                    <h1 className="text-2xl font-bold text-white">What will you use CrewDesk for?</h1>
-                                                    <p className="text-slate-400 mt-1 text-sm">Select all that apply. You can change this later.</p>
-                                    </div>
-                                    <div className="space-y-3">
-                                      {USE_CASES.map(({ id, label, icon: Icon }) => {
-                                          const selected = useCases.includes(id)
-                                                              return (
-                                                                                    <button key={id} onClick={() => toggleUseCase(id)}
-                                                                                                            className={`w-full flex items-center gap-4 p-4 rounded-xl border transition-all ${selected ? 'bg-amber-400/10 border-amber-400/40 text-white' : 'bg-white/3 border-white/10 text-slate-400 hover:border-white/20 hover:text-white'}`}
-                                                                                                          >
-                                                                                                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${selected ? 'bg-amber-400/20' : 'bg-white/5'}`}>
-                                                                                                                                  <Icon className={`w-5 h-5 ${selected ? 'text-amber-400' : 'text-slate-500'}`} />
-                                                                                                            </div>
-                                                                                                          <span className="flex-1 text-left font-medium">{label}</span>
-                                                                                      {selected && <Check className="w-5 h-5 text-amber-400" />}
-                                                                                      </button>
-                                                                                  )
-                                      })}
-                                    </div>
-                        {error && <p className="text-rose-400 text-sm">{error}</p>}
-                                    <div className="flex gap-3">
-                                                    <button onClick={() => setStep('team')} className="flex-1 bg-white/5 hover:bg-white/10 text-white py-3 rounded-xl transition flex items-center justify-center gap-2">
-                                                                      <ChevronLeft className="w-4 h-4" /> Back
-                                                    </button>
-                                                    <button onClick={handleFinish} disabled={loading}
-                                                                        className="flex-1 bg-amber-400 hover:bg-amber-300 disabled:opacity-60 text-black font-semibold py-3 rounded-xl transition flex items-center justify-center gap-2"
-                                                                      >
-                                                      {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <><Check className="w-4 h-4" /> Finish</>>}
-                                                    </button>
-                                    </div>
-                      </div>
-                                )}
-                        {step === 'done' && (
-                      <div className="text-center space-y-6 py-4">
-                                    <div className="w-16 h-16 bg-emerald-500/10 rounded-full flex items-center justify-center mx-auto">
-                                                    <Check className="w-8 h-8 text-emerald-400" />
-                                    </div>
-                                    <div>
-                                                    <h1 className="text-2xl font-bold text-white">You are all set!</h1>
-                                                    <p className="text-slate-400 mt-2 text-sm">
-                                                                      Your workspace <span className="text-white font-medium">{workspaceName}</span> is ready. Let us build something great.
-                                                    </p>
-                                    </div>
-                                    <button onClick={() => router.push('/dashboard')}
-                                                      className="w-full bg-amber-400 hover:bg-amber-300 text-black font-bold py-3 rounded-xl transition"
-                                                    >Go to Dashboard</button>
-                      </div>
-                                )}
-                      </div>
-              </div>
+    <div className="min-h-screen bg-[#04080F] flex flex-col items-center justify-center px-4 py-12">
+      {/* Logo */}
+      <div className="flex items-center gap-2 mb-10">
+        <div className="w-8 h-8 rounded-xl bg-amber-400 flex items-center justify-center">
+          <Zap className="w-4 h-4 text-black fill-black" />
         </div>
-      )
-}</></div>
+        <span className="text-white font-bold text-lg tracking-tight">CrewDesk</span>
+      </div>
+
+      {/* Progress */}
+      <div className="w-full max-w-lg mb-8">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-xs text-slate-500">Step {stepIndex + 1} of {STEPS.length}</span>
+          <span className="text-xs text-slate-500">{Math.round(progress)}% complete</span>
+        </div>
+        <div className="w-full bg-white/5 rounded-full h-1">
+          <div className="h-1 bg-amber-400 rounded-full transition-all duration-500" style={{ width: `${progress}%` }} />
+        </div>
+      </div>
+
+      <div className="w-full max-w-lg">
+
+        {/* Step 1: Workspace */}
+        {step === 'workspace' && (
+          <div className="bg-[#0A1020] border border-white/5 rounded-2xl p-8">
+            <div className="w-12 h-12 rounded-2xl bg-amber-400/10 border border-amber-400/20 flex items-center justify-center mb-6">
+              <Building2 className="w-6 h-6 text-amber-400" />
+            </div>
+            <h1 className="text-2xl font-bold text-white mb-2">Name your workspace</h1>
+            <p className="text-slate-400 text-sm mb-8">This is usually your company or agency name. You can change it later.</p>
+            <div>
+              <label className="block text-xs font-medium text-slate-400 mb-2">Workspace name</label>
+              <input
+                autoFocus
+                type="text"
+                value={workspaceName}
+                onChange={e => setWorkspaceName(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && workspaceName.trim() && setStep('industry')}
+                placeholder="e.g. Apex Agency, Okafor Productions…"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3.5 text-white placeholder:text-slate-600 focus:outline-none focus:border-amber-400/50 text-sm"
+              />
+            </div>
+            <button
+              disabled={!workspaceName.trim()}
+              onClick={() => setStep('industry')}
+              className="w-full mt-6 flex items-center justify-center gap-2 bg-amber-400 hover:bg-amber-300 disabled:opacity-40 text-black font-semibold py-3.5 rounded-xl transition-all"
+            >
+              Continue <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
+        {/* Step 2: Industry */}
+        {step === 'industry' && (
+          <div className="bg-[#0A1020] border border-white/5 rounded-2xl p-8">
+            <div className="w-12 h-12 rounded-2xl bg-blue-400/10 border border-blue-400/20 flex items-center justify-center mb-6">
+              <Briefcase className="w-6 h-6 text-blue-400" />
+            </div>
+            <h1 className="text-2xl font-bold text-white mb-2">What best describes your business?</h1>
+            <p className="text-slate-400 text-sm mb-6">We'll customise your experience to suit your industry.</p>
+            <div className="grid grid-cols-2 gap-2.5">
+              {INDUSTRIES.map(ind => (
+                <button
+                  key={ind.id}
+                  onClick={() => setIndustry(ind.id)}
+                  className={`flex items-center gap-3 p-3.5 rounded-xl border text-left transition-all ${industry === ind.id ? 'bg-amber-400/10 border-amber-400/40 text-amber-400' : 'bg-white/5 border-white/10 text-slate-300 hover:border-white/20'}`}
+                >
+                  <span className="text-lg">{ind.icon}</span>
+                  <span className="text-xs font-medium leading-snug">{ind.label}</span>
+                  {industry === ind.id && <Check className="w-3.5 h-3.5 ml-auto shrink-0" />}
+                </button>
+              ))}
+            </div>
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => setStep('workspace')} className="flex items-center gap-2 px-4 py-3 rounded-xl border border-white/10 text-slate-400 hover:text-white text-sm transition-all">
+                <ChevronLeft className="w-4 h-4" /> Back
+              </button>
+              <button
+                disabled={!industry}
+                onClick={() => setStep('team')}
+                className="flex-1 flex items-center justify-center gap-2 bg-amber-400 hover:bg-amber-300 disabled:opacity-40 text-black font-semibold py-3 rounded-xl transition-all text-sm"
+              >
+                Continue <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 3: Team + Use cases */}
+        {step === 'team' && (
+          <div className="bg-[#0A1020] border border-white/5 rounded-2xl p-8">
+            <div className="w-12 h-12 rounded-2xl bg-purple-400/10 border border-purple-400/20 flex items-center justify-center mb-6">
+              <Users className="w-6 h-6 text-purple-400" />
+            </div>
+            <h1 className="text-2xl font-bold text-white mb-2">Tell us about your team</h1>
+            <p className="text-slate-400 text-sm mb-6">Helps us set sensible defaults for your workspace.</p>
+            
+            <div className="mb-6">
+              <p className="text-xs font-medium text-slate-400 mb-3">How many people in your team?</p>
+              <div className="grid grid-cols-2 gap-2">
+                {TEAM_SIZES.map(ts => (
+                  <button
+                    key={ts.id}
+                    onClick={() => setTeamSize(ts.id)}
+                    className={`p-3.5 rounded-xl border text-left transition-all ${teamSize === ts.id ? 'bg-amber-400/10 border-amber-400/40' : 'bg-white/5 border-white/10 hover:border-white/20'}`}
+                  >
+                    <p className={`text-sm font-semibold ${teamSize === ts.id ? 'text-amber-400' : 'text-white'}`}>{ts.label}</p>
+                    <p className="text-[11px] text-slate-500 mt-0.5">{ts.desc}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="mb-6">
+              <p className="text-xs font-medium text-slate-400 mb-3">What do you mainly want to use CrewDesk for?</p>
+              <div className="space-y-2">
+                {USE_CASES.map(uc => (
+                  <button
+                    key={uc.id}
+                    onClick={() => toggleUseCase(uc.id)}
+                    className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${useCases.includes(uc.id) ? 'bg-amber-400/10 border-amber-400/40 text-amber-400' : 'bg-white/5 border-white/10 text-slate-300 hover:border-white/20'}`}
+                  >
+                    <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0 ${useCases.includes(uc.id) ? 'bg-amber-400 border-amber-400' : 'border-white/20'}`}>
+                      {useCases.includes(uc.id) && <Check className="w-3 h-3 text-black" />}
+                    </div>
+                    <span className="text-sm">{uc.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {error && <p className="text-rose-400 text-sm mb-4 bg-rose-500/10 border border-rose-500/20 rounded-xl px-4 py-3">{error}</p>}
+
+            <div className="flex gap-3">
+              <button onClick={() => setStep('industry')} className="flex items-center gap-2 px-4 py-3 rounded-xl border border-white/10 text-slate-400 hover:text-white text-sm transition-all">
+                <ChevronLeft className="w-4 h-4" /> Back
+              </button>
+              <button
+                disabled={!teamSize || loading}
+                onClick={finish}
+                className="flex-1 flex items-center justify-center gap-2 bg-amber-400 hover:bg-amber-300 disabled:opacity-40 text-black font-semibold py-3 rounded-xl transition-all text-sm"
+              >
+                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Launch my workspace <ChevronRight className="w-4 h-4" /></>}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Step 4: Done (shown briefly before redirect) */}
+        {step === 'done' && (
+          <div className="bg-[#0A1020] border border-white/5 rounded-2xl p-12 text-center">
+            <div className="w-16 h-16 rounded-full bg-emerald-400/10 border border-emerald-400/30 flex items-center justify-center mx-auto mb-6">
+              <Check className="w-8 h-8 text-emerald-400" />
+            </div>
+            <h1 className="text-2xl font-bold text-white mb-2">You're all set!</h1>
+            <p className="text-slate-400 text-sm">Taking you to your dashboard…</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
