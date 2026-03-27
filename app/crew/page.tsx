@@ -7,7 +7,7 @@ import { Plus, Search, X, Star, Mail, Phone, Trash2, Edit2, ChevronDown } from '
 export const dynamic = 'force-dynamic'
 
 type Status = 'available' | 'on-project' | 'unavailable'
-type CrewMember = {
+type FreelancerMember = {
   id: string
   name: string
   role: string
@@ -27,281 +27,276 @@ const STATUS_STYLE: Record<Status, string> = {
   unavailable: 'bg-rose-500/20 text-rose-400 border border-rose-500/30',
 }
 
-const initialCrew: CrewMember[] = [
-  { id: 'm1', name: 'Jordan Ellis', role: 'Director of Photography', department: 'Camera', email: 'jordan@crewdesk.com', phone: '+44 7700 900001', rate: 750, rating: 5, status: 'available', skills: ['Cinematography', 'Lighting', 'Colour Grading'], bio: 'Award-winning DP with 12 years in film and commercial production.' },
-  { id: 'm2', name: 'Sam Rivera', role: 'Production Manager', department: 'Production', email: 'sam@crewdesk.com', phone: '+44 7700 900002', rate: 550, rating: 4, status: 'on-project', skills: ['Scheduling', 'Budgeting', 'Crew Management'], bio: 'Experienced PM with a track record of delivering complex shoots on time.' },
-  { id: 'm3', name: 'Alex Chen', role: 'Sound Designer', department: 'Audio', email: 'alex@crewdesk.com', phone: '+44 7700 900003', rate: 480, rating: 5, status: 'available', skills: ['Location Sound', 'Post Audio', 'Foley'], bio: 'Specialist in broadcast and documentary audio across 200+ projects.' },
-  { id: 'm4', name: 'Morgan Blake', role: 'Editor', department: 'Post', email: 'morgan@crewdesk.com', phone: '+44 7700 900004', rate: 520, rating: 4, status: 'unavailable', skills: ['Premiere Pro', 'DaVinci Resolve', 'After Effects'], bio: 'Post-production specialist with credits on BAFTA-nominated projects.' },
-  { id: 'm5', name: 'Taylor Moss', role: 'Gaffer', department: 'Lighting', email: 'taylor@crewdesk.com', phone: '+44 7700 900005', rate: 420, rating: 5, status: 'available', skills: ['Electrical', 'LED Rigs', 'Day-for-Night'], bio: 'Senior gaffer with expertise in large-scale studio and location rigs.' },
+const initialFreelancers: FreelancerMember[] = [
+  {
+    id: 'm1', name: 'Jordan Ellis', role: 'Senior UI Designer', department: 'Design',
+    email: 'jordan@example.com', phone: '+44 7700 900001', rate: 75, rating: 4.9,
+    status: 'available',
+    skills: ['Figma', 'Brand Identity', 'UI/UX', 'Prototyping'],
+    bio: 'Versatile UI designer with 8 years delivering digital products for agencies and startups.'
+  },
+  {
+    id: 'm2', name: 'Maya Chen', role: 'Full-Stack Developer', department: 'Engineering',
+    email: 'maya@example.com', phone: '+44 7700 900002', rate: 95, rating: 4.8,
+    status: 'on-project',
+    skills: ['React', 'Node.js', 'TypeScript', 'PostgreSQL'],
+    bio: 'Full-stack specialist building scalable web apps for B2B SaaS companies.'
+  },
+  {
+    id: 'm3', name: 'Sam Okafor', role: 'Content Strategist', department: 'Marketing',
+    email: 'sam@example.com', phone: '+44 7700 900003', rate: 60, rating: 4.7,
+    status: 'available',
+    skills: ['SEO', 'Copywriting', 'Content Strategy', 'Email Campaigns'],
+    bio: 'Content strategist helping B2B brands grow organic traffic and pipeline.'
+  },
+  {
+    id: 'm4', name: 'Priya Sharma', role: 'Project Manager', department: 'Operations',
+    email: 'priya@example.com', phone: '+44 7700 900004', rate: 65, rating: 5.0,
+    status: 'on-project',
+    skills: ['Agile', 'Scrum', 'Stakeholder Management', 'Jira'],
+    bio: 'Certified PM with a track record of delivering complex cross-functional projects on time.'
+  },
+  {
+    id: 'm5', name: 'Alex Rivera', role: 'Data Analyst', department: 'Analytics',
+    email: 'alex@example.com', phone: '+44 7700 900005', rate: 70, rating: 4.6,
+    status: 'unavailable',
+    skills: ['Python', 'SQL', 'Tableau', 'Power BI'],
+    bio: 'Data analyst turning raw business data into actionable growth insights.'
+  },
+  {
+    id: 'm6', name: 'Chris Morgan', role: 'Brand Consultant', department: 'Marketing',
+    email: 'chris@example.com', phone: '+44 7700 900006', rate: 80, rating: 4.8,
+    status: 'available',
+    skills: ['Brand Strategy', 'Positioning', 'Market Research', 'Workshops'],
+    bio: 'Freelance brand consultant with experience across FMCG, fintech and professional services.'
+  },
 ]
 
-const DEPARTMENTS = ['All', 'Camera', 'Production', 'Audio', 'Post', 'Lighting', 'Art', 'Directing']
+const DEPARTMENTS = ['All', 'Design', 'Engineering', 'Marketing', 'Operations', 'Analytics']
 
-function StarRating({ value }: { value: number }) {
-  return (
-    <div className="flex gap-0.5">
-      {[1,2,3,4,5].map(i => (
-        <Star key={i} size={12} className={i <= value ? 'text-amber-400 fill-amber-400' : 'text-slate-600'} />
-      ))}
-    </div>
-  )
-}
-
-type ModalMode = 'add' | 'edit'
-
-function MemberModal({ mode, member, onClose, onSave }: {
-  mode: ModalMode
-  member?: CrewMember
-  onClose: () => void
-  onSave: (m: CrewMember) => void
-}) {
-  const [form, setForm] = useState({
-    name: member?.name ?? '',
-    role: member?.role ?? '',
-    department: member?.department ?? 'Camera',
-    email: member?.email ?? '',
-    phone: member?.phone ?? '',
-    rate: member?.rate?.toString() ?? '',
-    skills: member?.skills?.join(', ') ?? '',
-    bio: member?.bio ?? '',
-    status: member?.status ?? 'available' as Status,
-    rating: member?.rating ?? 4,
-  })
-  const set = (k: string, v: string | number) => setForm(p => ({ ...p, [k]: v }))
-  const submit = () => {
-    if (!form.name.trim() || !form.role.trim()) return
-    onSave({
-      id: member?.id ?? 'm' + Date.now(),
-      name: form.name.trim(),
-      role: form.role.trim(),
-      department: form.department,
-      email: form.email.trim(),
-      phone: form.phone.trim(),
-      rate: parseFloat(form.rate) || 0,
-      rating: form.rating,
-      status: form.status,
-      skills: form.skills.split(',').map(s => s.trim()).filter(Boolean),
-      bio: form.bio.trim(),
-    })
-  }
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div className="bg-[#0A1020] border border-white/10 rounded-2xl p-7 w-full max-w-lg shadow-2xl max-h-[90vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-lg font-bold text-white">{mode === 'add' ? 'Add Crew Member' : 'Edit Member'}</h2>
-          <button onClick={onClose} className="text-slate-500 hover:text-white"><X className="w-5 h-5" /></button>
-        </div>
-        <div className="space-y-4 mb-6">
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-slate-400 mb-1 block">Name *</label>
-              <input value={form.name} onChange={e => set('name', e.target.value)} placeholder="Full name" className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400/50" />
-            </div>
-            <div>
-              <label className="text-xs text-slate-400 mb-1 block">Role *</label>
-              <input value={form.role} onChange={e => set('role', e.target.value)} placeholder="Job title" className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400/50" />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-slate-400 mb-1 block">Department</label>
-              <select value={form.department} onChange={e => set('department', e.target.value)} className="w-full bg-[#0A1020] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400/50">
-                {DEPARTMENTS.filter(d => d !== 'All').map(d => <option key={d} value={d} className="bg-[#0A1020]">{d}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="text-xs text-slate-400 mb-1 block">Status</label>
-              <select value={form.status} onChange={e => set('status', e.target.value as Status)} className="w-full bg-[#0A1020] border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white focus:outline-none focus:border-amber-400/50">
-                <option value="available" className="bg-[#0A1020]">Available</option>
-                <option value="on-project" className="bg-[#0A1020]">On Project</option>
-                <option value="unavailable" className="bg-[#0A1020]">Unavailable</option>
-              </select>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-xs text-slate-400 mb-1 block">Email</label>
-              <input value={form.email} onChange={e => set('email', e.target.value)} placeholder="email@example.com" className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400/50" />
-            </div>
-            <div>
-              <label className="text-xs text-slate-400 mb-1 block">Day Rate (£)</label>
-              <input value={form.rate} onChange={e => set('rate', e.target.value)} placeholder="e.g. 500" className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400/50" />
-            </div>
-          </div>
-          <div>
-            <label className="text-xs text-slate-400 mb-1 block">Skills (comma separated)</label>
-            <input value={form.skills} onChange={e => set('skills', e.target.value)} placeholder="e.g. Cinematography, Lighting" className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400/50" />
-          </div>
-          <div>
-            <label className="text-xs text-slate-400 mb-1 block">Bio</label>
-            <textarea value={form.bio} onChange={e => set('bio', e.target.value)} rows={3} placeholder="Brief professional bio" className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400/50 resize-none" />
-          </div>
-          <div>
-            <label className="text-xs text-slate-400 mb-1 block">Rating</label>
-            <div className="flex gap-2">
-              {[1,2,3,4,5].map(i => (
-                <button key={i} type="button" onClick={() => set('rating', i)} className={`text-sm ${i <= form.rating ? 'text-amber-400' : 'text-slate-600'} hover:text-amber-400 transition-colors`}>
-                  <Star size={20} className={i <= form.rating ? 'fill-amber-400' : ''} />
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-        <button onClick={submit} disabled={!form.name.trim() || !form.role.trim()} className="w-full py-3 bg-amber-400 text-black font-bold rounded-xl text-sm hover:bg-amber-300 transition-colors disabled:opacity-40 disabled:cursor-not-allowed">
-          {mode === 'add' ? 'Add to Roster' : 'Save Changes'}
-        </button>
-      </div>
-    </div>
-  )
-}
-
-export default function CrewPage() {
-  const [crew, setCrew] = useState<CrewMember[]>(initialCrew)
+export default function FreelancersPage() {
+  const [freelancers, setFreelancers] = useState<FreelancerMember[]>(initialFreelancers)
   const [search, setSearch] = useState('')
   const [dept, setDept] = useState('All')
-  const [modal, setModal] = useState<{ mode: ModalMode; member?: CrewMember } | null>(null)
-  const [expanded, setExpanded] = useState<string | null>(null)
-  const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+  const [selected, setSelected] = useState<FreelancerMember | null>(null)
+  const [showAdd, setShowAdd] = useState(false)
+  const [newF, setNewF] = useState({ name: '', role: '', department: '', email: '', phone: '', rate: '', skills: '' })
 
-  const filtered = crew.filter(m => {
-    const matchSearch = m.name.toLowerCase().includes(search.toLowerCase()) ||
-      m.role.toLowerCase().includes(search.toLowerCase()) ||
-      m.skills.some(s => s.toLowerCase().includes(search.toLowerCase()))
-    const matchDept = dept === 'All' || m.department === dept
-    return matchSearch && matchDept
+  const filtered = freelancers.filter(f => {
+    const matchDept = dept === 'All' || f.department === dept
+    const matchSearch = f.name.toLowerCase().includes(search.toLowerCase()) ||
+      f.role.toLowerCase().includes(search.toLowerCase()) ||
+      f.skills.some(s => s.toLowerCase().includes(search.toLowerCase()))
+    return matchDept && matchSearch
   })
 
-  const saveMember = (m: CrewMember) => {
-    setCrew(prev => {
-      const exists = prev.find(x => x.id === m.id)
-      return exists ? prev.map(x => x.id === m.id ? m : x) : [m, ...prev]
-    })
-    setModal(null)
+  const addFreelancer = () => {
+    if (!newF.name || !newF.role) return
+    const member: FreelancerMember = {
+      id: 'm' + Date.now(),
+      name: newF.name, role: newF.role,
+      department: newF.department || 'Other',
+      email: newF.email, phone: newF.phone,
+      rate: parseInt(newF.rate) || 0,
+      rating: 5.0, status: 'available',
+      skills: newF.skills.split(',').map(s => s.trim()).filter(Boolean),
+      bio: ''
+    }
+    setFreelancers(prev => [...prev, member])
+    setNewF({ name: '', role: '', department: '', email: '', phone: '', rate: '', skills: '' })
+    setShowAdd(false)
   }
 
-  const deleteMember = (id: string) => {
-    setCrew(prev => prev.filter(m => m.id !== id))
-    setDeleteConfirm(null)
-    if (expanded === id) setExpanded(null)
+  const remove = (id: string) => {
+    setFreelancers(prev => prev.filter(f => f.id !== id))
+    if (selected?.id === id) setSelected(null)
   }
-
-  const cycleStatus = (id: string) => {
-    const order: Status[] = ['available', 'on-project', 'unavailable']
-    setCrew(prev => prev.map(m => {
-      if (m.id !== id) return m
-      const idx = order.indexOf(m.status)
-      return { ...m, status: order[(idx + 1) % order.length] }
-    }))
-  }
-
-  const available = crew.filter(m => m.status === 'available').length
-  const onProject = crew.filter(m => m.status === 'on-project').length
 
   return (
-    <div className="flex h-screen bg-[#04080F] overflow-hidden">
+    <div className="flex min-h-screen bg-[#04080F]">
       <Sidebar />
-      <div className="flex-1 flex flex-col overflow-hidden ml-64">
+      <div className="flex-1 flex flex-col">
         <TopHeader />
-        <main className="flex-1 overflow-y-auto p-6">
+        <main className="flex-1 p-6 overflow-auto">
+          {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h1 className="text-2xl font-bold text-white">Crew Roster</h1>
-              <p className="text-slate-400 text-sm mt-0.5">Manage your freelancers and production crew</p>
+              <h1 className="text-2xl font-bold text-white">Freelancers</h1>
+              <p className="text-sm text-white/40 mt-1">{filtered.length} of {freelancers.length} freelancers</p>
             </div>
-            <button onClick={() => setModal({ mode: 'add' })} className="flex items-center gap-2 px-4 py-2 bg-amber-400 text-black font-semibold rounded-xl text-sm hover:bg-amber-300 transition-colors">
-              <Plus size={16} />Add Member
+            <button
+              onClick={() => setShowAdd(true)}
+              className="flex items-center gap-2 bg-amber-400 hover:bg-amber-300 text-black px-4 py-2 rounded-xl text-sm font-semibold transition-colors"
+            >
+              <Plus className="w-4 h-4" /> Add Freelancer
             </button>
           </div>
 
-          <div className="grid grid-cols-4 gap-4 mb-6">
-            {[
-              { label: 'Total Crew', value: crew.length, color: 'text-white' },
-              { label: 'Available', value: available, color: 'text-emerald-400' },
-              { label: 'On Project', value: onProject, color: 'text-amber-400' },
-              { label: 'Unavailable', value: crew.length - available - onProject, color: 'text-rose-400' },
-            ].map(s => (
-              <div key={s.label} className="bg-[#0A1020] border border-white/5 rounded-xl p-4">
-                <p className="text-xs text-slate-400 mb-1">{s.label}</p>
-                <p className={`text-2xl font-bold ${s.color}`}>{s.value}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="flex items-center gap-3 mb-5">
-            <div className="relative flex-1 max-w-sm">
-              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-              <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search crew, roles, skills..." className="w-full bg-white/5 border border-white/10 rounded-lg pl-9 pr-4 py-2 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-amber-400/50" />
+          {/* Filters */}
+          <div className="flex flex-col sm:flex-row gap-3 mb-6">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+              <input
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                placeholder="Search by name, role or skill..."
+                className="w-full bg-white/5 border border-white/10 text-white placeholder-white/30 rounded-xl pl-10 pr-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/30"
+              />
             </div>
-            <div className="flex gap-1 flex-wrap">
-              {DEPARTMENTS.map(d => (
-                <button key={d} onClick={() => setDept(d)} className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${dept === d ? 'bg-amber-400 text-black' : 'bg-white/5 text-slate-400 hover:text-white border border-white/10'}`}>{d}</button>
-              ))}
+            <div className="relative">
+              <select
+                value={dept}
+                onChange={e => setDept(e.target.value)}
+                className="appearance-none bg-white/5 border border-white/10 text-white rounded-xl px-4 py-2.5 pr-8 text-sm focus:outline-none cursor-pointer"
+              >
+                {DEPARTMENTS.map(d => <option key={d} value={d} className="bg-[#04080F]">{d}</option>)}
+              </select>
+              <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40 pointer-events-none" />
             </div>
           </div>
 
-          <div className="space-y-3">
-            {filtered.map(member => (
-              <div key={member.id} className="bg-[#0A1020] border border-white/5 rounded-xl overflow-hidden">
-                <div className="flex items-center justify-between p-4 cursor-pointer" onClick={() => setExpanded(expanded === member.id ? null : member.id)}>
-                  <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 rounded-full bg-amber-400/10 border border-amber-400/20 flex items-center justify-center">
-                      <span className="text-amber-400 font-bold text-sm">{member.name.split(' ').map(n => n[0]).join('')}</span>
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-white">{member.name}</p>
-                      <p className="text-xs text-slate-400">{member.role} &middot; {member.department}</p>
-                    </div>
+          {/* Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filtered.map(f => (
+              <div
+                key={f.id}
+                onClick={() => setSelected(f)}
+                className="bg-white/5 border border-white/10 rounded-2xl p-5 cursor-pointer hover:border-amber-400/30 hover:bg-white/[0.07] transition-all group"
+              >
+                <div className="flex items-start justify-between mb-3">
+                  <div className="w-11 h-11 rounded-xl bg-gradient-to-br from-amber-400/20 to-violet-500/20 flex items-center justify-center text-lg font-bold text-white">
+                    {f.name.charAt(0)}
                   </div>
-                  <div className="flex items-center gap-3">
-                    <StarRating value={member.rating} />
-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full cursor-pointer ${STATUS_STYLE[member.status]}`} onClick={e => { e.stopPropagation(); cycleStatus(member.id) }}>
-                      {member.status === 'on-project' ? 'On Project' : member.status.charAt(0).toUpperCase() + member.status.slice(1)}
-                    </span>
-                    <span className="text-sm font-semibold text-amber-400">£{member.rate}/day</span>
-                    <button onClick={e => { e.stopPropagation(); setModal({ mode: 'edit', member }) }} className="text-slate-500 hover:text-white transition-colors p-1"><Edit2 size={14} /></button>
-                    <button onClick={e => { e.stopPropagation(); setDeleteConfirm(member.id) }} className="text-slate-500 hover:text-rose-400 transition-colors p-1"><Trash2 size={14} /></button>
-                    <ChevronDown size={14} className={`text-slate-500 transition-transform ${expanded === member.id ? 'rotate-180' : ''}`} />
-                  </div>
+                  <span className={`text-xs px-2.5 py-1 rounded-full font-medium ${STATUS_STYLE[f.status]}`}>
+                    {f.status === 'on-project' ? 'On Project' : f.status.charAt(0).toUpperCase() + f.status.slice(1)}
+                  </span>
                 </div>
-                {expanded === member.id && (
-                  <div className="border-t border-white/5 px-4 pb-4 pt-3">
-                    <p className="text-sm text-slate-300 mb-3">{member.bio}</p>
-                    <div className="flex flex-wrap gap-2 mb-3">
-                      {member.skills.map(skill => (
-                        <span key={skill} className="text-xs bg-white/5 border border-white/10 text-slate-300 px-2 py-1 rounded-full">{skill}</span>
-                      ))}
-                    </div>
-                    <div className="flex gap-4 text-xs text-slate-400">
-                      {member.email && <a href={`mailto:${member.email}`} className="flex items-center gap-1 hover:text-amber-400 transition-colors"><Mail size={12} />{member.email}</a>}
-                      {member.phone && <span className="flex items-center gap-1"><Phone size={12} />{member.phone}</span>}
-                    </div>
+                <h3 className="text-white font-semibold text-sm">{f.name}</h3>
+                <p className="text-white/40 text-xs mt-0.5 mb-3">{f.role} · {f.department}</p>
+                <div className="flex flex-wrap gap-1.5 mb-3">
+                  {f.skills.slice(0, 3).map(s => (
+                    <span key={s} className="bg-white/5 border border-white/10 text-white/60 text-xs px-2 py-0.5 rounded-full">{s}</span>
+                  ))}
+                  {f.skills.length > 3 && <span className="text-white/30 text-xs">+{f.skills.length - 3}</span>}
+                </div>
+                <div className="flex items-center justify-between pt-3 border-t border-white/5">
+                  <div className="flex items-center gap-1">
+                    <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                    <span className="text-white/60 text-xs">{f.rating}</span>
                   </div>
-                )}
+                  <span className="text-amber-400 text-xs font-semibold">£{f.rate}/hr</span>
+                </div>
               </div>
             ))}
-            {filtered.length === 0 && (
-              <div className="text-center py-12">
-                <p className="text-slate-500 text-sm">No crew members found</p>
-              </div>
-            )}
           </div>
+
+          {filtered.length === 0 && (
+            <div className="text-center py-16">
+              <p className="text-white/30 text-sm">No freelancers match your search.</p>
+            </div>
+          )}
         </main>
       </div>
 
-      {modal && <MemberModal mode={modal.mode} member={modal.member} onClose={() => setModal(null)} onSave={saveMember} />}
+      {/* Detail Panel */}
+      {selected && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-end" onClick={() => setSelected(null)}>
+          <div
+            className="w-full max-w-sm bg-[#0D1117] border border-white/10 rounded-2xl m-4 p-6 shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-white font-bold text-lg">{selected.name}</h2>
+              <button onClick={() => setSelected(null)} className="text-white/40 hover:text-white">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-amber-400/20 to-violet-500/20 flex items-center justify-center text-2xl font-bold text-white mx-auto mb-4">
+              {selected.name.charAt(0)}
+            </div>
+            <p className="text-center text-white/60 text-sm mb-1">{selected.role}</p>
+            <p className="text-center text-white/30 text-xs mb-4">{selected.department}</p>
+            <span className={`block text-center text-xs px-3 py-1.5 rounded-full font-medium mb-5 ${STATUS_STYLE[selected.status]}`}>
+              {selected.status === 'on-project' ? 'On Project' : selected.status.charAt(0).toUpperCase() + selected.status.slice(1)}
+            </span>
+            {selected.bio && <p className="text-white/50 text-sm mb-5 text-center">{selected.bio}</p>}
+            <div className="space-y-2 mb-5">
+              <a href={`mailto:${selected.email}`} className="flex items-center gap-2 text-white/50 hover:text-white text-sm transition-colors">
+                <Mail className="w-4 h-4 text-amber-400" />{selected.email}
+              </a>
+              <a href={`tel:${selected.phone}`} className="flex items-center gap-2 text-white/50 hover:text-white text-sm transition-colors">
+                <Phone className="w-4 h-4 text-amber-400" />{selected.phone}
+              </a>
+            </div>
+            <div className="flex items-center justify-between p-3 bg-white/5 rounded-xl mb-5">
+              <div className="text-center">
+                <p className="text-amber-400 font-bold">£{selected.rate}/hr</p>
+                <p className="text-white/30 text-xs">Day Rate</p>
+              </div>
+              <div className="text-center">
+                <p className="text-white font-bold flex items-center gap-1">
+                  <Star className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />{selected.rating}
+                </p>
+                <p className="text-white/30 text-xs">Rating</p>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-1.5 mb-6">
+              {selected.skills.map(s => (
+                <span key={s} className="bg-amber-400/10 border border-amber-400/20 text-amber-300 text-xs px-2.5 py-1 rounded-full">{s}</span>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <button className="flex-1 flex items-center justify-center gap-1.5 bg-amber-400 hover:bg-amber-300 text-black text-sm font-semibold py-2.5 rounded-xl transition-colors">
+                <Edit2 className="w-4 h-4" /> Edit
+              </button>
+              <button
+                onClick={() => remove(selected.id)}
+                className="px-3 py-2.5 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-400 rounded-xl transition-colors"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
-      {deleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="bg-[#0A1020] border border-white/10 rounded-2xl p-6 w-full max-w-sm shadow-2xl">
-            <h3 className="text-base font-bold text-white mb-2">Remove Crew Member</h3>
-            <p className="text-sm text-slate-400 mb-6">This will remove them from the roster. Are you sure?</p>
-            <div className="flex gap-3">
-              <button onClick={() => setDeleteConfirm(null)} className="flex-1 py-2.5 border border-white/10 text-slate-300 rounded-xl text-sm hover:bg-white/5 transition-colors">Cancel</button>
-              <button onClick={() => deleteMember(deleteConfirm)} className="flex-1 py-2.5 bg-rose-500 text-white font-semibold rounded-xl text-sm hover:bg-rose-600 transition-colors">Remove</button>
+      {/* Add Freelancer Modal */}
+      {showAdd && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center" onClick={() => setShowAdd(false)}>
+          <div
+            className="w-full max-w-md bg-[#0D1117] border border-white/10 rounded-2xl p-6 shadow-2xl"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-white font-bold text-lg">Add Freelancer</h2>
+              <button onClick={() => setShowAdd(false)} className="text-white/40 hover:text-white"><X className="w-5 h-5" /></button>
+            </div>
+            <div className="space-y-3">
+              {[
+                { key: 'name', placeholder: 'Full name *' },
+                { key: 'role', placeholder: 'Role / Title *' },
+                { key: 'department', placeholder: 'Department' },
+                { key: 'email', placeholder: 'Email address' },
+                { key: 'phone', placeholder: 'Phone number' },
+                { key: 'rate', placeholder: 'Hourly rate (£)' },
+                { key: 'skills', placeholder: 'Skills (comma separated)' },
+              ].map(({ key, placeholder }) => (
+                <input
+                  key={key}
+                  value={newF[key as keyof typeof newF]}
+                  onChange={e => setNewF(prev => ({ ...prev, [key]: e.target.value }))}
+                  placeholder={placeholder}
+                  className="w-full bg-white/5 border border-white/10 text-white placeholder-white/30 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400/30"
+                />
+              ))}
+            </div>
+            <div className="flex gap-3 mt-5">
+              <button onClick={() => setShowAdd(false)} className="flex-1 bg-white/5 border border-white/10 text-white/60 py-2.5 rounded-xl text-sm hover:bg-white/10 transition-colors">Cancel</button>
+              <button onClick={addFreelancer} className="flex-1 bg-amber-400 hover:bg-amber-300 text-black font-semibold py-2.5 rounded-xl text-sm transition-colors">Add Freelancer</button>
             </div>
           </div>
         </div>
       )}
     </div>
   )
-                }
+}
