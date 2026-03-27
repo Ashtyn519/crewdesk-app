@@ -83,4 +83,4 @@ export function Sidebar() {
         )
 }
 
-export default Sidebar</div>
+export default Sidebar
