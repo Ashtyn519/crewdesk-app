@@ -58,19 +58,19 @@ export default function DashboardPage() {
                                 <div className="flex items-center gap-3 bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3">
                                             <Clock className="w-4 h-4 text-amber-400 shrink-0" />
                                             <p className="text-sm text-amber-200 flex-1">
-                                                          <span className="font-semibold text-amber-400">11 days left on your free trial.</span>span>{' '}
+                                                          <span className="font-semibold text-amber-400">11 days left on your free trial.</span>{' '}
                                                           Upgrade to keep full access to all features.
-                                            </p>p>
+                                            </p>
                                             <Link href="/pricing" className="text-sm font-semibold text-amber-400 hover:text-amber-300 transition-colors whitespace-nowrap">
                                                           View plans →
-                                            </Link>Link>
-                                </div>div>
+                                            </Link>
+                                </div>
                       
                         {/* Greeting */}
                                 <div>
-                                            <p className="text-slate-400 text-sm">{greeting},</p>p>
-                                            <h1 className="text-3xl font-bold text-white mt-0.5">Dashboard</h1>h1>
-                                </div>div>
+                                            <p className="text-slate-400 text-sm">{greeting},</p>
+                                            <h1 className="text-3xl font-bold text-white mt-0.5">Dashboard</h1>
+                                </div>
                       
                         {/* KPI Grid — 2 cols on small, 4 on xl */}
                                 <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
@@ -81,24 +81,24 @@ export default function DashboardPage() {
                                                                             <div className="flex items-center justify-between">
                                                                                                 <div className={`w-10 h-10 rounded-xl ${kpi.bg} flex items-center justify-center`}>
                                                                                                                       <Icon className={`w-5 h-5 ${kpi.color}`} />
-                                                                                                  </div>div>
+                                                                                                  </div>
                                                                                                 <span className={`text-xs font-medium px-2 py-1 rounded-full ${kpi.up ? 'bg-emerald-500/10 text-emerald-400' : 'bg-rose-500/10 text-rose-400'}`}>
                                                                                                   {kpi.change}
-                                                                                                  </span>span>
-                                                                            </div>div>
+                                                                                                  </span>
+                                                                            </div>
                                                                             <div>
-                                                                                                <p className="text-2xl font-bold text-white">{kpi.value}</p>p>
-                                                                                                <p className="text-slate-500 text-xs mt-0.5">{kpi.label}</p>p>
-                                                                            </div>div>
-                                                          </div>div>
+                                                                                                <p className="text-2xl font-bold text-white">{kpi.value}</p>
+                                                                                                <p className="text-slate-500 text-xs mt-0.5">{kpi.label}</p>
+                                                                            </div>
+                                                          </div>
                                                         )
                                   })}
-                                </div>div>
+                                </div>
                       
                         {/* Revenue Chart — standalone card, no duplicate header */}
                                 <div className="bg-[#0A1020] border border-white/5 rounded-2xl p-6">
                                             <RevenueChart />
-                                </div>div>
+                                </div>
                       
                         {/* Bottom Row */}
                                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -106,11 +106,11 @@ export default function DashboardPage() {
                                   {/* Recent Activity */}
                                             <div className="lg:col-span-2 bg-[#0A1020] border border-white/5 rounded-2xl p-6">
                                                           <div className="flex items-center justify-between mb-5">
-                                                                          <h2 className="text-base font-semibold text-white">Recent Activity</h2>h2>
+                                                                          <h2 className="text-base font-semibold text-white">Recent Activity</h2>
                                                                           <button className="text-xs text-slate-400 hover:text-amber-400 transition-colors flex items-center gap-1">
                                                                                             View all <ArrowRight className="w-3 h-3" />
-                                                                          </button>button>
-                                                          </div>div>
+                                                                          </button>
+                                                          </div>
                                                           <div className="space-y-4">
                                                             {recentActivity.map((a) => {
                             const Icon = a.icon
@@ -118,25 +118,25 @@ export default function DashboardPage() {
                                                                       <div key={a.id} className="flex items-start gap-3">
                                                                                             <div className={`w-8 h-8 rounded-lg bg-white/5 flex items-center justify-center shrink-0 mt-0.5`}>
                                                                                                                     <Icon className={`w-4 h-4 ${a.color}`} />
-                                                                                              </div>div>
+                                                                                              </div>
                                                                                             <div className="flex-1 min-w-0">
-                                                                                                                    <p className="text-sm text-slate-200 truncate">{a.text}</p>p>
+                                                                                                                    <p className="text-sm text-slate-200 truncate">{a.text}</p>
                                                                                                                     <p className="text-xs text-slate-500 mt-0.5 flex items-center gap-1">
                                                                                                                                               <Clock className="w-3 h-3" />{a.time}
-                                                                                                                      </p>p>
-                                                                                              </div>div>
-                                                                      </div>div>
+                                                                                                                      </p>
+                                                                                              </div>
+                                                                      </div>
                                                                     )
                                                             })}
-                                                          </div>div>
-                                            </div>div>
+                                                          </div>
+                                            </div>
                                 
                                   {/* Right Column */}
                                             <div className="flex flex-col gap-6">
                                             
                                               {/* Quick Actions */}
                                                           <div className="bg-[#0A1020] border border-white/5 rounded-2xl p-6">
-                                                                          <h2 className="text-base font-semibold text-white mb-4">Quick Actions</h2>h2>
+                                                                          <h2 className="text-base font-semibold text-white mb-4">Quick Actions</h2>
                                                                           <div className="grid grid-cols-2 gap-3">
                                                                             {quickActions.map((a) => {
                               const Icon = a.icon
@@ -144,41 +144,41 @@ export default function DashboardPage() {
                                                                             <Link key={a.label} href={a.href}
                                                                                                       className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-colors ${a.color}`}>
                                                                                                     <Icon className="w-5 h-5" />
-                                                                                                    <span className="text-xs font-medium">{a.label}</span>span>
-                                                                            </Link>Link>
+                                                                                                    <span className="text-xs font-medium">{a.label}</span>
+                                                                            </Link>
                                                                           )
         })}
-                                                                          </div>div>
-                                                          </div>div>
+                                                                          </div>
+                                                          </div>
                                             
                                               {/* Upcoming Deadlines */}
                                                           <div className="bg-[#0A1020] border border-white/5 rounded-2xl p-6">
-                                                                          <h2 className="text-base font-semibold text-white mb-4">Deadlines</h2>h2>
+                                                                          <h2 className="text-base font-semibold text-white mb-4">Deadlines</h2>
                                                                           <div className="space-y-4">
                                                                             {upcomingDeadlines.map((d, i) => (
                               <div key={i}>
                                                     <div className="flex items-center justify-between mb-1">
-                                                                            <p className="text-xs text-slate-300 truncate max-w-[65%]">{d.project}</p>p>
+                                                                            <p className="text-xs text-slate-300 truncate max-w-[65%]">{d.project}</p>
                                                                             <span className={`text-xs font-medium ${d.status === 'urgent' ? 'text-rose-400' : 'text-slate-400'}`}>
                                                                               {d.due}
-                                                                              </span>span>
-                                                    </div>div>
+                                                                              </span>
+                                                    </div>
                                                     <div className="w-full bg-white/5 rounded-full h-1.5">
                                                                             <div
                                                                                                         className={`h-1.5 rounded-full transition-all duration-700 ${d.status === 'urgent' ? 'bg-rose-400' : 'bg-amber-400'}`}
                                                                                                         style={{ width: `${d.pct}%` }}
                                                                                                       />
-                                                    </div>div>
-                              </div>div>
+                                                    </div>
+                              </div>
                             ))}
-                                                                          </div>div>
-                                                          </div>div>
+                                                                          </div>
+                                                          </div>
                                             
-                                            </div>div>
-                                </div>div>
+                                            </div>
+                                </div>
                       
-                      </main>main>
-              </div>div>
-        </div>div>
+                      </main>
+              </div>
+        </div>
       )
 }</div>
