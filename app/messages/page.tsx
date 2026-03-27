@@ -10,17 +10,17 @@ type Message = { id: string; text: string; from: 'me' | 'them'; time: string; re
 type Thread = { id: string; name: string; role: string; lastMessage: string; time: string; unread: number; messages: Message[] }
 
 const initialThreads: Thread[] = [
-  { id: 't1', name: 'Jordan Ellis', role: 'Director of Photography', lastMessage: 'Can we move the call to 3pm?', time: '10:42', unread: 2, messages: [
-    { id: 'm1', text: 'Hi, just wanted to confirm the shoot dates for next week.', from: 'them', time: '10:30', read: true },
+  { id: 't1', name: 'Jordan Ellis', role: 'UI/UX Designer', lastMessage: 'Can we move the call to 3pm?', time: '10:42', unread: 2, messages: [
+    { id: 'm1', text: 'Hi, just confirming the design review for next week.', from: 'them', time: '10:30', read: true },
     { id: 'm2', text: 'Yes, we are confirmed for Monday through Wednesday.', from: 'me', time: '10:35', read: true },
     { id: 'm3', text: 'Can we move the call to 3pm?', from: 'them', time: '10:42', read: false },
   ]},
-  { id: 't2', name: 'Sam Rivera', role: 'Production Manager', lastMessage: 'Budget approved. Starting Monday.', time: 'Yesterday', unread: 0, messages: [
+  { id: 't2', name: 'Sam Rivera', role: 'Project Manager', lastMessage: 'Budget approved. Starting Monday.', time: 'Yesterday', unread: 0, messages: [
     { id: 'm4', text: 'The client has reviewed the quote.', from: 'them', time: 'Yesterday', read: true },
     { id: 'm5', text: 'Budget approved. Starting Monday.', from: 'them', time: 'Yesterday', read: true },
   ]},
-  { id: 't3', name: 'Alex Chen', role: 'Sound Designer', lastMessage: 'Equipment list sent to your email.', time: 'Mon', unread: 1, messages: [
-    { id: 'm6', text: 'Equipment list sent to your email.', from: 'them', time: 'Mon', read: false },
+  { id: 't3', name: 'Alex Chen', role: 'Full-Stack Developer', lastMessage: 'Dev environment access sent to your email.', time: 'Mon', unread: 1, messages: [
+    { id: 'm6', text: 'Dev environment access sent to your email.', from: 'them', time: 'Mon', read: false },
   ]},
 ]
 
