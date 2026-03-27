@@ -133,3 +133,45 @@ ALTER TABLE crew_members ADD COLUMN IF NOT EXISTS rating NUMERIC(3,1);
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS issued_date TIMESTAMPTZ;
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS line_items JSONB;
 ALTER TABLE invoices ADD COLUMN IF NOT EXISTS notes TEXT;
+
+
+-- Stripe + onboarding columns for workspaces
+ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS name TEXT;
+ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS slug TEXT;
+ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS industry TEXT;
+ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS team_size TEXT;
+ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS use_cases TEXT[];
+ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS plan TEXT DEFAULT 'trial';
+ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS plan_status TEXT DEFAULT 'trialing';
+ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS stripe_customer_id TEXT;
+ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS stripe_subscription_id TEXT;
+ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS trial_ends_at TIMESTAMPTZ DEFAULT (now() + interval '14 days');
+ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS owner_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
+ALTER TABLE workspaces ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
+
+-- Profiles table (tracks per-user onboarding state)
+CREATE TABLE IF NOT EXISTS profiles (
+    id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
+    onboarding_completed BOOLEAN DEFAULT false,
+    workspace_id UUID REFERENCES workspaces(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT now()
+  );
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+CREATE POLICY IF NOT EXISTS "Users own profile" ON profiles FOR ALL USING (auth.uid() = id);
+
+-- Schedules table (for crew shift scheduling)
+CREATE TABLE IF NOT EXISTS schedules (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
+    crew_member_id UUID REFERENCES crew_members(id) ON DELETE CASCADE,
+    project_id UUID REFERENCES projects(id) ON DELETE SET NULL,
+    title TEXT NOT NULL,
+    start_time TIMESTAMPTZ NOT NULL,
+    end_time TIMESTAMPTZ NOT NULL,
+    role TEXT,
+    notes TEXT,
+    status TEXT DEFAULT 'confirmed' CHECK (status IN ('confirmed','tentative','cancelled')),
+    created_at TIMESTAMPTZ DEFAULT now()
+  );
+ALTER TABLE schedules ENABLE ROW LEVEL SECURITY;
+CREATE POLICY IF NOT EXISTS "Users own schedules" ON schedules FOR ALL USING (auth.uid() = user_id);
