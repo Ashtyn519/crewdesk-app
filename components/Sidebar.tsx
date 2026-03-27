@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, FolderKanban, Users, FileText, Receipt, MessageSquare, Settings, Zap, ChevronRight, TrendingUp, CalendarDays, BarChart3 } from 'lucide-react'
+import { LayoutDashboard, FolderKanban, Users, FileText, Receipt, MessageSquare, Settings, Zap, ChevronRight, TrendingUp, CalendarDays, BarChart3, UserCircle } from 'lucide-react'
 
 const NAV = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', badge: null },
@@ -12,6 +12,7 @@ const NAV = [
   { href: '/invoices', icon: Receipt,         label: 'Invoices',  badge: null },
   { href: '/messages', icon: MessageSquare,   label: 'Messages',  badge: 3 },
   { href: '/reports',  icon: BarChart3,       label: 'Reports',   badge: null },
+  { href: '/profile',  icon: UserCircle,     label: 'My Profile', badge: null },
     ]
 
 export function Sidebar() {
