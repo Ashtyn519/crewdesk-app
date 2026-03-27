@@ -43,4 +43,4 @@ export function RevenueChart(){
           </div>
         )
 }
-export default RevenueChart</div>
+export default RevenueChart
