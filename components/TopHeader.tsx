@@ -1,8 +1,9 @@
 'use client'
-import { usePathname } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { useState, useRef, useEffect } from 'react'
 import Link from 'next/link'
-import { Search, Bell, CreditCard, UserCheck, FileSignature, FolderPlus, MessageSquare, Folder, User, Receipt, FileText } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import { Search, Bell, CreditCard, UserCheck, FileSignature, FolderPlus, MessageSquare, Folder, User, Receipt, FileText, LogOut, Settings } from 'lucide-react'
 
 type NotifType = 'payment' | 'crew' | 'contract' | 'project' | 'message'
 
@@ -45,6 +46,7 @@ const SEARCH_ICONS: Record<string, React.ElementType> = {
 }
 
 export default function TopHeader() {
+  const router = useRouter()
   const pathname = usePathname()
   const segment = (pathname.slice(1) || 'dashboard').split('/')[0]
   const pageName = segment.charAt(0).toUpperCase() + segment.slice(1)
@@ -53,6 +55,13 @@ export default function TopHeader() {
   const [searchQ, setSearchQ] = useState('')
   const [unreadCount, setUnreadCount] = useState(notifications.filter(n => n.unread).length)
   const notifRef = useRef<HTMLDivElement>(null)
+  const userMenuRef = useRef<HTMLDivElement>(null)
+  const [userMenuOpen, setUserMenuOpen] = useState(false)
+  async function handleSignOut() {
+    const sb = createClient()
+    await sb.auth.signOut()
+    router.push('/login')
+  }
   const searchRef = useRef<HTMLInputElement>(null)
 
   const markAllRead = () => { setUnreadCount(0); setNotifOpen(false) }
@@ -60,6 +69,7 @@ export default function TopHeader() {
   useEffect(() => {
     const handler = (e: MouseEvent) => {
       if (notifRef.current && !notifRef.current.contains(e.target as Node)) setNotifOpen(false)
+      if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) setUserMenuOpen(false)
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
@@ -152,6 +162,28 @@ export default function TopHeader() {
           A
         </div>
       </div>
-    </header>
+    
+            {/* User menu */}
+            <div className="relative" ref={userMenuRef}>
+              <button
+                onClick={() => setUserMenuOpen(!userMenuOpen)}
+                className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-black text-sm font-bold hover:ring-2 hover:ring-amber-400/30 transition-all"
+              >
+                A
+              </button>
+              {userMenuOpen && (
+                <div className="absolute right-0 top-10 w-44 bg-[#0F1A2E] border border-white/10 rounded-xl shadow-2xl overflow-hidden z-50">
+                  <Link href="/settings" onClick={() => setUserMenuOpen(false)} className="flex items-center gap-2.5 px-4 py-3 text-sm text-slate-300 hover:bg-white/5 hover:text-white transition-colors">
+                    <Settings className="w-4 h-4" />
+                    Settings
+                  </Link>
+                  <button onClick={handleSignOut} className="w-full flex items-center gap-2.5 px-4 py-3 text-sm text-rose-400 hover:bg-rose-500/10 transition-colors border-t border-white/5">
+                    <LogOut className="w-4 h-4" />
+                    Sign out
+                  </button>
+                </div>
+              )}
+            </div>
+      </header>
   )
                             }
