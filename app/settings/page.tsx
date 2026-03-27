@@ -1,6 +1,8 @@
 'use client'
 import { useState } from 'react'
-import { User, Building2, CreditCard, Bell, Lock, Check, ExternalLink, AlertCircle } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import { useRouter } from 'next/navigation'
+import { User, Building2, CreditCard, Bell, Lock, Check, ExternalLink, AlertCircle, LogOut } from 'lucide-react'
 import Sidebar from '@/components/Sidebar'
 import TopHeader from '@/components/TopHeader'
 
@@ -44,6 +46,12 @@ function SettingsRow({ label, desc, children }: { label: string; desc?: string; 
 }
 
 export default function SettingsPage() {
+  const router = useRouter()
+  async function handleSignOut() {
+    const sb = createClient()
+    await sb.auth.signOut()
+    router.push('/login')
+  }
   const [activeTab, setActiveTab] = useState('profile')
   const [saved, setSaved] = useState(false)
   const [notifs, setNotifs] = useState({
@@ -288,6 +296,17 @@ export default function SettingsPage() {
               </button>
             </div>
           </div>
+        
+              {/* Sign Out */}
+              <div className="mt-8 pt-6 border-t border-white/5">
+                <button
+                  onClick={handleSignOut}
+                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-rose-400 hover:bg-rose-500/10 border border-rose-500/20 hover:border-rose-500/30 transition-all text-sm font-medium w-full"
+                >
+                  <LogOut className="w-4 h-4" />
+                  Sign out of CrewDesk
+                </button>
+              </div>
         </main>
       </div>
     </div>
