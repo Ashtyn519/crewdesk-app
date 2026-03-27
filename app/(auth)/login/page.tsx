@@ -1,18 +1,18 @@
 'use client'
-import { useState } from 'react'
+import { useState, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Users, FileText, Receipt, ArrowRight, Eye, EyeOff, Zap, Shield, BarChart3 } from 'lucide-react'
 
 const features = [
-  { icon: Users, label: 'Crew Management', desc: 'Build and rate your freelance roster' },
+  { icon: Users, label: 'Freelancer Management', desc: 'Build and rate your freelance roster' },
   { icon: FileText, label: 'Smart Contracts', desc: 'Draft, send and sign in one place' },
   { icon: Receipt, label: 'Instant Invoicing', desc: 'Create, track and collect payments' },
   { icon: BarChart3, label: 'Live Analytics', desc: 'Real-time dashboards across projects' },
 ]
 
-export default function LoginPage() {
+function LoginContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get('redirect') || '/dashboard'
@@ -156,3 +156,11 @@ export default function LoginPage() {
     </div>
   )
       }
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#04080F]" />}>
+      <LoginContent />
+    </Suspense>
+  )
+}
