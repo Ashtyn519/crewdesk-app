@@ -6,7 +6,7 @@ import { LayoutDashboard, FolderKanban, Users, FileText, Receipt, MessageSquare,
 const NAV = [
   { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard', badge: null },
   { href: '/projects', icon: FolderKanban,    label: 'Projects',  badge: null },
-  { href: '/crew',     icon: Users,           label: 'Crew',      badge: null },
+  { href: '/crew',     icon: Users,           label: 'Freelancers',      badge: null },
   { href: '/schedule', icon: CalendarDays,    label: 'Schedule',  badge: null },
   { href: '/contracts', icon: FileText,       label: 'Contracts', badge: null },
   { href: '/invoices', icon: Receipt,         label: 'Invoices',  badge: null },
