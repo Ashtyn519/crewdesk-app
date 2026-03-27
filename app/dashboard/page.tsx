@@ -8,30 +8,30 @@ import RevenueChart from '@/components/RevenueChart'
 const kpis = [
   { label: 'Total Revenue', value: '£348,200', change: '+23.4%', up: true, icon: TrendingUp, color: 'text-amber-400', bg: 'bg-amber-400/10' },
   { label: 'Active Projects', value: '12', change: '+3 this month', up: true, icon: FolderKanban, color: 'text-blue-400', bg: 'bg-blue-400/10' },
-  { label: 'Crew Members', value: '28', change: '+5 new', up: true, icon: Users, color: 'text-purple-400', bg: 'bg-purple-400/10' },
+  { label: 'Freelancers', value: '28', change: '+3 new', up: true, icon: Users, color: 'text-purple-400', bg: 'bg-purple-400/10' },
   { label: 'Pending Invoices', value: '£37,840', change: '3 outstanding', up: false, icon: Receipt, color: 'text-rose-400', bg: 'bg-rose-400/10' },
   ]
 
 const recentActivity = [
-  { id: 1, type: 'invoice', text: 'Invoice #INV-2024 sent to Neon Films', time: '2 min ago', icon: Receipt, color: 'text-amber-400' },
-  { id: 2, type: 'crew', text: 'Sarah Chen accepted crew invitation', time: '18 min ago', icon: Users, color: 'text-green-400' },
-  { id: 3, type: 'contract', text: 'Contract for City Lights signed', time: '1 hr ago', icon: FileText, color: 'text-blue-400' },
-  { id: 4, type: 'project', text: 'New project Apex Documentary created', time: '3 hrs ago', icon: FolderKanban, color: 'text-purple-400' },
-  { id: 5, type: 'payment', text: 'Payment received from BFI', time: '5 hrs ago', icon: TrendingUp, color: 'text-emerald-400' },
+  { id: 1, type: 'invoice', text: 'Invoice #INV-004 sent to GrowthBase Inc', time: '2 min ago', icon: Receipt, color: 'text-amber-400' },
+  { id: 2, type: 'freelancer', text: 'Maya Chen accepted project invite', time: '18 min ago', icon: Users, color: 'text-green-400' },
+  { id: 3, type: 'contract', text: 'Contract for Mobile App v2 signed', time: '1 hr ago', icon: FileText, color: 'text-blue-400' },
+  { id: 4, type: 'project', text: 'New project UX Research Study created', time: '3 hrs ago', icon: FolderKanban, color: 'text-purple-400' },
+  { id: 5, type: 'payment', text: 'Payment received from Apex Solutions', time: '5 hrs ago', icon: TrendingUp, color: 'text-emerald-400' },
   { id: 6, type: 'message', text: "James O'Brien sent 3 new messages", time: 'Yesterday', icon: MessageSquare, color: 'text-sky-400' },
   ]
 
 const quickActions = [
   { label: 'New Project', icon: FolderKanban, href: '/projects', color: 'bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/20 text-blue-400' },
-  { label: 'Add Crew', icon: Users, href: '/crew', color: 'bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-purple-400' },
+  { label: 'Add Freelancer', icon: Users, href: '/crew', color: 'bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/20 text-purple-400' },
   { label: 'Create Invoice', icon: Receipt, href: '/invoices', color: 'bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 text-amber-400' },
   { label: 'New Contract', icon: FileText, href: '/contracts', color: 'bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400' },
   ]
 
 const upcomingDeadlines = [
-  { project: 'Neon Films — Episode 5', due: 'Tomorrow', status: 'urgent', pct: 78 },
-  { project: 'City Lights Documentary', due: 'Apr 2', status: 'on-track', pct: 45 },
-  { project: 'BFI Shorts Package', due: 'Apr 8', status: 'on-track', pct: 30 },
+  { project: 'Website Redesign — Apex Solutions', due: 'Tomorrow', status: 'urgent', pct: 78 },
+  { project: 'Mobile App Development', due: 'Apr 2', status: 'on-track', pct: 45 },
+  { project: 'Brand Identity Refresh', due: 'Apr 8', status: 'on-track', pct: 30 },
   ]
 
 function getGreeting() {
