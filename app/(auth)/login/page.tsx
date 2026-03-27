@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Users, FileText, Receipt, ArrowRight, Eye, EyeOff, Zap, Shield, BarChart3 } from 'lucide-react'
 
@@ -14,6 +14,8 @@ const features = [
 
 export default function LoginPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectTo = searchParams.get('redirect') || '/dashboard'
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPw, setShowPw] = useState(false)
@@ -27,7 +29,7 @@ export default function LoginPage() {
     const sb = createClient()
     const { error: err } = await sb.auth.signInWithPassword({ email, password })
     if (err) { setError(err.message); setLoading(false) }
-    else { router.push('/dashboard') }
+    else { router.push(redirectTo) }
   }
 
   return (
