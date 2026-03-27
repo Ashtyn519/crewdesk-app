@@ -3,8 +3,6 @@ export const dynamic = 'force-dynamic'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { TrendingUp, FolderKanban, Users, FileText, Receipt, MessageSquare, ArrowRight, Clock, Bell, CheckCircle2, AlertCircle } from 'lucide-react'
-import Sidebar from '@/components/Sidebar'
-import TopHeader from '@/components/TopHeader'
 import RevenueChart from '@/components/RevenueChart'
 
 const kpis = [
@@ -48,11 +46,7 @@ export default function DashboardPage() {
     useEffect(() => { setGreeting(getGreeting()) }, [])
 
   return (
-        <div className="flex min-h-screen bg-[#04080F]">
-              <Sidebar />
-              <div className="flex-1 ml-64 flex flex-col">
-                      <TopHeader />
-                      <main className="flex-1 p-6 space-y-6">
+    <main className="flex-1 p-6 space-y-6">
                       
                         {/* Trial Banner */}
                                 <div className="flex items-center gap-3 bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3">
@@ -178,7 +172,6 @@ export default function DashboardPage() {
                                 </div>
                       
                       </main>
-              </div>
-        </div>
-      )
+  )
+
 }</div>
