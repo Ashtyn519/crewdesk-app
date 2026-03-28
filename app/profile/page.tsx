@@ -26,15 +26,15 @@ const RATE_CARDS = [
 ]
 
 const RECENT_INVOICES = [
-  { id: 'INV-2024', client: 'Neon Films Ltd', amount: '£3,200', status: 'paid', date: 'Mar 22' },
-  { id: 'INV-2023', client: 'BFI Production', amount: '£1,800', status: 'sent', date: 'Mar 15' },
-  { id: 'INV-2022', client: 'City Lights Co.', amount: '£2,400', status: 'paid', date: 'Mar 8' },
+  { id: 'INV-2024', client: 'Apex Solutions Ltd', amount: '£3,200', status: 'paid', date: 'Mar 22' },
+  { id: 'INV-2023', client: 'Spark Retail', amount: '£1,800', status: 'sent', date: 'Mar 15' },
+  { id: 'INV-2022', client: 'Meridian Consulting', amount: '£2,400', status: 'paid', date: 'Mar 8' },
 ]
 
-const UPCOMING_SHIFTS = [
-  { project: 'Neon Films — Episode 5', role: 'Director of Photography', date: 'Tomorrow', time: '08:00–18:00', location: 'Studio A' },
-  { project: 'City Lights Documentary', role: 'Camera Operator', date: 'Apr 2', time: '09:00–17:00', location: 'City Centre' },
-  { project: 'BFI Shorts Package', role: 'Director of Photography', date: 'Apr 8', time: '07:00–19:00', location: 'Location TBC' },
+const UPCOMING_ENGAGEMENTS = [
+  { project: 'Apex Solutions — Website Redesign', role: 'Senior UI Designer', date: 'Tomorrow', time: '09:00–17:00', location: 'Remote' },
+  { project: 'Spark Retail — Mobile App', role: 'UI Designer', date: 'Apr 2', time: '10:00–16:00', location: 'Client Office' },
+  { project: 'Meridian — Brand Refresh', role: 'Brand Consultant', date: 'Apr 8', time: '09:00–17:00', location: 'Remote' },
 ]
 
 const STATUS_STYLE: Record<string, string> = {
@@ -48,9 +48,9 @@ export default function ProfilePage() {
   const [available, setAvailable] = useState(true)
   const [editMode, setEditMode] = useState(false)
   const [name, setName] = useState('Jordan Ellis')
-  const [role, setRole] = useState('Director of Photography')
+  const [role, setRole] = useState('Senior UI Designer')
   const [location, setLocation] = useState('London, UK')
-  const [bio, setBio] = useState('Award-winning DoP with 12 years in film & TV. Specialising in narrative drama, documentary, and high-end commercials. BAFTA nominated for "City Lights" (2024).')
+  const [bio, setBio] = useState('Senior UI Designer with 8 years experience delivering digital products for SaaS, retail, and fintech clients. Specialising in design systems, product strategy, and UX research.')
 
   const maxEarning = Math.max(...EARNINGS_DATA.map(d => d.amount))
   const totalEarnings = EARNINGS_DATA.reduce((s, d) => s + d.amount, 0)
@@ -130,7 +130,7 @@ export default function ProfilePage() {
                         </span>
                         <span className="flex items-center gap-1 text-xs text-slate-500">
                           <Award className="w-3 h-3 text-purple-400" />
-                          <span className="text-purple-400">BAFTA Nominated</span>
+                          <span className="text-purple-400">Top Rated</span>
                         </span>
                       </div>
                       <p className="text-amber-400 text-sm font-medium mt-0.5">{role}</p>
@@ -140,7 +140,7 @@ export default function ProfilePage() {
                       </div>
                       <p className="text-slate-400 text-sm mt-3 leading-relaxed">{bio}</p>
                       <div className="flex items-center gap-3 mt-4 flex-wrap">
-                        {['Narrative Drama', 'Documentary', 'Commercials', 'ARRI ALEXA', 'Sony VENICE'].map(skill => (
+                        {['Figma', 'Design Systems', 'UX Research', 'Prototyping', 'Product Strategy'].map(skill => (
                           <span key={skill} className="text-[11px] px-2 py-0.5 rounded-full bg-white/5 text-slate-400 border border-white/10">
                             {skill}
                           </span>
@@ -164,7 +164,7 @@ export default function ProfilePage() {
                   </div>
                   <div className="flex items-center gap-2">
                     <Briefcase className="w-4 h-4 text-slate-500" />
-                    <span className="text-slate-400 text-xs">12 years experience</span>
+                    <span className="text-slate-400 text-xs">8 years experience</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <FolderKanban className="w-4 h-4 text-slate-500" />
@@ -174,7 +174,7 @@ export default function ProfilePage() {
               )}
             </div>
 
-            {/* Availability + Rate */}
+            {/* Availability + Stats */}
             <div className="flex flex-col gap-4">
               {/* Availability Toggle */}
               <div className="bg-[#0A1020] border border-white/5 rounded-2xl p-5">
@@ -185,7 +185,7 @@ export default function ProfilePage() {
                       {available ? 'Available for Work' : 'Not Available'}
                     </p>
                     <p className="text-xs text-slate-500 mt-0.5">
-                      {available ? 'Visible to production companies' : 'Hidden from job listings'}
+                      {available ? 'Visible to businesses on CrewDesk' : 'Hidden from project listings'}
                     </p>
                   </div>
                   <button
@@ -214,7 +214,7 @@ export default function ProfilePage() {
                     <span className="text-sm font-semibold text-white">14</span>
                   </div>
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-slate-400">Projects</span>
+                    <span className="text-xs text-slate-400">Active Projects</span>
                     <span className="text-sm font-semibold text-white">3</span>
                   </div>
                 </div>
@@ -247,7 +247,7 @@ export default function ProfilePage() {
             </div>
           </div>
 
-          {/* Earnings Chart + Upcoming Shifts */}
+          {/* Earnings Chart + Upcoming Engagements */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Earnings Chart */}
             <div className="bg-[#0A1020] border border-white/5 rounded-2xl p-6">
@@ -275,27 +275,27 @@ export default function ProfilePage() {
               </div>
             </div>
 
-            {/* Upcoming Shifts */}
+            {/* Upcoming Engagements */}
             <div className="bg-[#0A1020] border border-white/5 rounded-2xl p-6">
               <div className="flex items-center justify-between mb-5">
-                <h2 className="text-base font-semibold text-white">Upcoming Shifts</h2>
+                <h2 className="text-base font-semibold text-white">Upcoming Engagements</h2>
                 <Link href="/schedule" className="text-xs text-slate-400 hover:text-amber-400 transition-colors flex items-center gap-1">
                   View all <ChevronRight className="w-3 h-3" />
                 </Link>
               </div>
               <div className="space-y-3">
-                {UPCOMING_SHIFTS.map((shift, i) => (
+                {UPCOMING_ENGAGEMENTS.map((eng, i) => (
                   <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-white/5 border border-white/5">
                     <div className="w-8 h-8 rounded-lg bg-blue-500/20 flex items-center justify-center shrink-0">
                       <Calendar className="w-4 h-4 text-blue-400" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-white truncate">{shift.project}</p>
-                      <p className="text-xs text-slate-500 truncate">{shift.role}</p>
+                      <p className="text-sm font-medium text-white truncate">{eng.project}</p>
+                      <p className="text-xs text-slate-500 truncate">{eng.role}</p>
                       <div className="flex items-center gap-3 mt-1">
-                        <span className="text-[10px] text-amber-400 font-medium">{shift.date}</span>
-                        <span className="text-[10px] text-slate-500">{shift.time}</span>
-                        <span className="text-[10px] text-slate-500">{shift.location}</span>
+                        <span className="text-[10px] text-amber-400 font-medium">{eng.date}</span>
+                        <span className="text-[10px] text-slate-500">{eng.time}</span>
+                        <span className="text-[10px] text-slate-500">{eng.location}</span>
                       </div>
                     </div>
                   </div>
