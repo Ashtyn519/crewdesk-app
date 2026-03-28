@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { User, Building2, CreditCard, Bell, Lock, LogOut, Loader2, ExternalLink, CheckCircle, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
@@ -55,7 +55,7 @@ interface Workspace {
 
 export default function SettingsPage() {
   const router = useRouter()
-  const supabase = createClientComponentClient()
+  const supabase = createClient()
   const [activeTab, setActiveTab] = useState('profile')
   const [saved, setSaved] = useState(false)
   const [billingLoading, setBillingLoading] = useState(false)
