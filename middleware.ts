@@ -42,7 +42,7 @@ export async function middleware(request: NextRequest) {
         const { data: workspace } = await supabase
           .from('workspaces')
           .select('id')
-          .eq('owner_id', user.id)
+          .eq('user_id', user.id)
           .maybeSingle()
 
       if (!workspace) {
