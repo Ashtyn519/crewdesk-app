@@ -1,50 +1,50 @@
 'use client';
 import Link from 'next/link';
 import { useRef } from 'react';
-import { Zap, Users, FolderKanban, Receipt, FileText, MessageSquare, ArrowRight, CheckCircle, Star, Shield, BarChart3, Clock, Globe, ChevronDown } from 'lucide-react';
+import { Zap, Users, FolderKanban, Receipt, FileText, MessageSquare, ArrowRight, CheckCircle, Shield, BarChart3, Clock, Globe } from 'lucide-react';
 
 const FEATURES = [
-  { icon: Users,         title: 'Freelancer Roster',       desc: 'Build your vetted bench of freelancers. Track rates, ratings, skills and availability in one place.',       color: 'amber' },
-  { icon: FolderKanban,  title: 'Project Command Centre',  desc: 'Manage every brief, deadline and deliverable. Real-time status, budgets, and team assignment.',               color: 'blue' },
-  { icon: Receipt,       title: 'Instant Invoicing',       desc: 'Auto-generate branded invoices with VAT. Get paid faster. Track every payment from sent to settled.',        color: 'green' },
-  { icon: FileText,      title: 'Contract Pipeline',       desc: 'Draft, send and e-sign contracts in minutes. Never chase a signature again.',                                  color: 'purple' },
-  { icon: MessageSquare, title: 'Team Messaging',          desc: 'One inbox for your whole operation. No more WhatsApp groups. Real threads, per project.',                     color: 'rose' },
-  { icon: BarChart3,     title: 'Business Analytics',      desc: 'Revenue trends, utilisation rates, top freelancers and client profitability — all in one dashboard.',         color: 'indigo' },
+  { icon: Users, title: 'Freelancer Roster', desc: 'Build your vetted bench of freelancers. Track rates, ratings, skills and availability in one place.', color: 'amber' },
+  { icon: FolderKanban, title: 'Project Command Centre', desc: 'Manage every brief, deadline and deliverable. Real-time status, budgets, and team assignment.', color: 'blue' },
+  { icon: Receipt, title: 'Instant Invoicing', desc: 'Auto-generate branded invoices with VAT. Get paid faster. Track every payment from sent to settled.', color: 'green' },
+  { icon: FileText, title: 'Contract Pipeline', desc: 'Draft, send and e-sign contracts in minutes. Never chase a signature again.', color: 'purple' },
+  { icon: MessageSquare, title: 'Team Messaging', desc: 'One inbox for your whole operation. No more WhatsApp groups. Real threads, per project.', color: 'rose' },
+  { icon: BarChart3, title: 'Business Analytics', desc: 'Revenue trends, utilisation rates, top freelancers and client profitability — all in one dashboard.', color: 'indigo' },
 ];
 
 const COLOR_MAP: Record<string, string> = {
-  amber:  'text-amber-400 bg-amber-400/10 border-amber-400/20',
-  blue:   'text-blue-400 bg-blue-400/10 border-blue-400/20',
-  green:  'text-emerald-400 bg-emerald-400/10 border-emerald-400/20',
+  amber: 'text-amber-400 bg-amber-400/10 border-amber-400/20',
+  blue: 'text-blue-400 bg-blue-400/10 border-blue-400/20',
+  green: 'text-emerald-400 bg-emerald-400/10 border-emerald-400/20',
   purple: 'text-purple-400 bg-purple-400/10 border-purple-400/20',
-  rose:   'text-rose-400 bg-rose-400/10 border-rose-400/20',
+  rose: 'text-rose-400 bg-rose-400/10 border-rose-400/20',
   indigo: 'text-indigo-400 bg-indigo-400/10 border-indigo-400/20',
 };
 
-const TESTIMONIALS = [
-  { name: 'Sarah Mitchell',  role: 'Creative Director, Apex Agency',        text: 'CrewDesk cut our admin time by 70%. Every project, contract and invoice in one place. We\'ll never go back.',  rating: 5 },
-  { name: 'James Okafor',    role: 'Founder, Okafor Productions',           text: 'Finally a platform built for businesses that actually work with freelancers. An absolute game changer.',         rating: 5 },
-  { name: 'Priya Sharma',    role: 'Operations Director, StudioForward',    text: 'Our freelancer onboarding used to take days. Now it\'s minutes. The contract tools alone are worth it.',       rating: 5 },
-];
-
 const BUSINESS_TYPES = [
-  'Creative Agencies', 'Marketing Studios', 'Film & TV Production',
-  'Event Companies', 'Tech Startups', 'Consultancies',
-  'Architecture Firms', 'PR Companies', 'Any business using freelancers',
+  'Creative Agencies',
+  'Marketing Studios',
+  'Film & TV Production',
+  'Event Companies',
+  'Tech Startups',
+  'Consultancies',
+  'Architecture Firms',
+  'PR Companies',
+  'Any business using freelancers',
 ];
 
-const STATS = [
-  { value: '2,400+', label: 'Businesses onboarded' },
-  { value: '£48M+',  label: 'Invoices processed' },
-  { value: '70%',    label: 'Admin time saved' },
-  { value: '4.9/5',  label: 'Average rating' },
+const VALUE_PROPS = [
+  { value: '14 days', label: 'Free trial — no card needed' },
+  { value: 'One place', label: 'For hiring, contracts & invoicing' },
+  { value: 'Built for', label: 'Businesses that use freelancers' },
+  { value: 'Cancel', label: 'Anytime, no questions asked' },
 ];
 
 export default function LandingPage() {
   const featuresRef = useRef<HTMLElement>(null);
+
   return (
     <div className="min-h-screen bg-[#04080F] text-white overflow-x-hidden">
-
       {/* Nav */}
       <nav className="fixed top-0 left-0 right-0 z-50 border-b border-white/5 bg-[#04080F]/80 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
@@ -55,7 +55,9 @@ export default function LandingPage() {
             <span className="font-bold text-lg tracking-tight">CrewDesk</span>
           </div>
           <div className="hidden md:flex items-center gap-8">
-            <button onClick={() => featuresRef.current?.scrollIntoView({ behavior: 'smooth' })} className="text-sm text-slate-400 hover:text-white transition-colors">Features</button>
+            <button
+              onClick={() => featuresRef.current?.scrollIntoView({ behavior: 'smooth' })}
+              className="text-sm text-slate-400 hover:text-white transition-colors">Features</button>
             <Link href="/pricing" className="text-sm text-slate-400 hover:text-white transition-colors">Pricing</Link>
             <Link href="mailto:hello@crewdeskapp.com" className="text-sm text-slate-400 hover:text-white transition-colors">Contact</Link>
           </div>
@@ -80,12 +82,12 @@ export default function LandingPage() {
             one platform.
           </h1>
           <p className="text-xl text-white/60 leading-relaxed max-w-2xl mx-auto mb-10">
-            CrewDesk gives your business one home for managing freelancers — hiring, briefing, contracting, invoicing, and paying. For agencies, studios, and any business that works with freelancers.
+            CrewDesk gives your business one home for managing freelancers — hiring, briefing, contracting, invoicing, and paying.
+            For agencies, studios, and any business that works with freelancers.
           </p>
           <div className="flex items-center justify-center gap-4 flex-wrap">
             <Link href="/signup" className="flex items-center gap-2 bg-amber-400 hover:bg-amber-300 text-black font-semibold px-6 py-3.5 rounded-xl transition-all text-base shadow-lg shadow-amber-400/20">
-              Start free — no credit card
-              <ArrowRight className="w-4 h-4" />
+              Start free — no credit card <ArrowRight className="w-4 h-4" />
             </Link>
             <Link href="/pricing" className="flex items-center gap-2 border border-white/10 hover:border-white/20 text-white/80 hover:text-white font-medium px-6 py-3.5 rounded-xl transition-all text-base">
               See pricing
@@ -95,13 +97,13 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Stats */}
+      {/* Value Props */}
       <section className="py-12 border-y border-white/5 bg-white/[0.02]">
         <div className="max-w-5xl mx-auto px-6">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {STATS.map(s => (
+            {VALUE_PROPS.map(s => (
               <div key={s.label} className="text-center">
-                <p className="text-3xl font-bold text-white">{s.value}</p>
+                <p className="text-2xl font-bold text-white">{s.value}</p>
                 <p className="text-sm text-slate-500 mt-1">{s.label}</p>
               </div>
             ))}
@@ -160,7 +162,7 @@ export default function LandingPage() {
             {[
               { step: '01', title: 'Create your workspace', desc: 'Sign up, name your business, done. Your dashboard is live instantly.' },
               { step: '02', title: 'Add your freelancers', desc: 'Build your roster. Add rates, skills, and availability. Invite them by email.' },
-              { step: '03', title: 'Create a project', desc: 'Brief your team, set a budget, assign crew. Everyone knows what they\'re working on.' },
+              { step: '03', title: 'Create a project', desc: "Brief your team, set a budget, assign crew. Everyone knows what they're working on." },
               { step: '04', title: 'Invoice and get paid', desc: 'One click to generate a VAT invoice. Track payments. Export for your accountant.' },
             ].map(s => (
               <div key={s.step} className="flex items-start gap-6 bg-[#0A1020] border border-white/5 rounded-2xl p-6">
@@ -175,37 +177,14 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Testimonials */}
-      <section className="py-20 px-6 bg-white/[0.015]">
-        <div className="max-w-5xl mx-auto">
-          <h2 className="text-3xl font-bold text-white text-center mb-12">Loved by teams that move fast</h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {TESTIMONIALS.map(t => (
-              <div key={t.name} className="bg-[#0A1020] border border-white/5 rounded-2xl p-6">
-                <div className="flex gap-0.5 mb-4">
-                  {Array.from({ length: t.rating }).map((_, i) => (
-                    <Star key={i} className="w-4 h-4 text-amber-400 fill-amber-400" />
-                  ))}
-                </div>
-                <p className="text-slate-300 text-sm leading-relaxed mb-5">"{t.text}"</p>
-                <div>
-                  <p className="text-white text-sm font-semibold">{t.name}</p>
-                  <p className="text-slate-500 text-xs mt-0.5">{t.role}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* Trust signals */}
-      <section className="py-16 px-6">
+      <section className="py-16 px-6 bg-white/[0.015]">
         <div className="max-w-4xl mx-auto">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {[
-              { icon: Shield,  title: 'Bank-grade security',    desc: 'SOC2-ready infrastructure. All data encrypted at rest and in transit.' },
-              { icon: Globe,   title: 'GDPR compliant',         desc: 'Built for UK & EU businesses. Data stored in Europe. Full DPA available.' },
-              { icon: Clock,   title: '99.9% uptime SLA',       desc: 'Built on Supabase and Vercel infrastructure. Always on when you need it.' },
+              { icon: Shield, title: 'Bank-grade security', desc: 'SOC2-ready infrastructure. All data encrypted at rest and in transit.' },
+              { icon: Globe, title: 'GDPR compliant', desc: 'Built for UK & EU businesses. Data stored in Europe. Full DPA available.' },
+              { icon: Clock, title: '99.9% uptime SLA', desc: 'Built on Supabase and Vercel infrastructure. Always on when you need it.' },
             ].map(t => {
               const Icon = t.icon;
               return (
@@ -232,14 +211,13 @@ export default function LandingPage() {
               <Zap className="w-6 h-6 text-black fill-black" />
             </div>
             <h2 className="text-4xl font-bold text-white mb-4">Ready to take back your time?</h2>
-            <p className="text-slate-400 text-lg mb-8 max-w-xl mx-auto">Join thousands of businesses that have replaced spreadsheets, WhatsApp groups, and scattered tools with one clean platform.</p>
+            <p className="text-slate-400 text-lg mb-8 max-w-xl mx-auto">Replace spreadsheets, WhatsApp groups, and scattered tools with one clean platform — and start your free trial today.</p>
             <div className="flex items-center justify-center gap-4 flex-wrap">
               <Link href="/signup" className="flex items-center gap-2 bg-amber-400 hover:bg-amber-300 text-black font-semibold px-7 py-3.5 rounded-xl transition-all shadow-lg shadow-amber-400/20 text-base">
-                Start your free trial
-                <ArrowRight className="w-4 h-4" />
+                Start your free trial <ArrowRight className="w-4 h-4" />
               </Link>
               <Link href="mailto:hello@crewdeskapp.com" className="text-slate-400 hover:text-white text-sm transition-colors">
-                Talk to sales →
+                Talk to us →
               </Link>
             </div>
             <div className="flex items-center justify-center gap-6 mt-8 flex-wrap">
