@@ -7,7 +7,7 @@ import { Zap, Smartphone, Apple, Play, CheckCircle, ArrowRight, LayoutDashboard,
 const FEATURES = [
   { icon: LayoutDashboard, title: 'Dashboard', desc: 'Real-time overview of active projects, crew status, and pending invoices at a glance.', color: 'amber' },
   { icon: FolderKanban, title: 'Projects', desc: 'Create and manage projects on the go. Track milestones, deadlines, and team progress in real time.', color: 'blue' },
-  { icon: Users, title: 'Crew Management', desc: 'Add crew members, assign roles, and manage availability from your phone with ease.', color: 'purple' },
+  { icon: Users, title: 'Freelancer Management', desc: 'Add freelancers, assign roles, and manage availability from your phone with ease.', color: 'purple' },
   { icon: Receipt, title: 'Invoices', desc: 'Create, send, and track invoices instantly. Get notified the moment clients view or pay.', color: 'green' },
   { icon: MessageSquare, title: 'Messages', desc: 'Stay connected with your team through built-in messaging. No third-party apps needed.', color: 'rose' },
   { icon: FileText, title: 'Contracts', desc: 'Review and manage contracts on the fly. Keep every agreement organised and accessible.', color: 'indigo' },
