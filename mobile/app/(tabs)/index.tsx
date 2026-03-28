@@ -12,29 +12,29 @@ const { width } = Dimensions.get('window');
 const kpis = [
   { label: 'Revenue', value: '£48,200', change: '+23.4%', up: true, color: C.amber, icon: 'cash' },
   { label: 'Projects', value: '12', change: '+3 this month', up: true, color: C.blue, icon: 'folder' },
-  { label: 'Crew', value: '28', change: '+5 new', up: true, color: C.purple, icon: 'people' },
+  { label: 'Freelancers', value: '28', change: '+5 new', up: true, color: C.purple, icon: 'people' },
   { label: 'Invoices Due', value: '£7,840', change: '3 outstanding', up: false, color: C.rose, icon: 'receipt' },
 ];
 
 const activity = [
-  { icon: 'send', text: 'Invoice #INV-2024 sent to Neon Films', time: '2m ago', color: C.amber },
-  { icon: 'checkmark-circle', text: 'Sarah Chen accepted crew invitation', time: '18m ago', color: C.green },
-  { icon: 'document-text', text: 'Contract for City Lights signed', time: '1h ago', color: C.blue },
-  { icon: 'add-circle', text: 'New project Apex Documentary created', time: '3h ago', color: C.purple },
-  { icon: 'cash', text: 'Payment £3,200 received from BFI', time: '5h ago', color: C.green },
+  { icon: 'send', text: 'Invoice #INV-2024 sent to Apex Solutions', time: '2m ago', color: C.amber },
+  { icon: 'checkmark-circle', text: 'Sarah Chen accepted project invitation', time: '18m ago', color: C.green },
+  { icon: 'document-text', text: 'Contract for Website Redesign signed', time: '1h ago', color: C.blue },
+  { icon: 'add-circle', text: 'New project Mobile App v2 created', time: '3h ago', color: C.purple },
+  { icon: 'cash', text: 'Payment £3,200 received from Apex Solutions', time: '5h ago', color: C.green },
 ];
 
 const quickActions = [
   { label: 'New Project', icon: 'folder-open', color: C.blue, route: '/(tabs)/projects' },
   { label: 'Create Invoice', icon: 'receipt', color: C.amber, route: '/(tabs)/invoices' },
-  { label: 'Add Crew', icon: 'person-add', color: C.purple, route: '/(tabs)/crew' },
+  { label: 'Add Freelancer', icon: 'person-add', color: C.purple, route: '/(tabs)/crew' },
   { label: 'Message', icon: 'chatbubble', color: C.green, route: '/(tabs)/messages' },
 ];
 
 const deadlines = [
-  { project: 'Neon Nights', task: 'Final cut delivery', due: 'Tomorrow', urgent: true },
-  { project: 'City Lights', task: 'Contract signing', due: 'Mar 28', urgent: true },
-  { project: 'Apex Documentary', task: 'Rough cut review', due: 'Apr 1', urgent: false },
+  { project: 'Website Redesign', task: 'Final delivery', due: 'Tomorrow', urgent: true },
+  { project: 'Mobile App v2', task: 'Contract signing', due: 'Mar 28', urgent: true },
+  { project: 'Brand Refresh', task: 'Strategy review', due: 'Apr 1', urgent: false },
 ];
 
 export default function DashboardScreen() {
