@@ -2,7 +2,7 @@
 export const dynamic = 'force-dynamic'
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
+import { createClient } from '@/lib/supabase/client'
 import { TrendingUp, FolderKanban, Users, FileText, Receipt, MessageSquare, ArrowRight, Clock, Loader2 } from 'lucide-react'
 import RevenueChart from '@/components/RevenueChart'
 
@@ -33,7 +33,7 @@ export default function DashboardPage() {
   const [greeting, setGreeting] = useState('')
   const [stats, setStats] = useState<Stats | null>(null)
   const [loading, setLoading] = useState(true)
-  const supabase = createClientComponentClient()
+  const supabase = createClient()
 
   useEffect(() => {
     setGreeting(getGreeting())
