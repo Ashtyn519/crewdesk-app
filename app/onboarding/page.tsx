@@ -58,8 +58,10 @@ export default function OnboardingPage() {
       if (!user) { router.push('/login'); return }
       const { error: err } = await supabase.from('workspaces').insert({
         user_id: user.id,
-        company_name: workspaceName,
-        currency: 'GBP',
+        name: workspaceName,
+        plan: 'trial',
+        subscription_status: 'trialing',
+        trial_ends_at: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
       })
       if (err) throw err
       router.push('/dashboard')
