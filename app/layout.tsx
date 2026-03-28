@@ -6,12 +6,12 @@ const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
   title: 'CrewDesk — The operating system for your freelance workforce',
-  description: 'CrewDesk gives production managers and freelance teams the tools to manage projects, crew, contracts and invoices in one premium platform.',
-  keywords: ['crew management', 'production management', 'freelance workforce', 'film production', 'invoicing', 'contracts'],
+  description: 'CrewDesk gives businesses the tools to manage freelancers, projects, contracts and invoices in one premium platform.',
+  keywords: ['freelancer management', 'freelance workforce', 'project management', 'invoicing', 'contracts', 'business tools'],
   authors: [{ name: 'CrewDesk' }],
   openGraph: {
     title: 'CrewDesk — The operating system for your freelance workforce',
-    description: 'Manage your crew, projects, invoices and contracts in one premium platform built for film & TV.',
+    description: 'Manage your freelancers, projects, invoices and contracts in one premium platform built for modern businesses.',
     type: 'website',
     url: 'https://crewdeskapp.vercel.app',
     siteName: 'CrewDesk',
@@ -19,7 +19,7 @@ export const metadata: Metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'CrewDesk — Freelance Workforce Management',
-    description: 'The premium platform for managing your film & TV production workforce.',
+    description: 'The premium platform for businesses that hire freelancers.',
   },
   icons: {
     icon: '/favicon.ico',
