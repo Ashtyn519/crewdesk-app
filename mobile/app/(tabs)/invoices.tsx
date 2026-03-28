@@ -14,10 +14,10 @@ const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
 };
 
 const initInvoices = [
-  { id: 1, number: 'INV-2024', client: 'Neon Films', amount: '£12,400', vat: '£2,480', total: '£14,880', status: 'paid', date: 'Mar 15', project: 'Neon Nights' },
-  { id: 2, number: 'INV-2025', client: 'BBC Studios', amount: '£8,200', vat: '£1,640', total: '£9,840', status: 'sent', date: 'Mar 20', project: 'City Lights' },
-  { id: 3, number: 'INV-2026', client: 'BFI', amount: '£5,600', vat: '£1,120', total: '£6,720', status: 'draft', date: 'Mar 22', project: 'Apex Documentary' },
-  { id: 4, number: 'INV-2023', client: 'ITV', amount: '£9,800', vat: '£1,960', total: '£11,760', status: 'overdue', date: 'Feb 28', project: 'Midnight Run' },
+  { id: 1, number: 'INV-2024', client: 'Apex Solutions', amount: '£12,400', vat: '£2,480', total: '£14,880', status: 'paid', date: 'Mar 15', project: 'Website Redesign' },
+  { id: 2, number: 'INV-2025', client: 'Spark Retail', amount: '£8,200', vat: '£1,640', total: '£9,840', status: 'sent', date: 'Mar 20', project: 'Mobile App v2' },
+  { id: 3, number: 'INV-2026', client: 'Meridian Consulting', amount: '£5,600', vat: '£1,120', total: '£6,720', status: 'draft', date: 'Mar 22', project: 'Brand Refresh' },
+  { id: 4, number: 'INV-2023', client: 'CoreTech Systems', amount: '£9,800', vat: '£1,960', total: '£11,760', status: 'overdue', date: 'Feb 28', project: 'API Integration' },
 ];
 
 type Invoice = typeof initInvoices[0];
@@ -126,7 +126,7 @@ export default function InvoicesScreen() {
               <Text style={styles.modalTitle}>New Invoice</Text>
               <TouchableOpacity onPress={() => setShowModal(false)}><Ionicons name="close" size={22} color={C.muted} /></TouchableOpacity>
             </View>
-            {[{ label: 'Client', key: 'client', placeholder: 'e.g. Netflix UK' }, { label: 'Amount (£)', key: 'amount', placeholder: 'e.g. 5000' }, { label: 'Project', key: 'project', placeholder: 'e.g. Neon Nights' }].map(f => (
+            {[{ label: 'Client', key: 'client', placeholder: 'e.g. Netflix UK' }, { label: 'Amount (£)', key: 'amount', placeholder: 'e.g. 5000' }, { label: 'Project', key: 'project', placeholder: 'e.g. Website Redesign' }].map(f => (
               <View key={f.key}>
                 <Text style={styles.fieldLabel}>{f.label}</Text>
                 <TextInput style={styles.field} placeholder={f.placeholder} placeholderTextColor={C.muted} value={(form as any)[f.key]} onChangeText={v => setForm(ff => ({ ...ff, [f.key]: v }))} keyboardType={f.key === 'amount' ? 'numeric' : 'default'} />
