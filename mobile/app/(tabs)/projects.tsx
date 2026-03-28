@@ -9,11 +9,11 @@ const C = { bg: '#04080F', card: '#0A1020', border: '#1A2540', amber: '#F59E0B',
 const PRIORITIES = { high: { label: 'High', color: C.rose }, medium: { label: 'Medium', color: C.amber }, low: { label: 'Low', color: C.green } };
 
 const initProjects = [
-  { id: 1, name: 'Neon Nights', client: 'Netflix UK', budget: '£48,000', spent: '£31,200', progress: 65, status: 'active', priority: 'high', crew: 8, deadline: 'Apr 15' },
-  { id: 2, name: 'City Lights', client: 'BBC Studios', budget: '£32,000', spent: '£28,800', progress: 90, status: 'active', priority: 'high', crew: 5, deadline: 'Mar 28' },
-  { id: 3, name: 'Apex Documentary', client: 'BFI', budget: '£22,000', spent: '£8,800', progress: 40, status: 'active', priority: 'medium', crew: 4, deadline: 'May 10' },
-  { id: 4, name: 'Midnight Run', client: 'ITV', budget: '£15,000', spent: '£12,000', progress: 80, status: 'active', priority: 'low', crew: 3, deadline: 'Apr 5' },
-  { id: 5, name: 'Rise & Fall', client: 'Channel 4', budget: '£28,000', spent: '£28,000', progress: 100, status: 'complete', priority: 'medium', crew: 6, deadline: 'Delivered' },
+  { id: 1, name: 'Website Redesign', client: 'Apex Solutions', budget: '£48,000', spent: '£31,200', progress: 65, status: 'active', priority: 'high', crew: 8, deadline: 'Apr 15' },
+  { id: 2, name: 'Mobile App v2', client: 'Spark Retail', budget: '£32,000', spent: '£28,800', progress: 90, status: 'active', priority: 'high', crew: 5, deadline: 'Mar 28' },
+  { id: 3, name: 'Brand Refresh', client: 'Meridian Consulting', budget: '£22,000', spent: '£8,800', progress: 40, status: 'active', priority: 'medium', crew: 4, deadline: 'May 10' },
+  { id: 4, name: 'API Integration', client: 'CoreTech Systems', budget: '£15,000', spent: '£12,000', progress: 80, status: 'active', priority: 'low', crew: 3, deadline: 'Apr 5' },
+  { id: 5, name: 'Marketing Campaign', client: 'GrowthBase Inc', budget: '£28,000', spent: '£28,000', progress: 100, status: 'complete', priority: 'medium', crew: 6, deadline: 'Delivered' },
 ];
 
 type Project = typeof initProjects[0];
@@ -120,9 +120,9 @@ export default function ProjectsScreen() {
               <TouchableOpacity onPress={() => setShowModal(false)}><Ionicons name="close" size={22} color={C.muted} /></TouchableOpacity>
             </View>
             <Text style={styles.fieldLabel}>Project Name</Text>
-            <TextInput style={styles.field} placeholder="e.g. Neon Nights" placeholderTextColor={C.muted} value={form.name} onChangeText={v => setForm(f => ({ ...f, name: v }))} />
+            <TextInput style={styles.field} placeholder="e.g. Website Redesign" placeholderTextColor={C.muted} value={form.name} onChangeText={v => setForm(f => ({ ...f, name: v }))} />
             <Text style={styles.fieldLabel}>Client</Text>
-            <TextInput style={styles.field} placeholder="e.g. Netflix UK" placeholderTextColor={C.muted} value={form.client} onChangeText={v => setForm(f => ({ ...f, client: v }))} />
+            <TextInput style={styles.field} placeholder="e.g. Apex Solutions" placeholderTextColor={C.muted} value={form.client} onChangeText={v => setForm(f => ({ ...f, client: v }))} />
             <Text style={styles.fieldLabel}>Budget</Text>
             <TextInput style={styles.field} placeholder="e.g. £25,000" placeholderTextColor={C.muted} value={form.budget} onChangeText={v => setForm(f => ({ ...f, budget: v }))} />
             <TouchableOpacity style={styles.saveBtn} onPress={save}>
