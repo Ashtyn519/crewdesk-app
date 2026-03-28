@@ -1,10 +1,9 @@
 'use client'
-import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useState, useEffect } from 'react'
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs'
 import { useRouter } from 'next/navigation'
-import { User, Building2, CreditCard, Bell, Lock, Check, ExternalLink, AlertCircle, LogOut } from 'lucide-react'
-import Sidebar from '@/components/Sidebar'
-import TopHeader from '@/components/TopHeader'
+import { User, Building2, CreditCard, Bell, Lock, LogOut, Loader2, ExternalLink, CheckCircle, AlertCircle } from 'lucide-react'
+import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 
@@ -37,23 +36,32 @@ function SettingsRow({ label, desc, children }: { label: string; desc?: string; 
   return (
     <div className="flex items-center justify-between py-3 border-b border-white/5 last:border-0">
       <div>
-        <p className="text-sm font-medium text-white">{label}</p>
+        <p className="text-sm text-white">{label}</p>
         {desc && <p className="text-xs text-slate-500 mt-0.5">{desc}</p>}
       </div>
-      <div className="ml-4">{children}</div>
+      {children}
     </div>
   )
 }
 
+interface Workspace {
+  id: string
+  name: string
+  plan: string
+  trial_ends_at: string | null
+  subscription_status: string | null
+  stripe_customer_id: string | null
+}
+
 export default function SettingsPage() {
   const router = useRouter()
-  async function handleSignOut() {
-    const sb = createClient()
-    await sb.auth.signOut()
-    router.push('/login')
-  }
+  const supabase = createClientComponentClient()
   const [activeTab, setActiveTab] = useState('profile')
   const [saved, setSaved] = useState(false)
+  const [billingLoading, setBillingLoading] = useState(false)
+  const [billingError, setBillingError] = useState('')
+  const [workspace, setWorkspace] = useState<Workspace | null>(null)
+  const [profileData, setProfileData] = useState({ full_name: '', email: '' })
   const [notifs, setNotifs] = useState({
     projectUpdates: true,
     newMessages: true,
@@ -66,249 +74,284 @@ export default function SettingsPage() {
     sessionAlerts: true,
   })
 
+  useEffect(() => {
+    loadData()
+  }, [])
+
+  async function loadData() {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+    setProfileData({
+      full_name: user.user_metadata?.full_name || '',
+      email: user.email || '',
+    })
+    const { data: ws } = await supabase
+      .from('workspaces')
+      .select('id, name, plan, trial_ends_at, subscription_status, stripe_customer_id')
+      .eq('user_id', user.id)
+      .single()
+    if (ws) setWorkspace(ws)
+  }
+
+  async function handleSignout() {
+    await supabase.auth.signOut()
+    router.push('/login')
+  }
+
   function handleSave() {
     setSaved(true)
     setTimeout(() => setSaved(false), 3000)
   }
 
+  async function openBillingPortal() {
+    setBillingLoading(true)
+    setBillingError('')
+    try {
+      const res = await fetch('/api/stripe/portal', { method: 'POST' })
+      const data = await res.json()
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        setBillingError(data.error || 'Could not open billing portal. Please contact support.')
+      }
+    } catch {
+      setBillingError('Network error. Please try again.')
+    } finally {
+      setBillingLoading(false)
+    }
+  }
+
+  function getPlanLabel(plan: string) {
+    const map: Record<string, string> = {
+      trial: 'Free Trial',
+      freelancer: 'Freelancer',
+      business_starter: 'Business Starter',
+      business_growth: 'Business Growth',
+    }
+    return map[plan] || plan.charAt(0).toUpperCase() + plan.slice(1)
+  }
+
+  function getTrialDaysLeft() {
+    if (!workspace?.trial_ends_at) return null
+    const diff = new Date(workspace.trial_ends_at).getTime() - Date.now()
+    return Math.max(0, Math.ceil(diff / (1000 * 60 * 60 * 24)))
+  }
+
   return (
     <div className="flex h-screen overflow-hidden" style={{ background: '#04080F' }}>
-      <Sidebar />
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden ml-64">
-        <TopHeader />
         <main className="flex-1 overflow-y-auto p-6">
-          <div className="max-w-3xl mx-auto">
-            <h1 className="text-xl font-bold text-white mb-6">Settings</h1>
+          <div className="max-w-2xl mx-auto">
 
-            <div className="flex gap-1 mb-6 p-1 rounded-xl" style={{ background: '#0A1020' }}>
-              {TABS.map(({ id, label, Icon }) => (
-                <button key={id} onClick={() => setActiveTab(id)} className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all ${activeTab === id ? 'bg-amber-500 text-black' : 'text-slate-400 hover:text-white'}`}>
-                  <Icon className="w-3.5 h-3.5" />{label}
-                </button>
-              ))}
+            {/* Header */}
+            <div className="mb-8">
+              <h1 className="text-2xl font-bold text-white">Settings</h1>
+              <p className="text-slate-500 text-sm mt-1">Manage your account and workspace preferences</p>
             </div>
 
-            <div>
-              {activeTab === 'profile' && (
-                <div>
-                  <SettingsSection title="Personal Information">
-                    <div className="grid grid-cols-2 gap-4 mb-4">
-                      <div>
-                        <label className="block text-xs text-slate-400 mb-1">First Name</label>
-                        <input type="text" defaultValue="Alex" className="w-full px-3 py-2 rounded-lg text-sm text-white border border-white/10 focus:border-amber-500 outline-none transition-colors" style={{ background: '#04080F' }} />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-slate-400 mb-1">Last Name</label>
-                        <input type="text" defaultValue="Morgan" className="w-full px-3 py-2 rounded-lg text-sm text-white border border-white/10 focus:border-amber-500 outline-none transition-colors" style={{ background: '#04080F' }} />
-                      </div>
-                    </div>
-                    <div className="mb-4">
-                      <label className="block text-xs text-slate-400 mb-1">Email Address</label>
-                      <input type="email" defaultValue="alex@example.com" className="w-full px-3 py-2 rounded-lg text-sm text-white border border-white/10 focus:border-amber-500 outline-none transition-colors" style={{ background: '#04080F' }} />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-slate-400 mb-1">Phone Number</label>
-                      <input type="tel" defaultValue="+44 7700 900000" className="w-full px-3 py-2 rounded-lg text-sm text-white border border-white/10 focus:border-amber-500 outline-none transition-colors" style={{ background: '#04080F' }} />
-                    </div>
-                  </SettingsSection>
-                  <SettingsSection title="Profile">
-                    <div className="mb-4">
-                      <label className="block text-xs text-slate-400 mb-1">Bio</label>
-                      <textarea defaultValue="Creative director and brand strategist with 8 years of experience working with high-growth startups." rows={3} className="w-full px-3 py-2 rounded-lg text-sm text-white border border-white/10 focus:border-amber-500 outline-none transition-colors resize-none" style={{ background: '#04080F' }} />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-slate-400 mb-1">Location</label>
-                      <input type="text" defaultValue="London, UK" className="w-full px-3 py-2 rounded-lg text-sm text-white border border-white/10 focus:border-amber-500 outline-none transition-colors" style={{ background: '#04080F' }} />
-                    </div>
-                  </SettingsSection>
-                </div>
-              )}
+            {/* Tabs */}
+            <div className="flex gap-1 mb-6 overflow-x-auto">
+              {TABS.map(t => {
+                const Icon = t.Icon
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => setActiveTab(t.id)}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+                      activeTab === t.id ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' : 'text-slate-400 hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    <Icon className="w-4 h-4" />
+                    {t.label}
+                  </button>
+                )
+              })}
+            </div>
 
-              {activeTab === 'workspace' && (
-                <div>
-                  <SettingsSection title="Workspace Details">
-                    <div className="mb-4">
-                      <label className="block text-xs text-slate-400 mb-1">Workspace Name</label>
-                      <input type="text" defaultValue="My Workspace" className="w-full px-3 py-2 rounded-lg text-sm text-white border border-white/10 focus:border-amber-500 outline-none transition-colors" style={{ background: '#04080F' }} />
-                    </div>
-                    <div className="mb-4">
-                      <label className="block text-xs text-slate-400 mb-1">Industry</label>
-                      <select className="w-full px-3 py-2 rounded-lg text-sm text-white border border-white/10 focus:border-amber-500 outline-none transition-colors" style={{ background: '#04080F' }}>
-                        <option>Creative &amp; Design</option>
-                        <option>Technology</option>
-                        <option>Marketing &amp; Communications</option>
-                        <option>Finance &amp; Consulting</option>
-                        <option>Other</option>
-                      </select>
-                    </div>
-                    <div>
-                      <label className="block text-xs text-slate-400 mb-1">Company Size</label>
-                      <select className="w-full px-3 py-2 rounded-lg text-sm text-white border border-white/10 focus:border-amber-500 outline-none transition-colors" style={{ background: '#04080F' }}>
-                        <option>1-5 people</option>
-                        <option>6-20 people</option>
-                        <option>21-50 people</option>
-                        <option>50+ people</option>
-                      </select>
-                    </div>
-                  </SettingsSection>
-                  <SettingsSection title="Preferences">
-                    <SettingsRow label="Currency" desc="Used for invoices and payments">
-                      <select className="px-3 py-1.5 rounded-lg text-sm text-white border border-white/10 outline-none" style={{ background: '#04080F' }}>
-                        <option>GBP (£)</option>
-                        <option>USD ($)</option>
-                        <option>EUR (€)</option>
-                      </select>
-                    </SettingsRow>
-                    <SettingsRow label="Date Format" desc="How dates appear across the app">
-                      <select className="px-3 py-1.5 rounded-lg text-sm text-white border border-white/10 outline-none" style={{ background: '#04080F' }}>
-                        <option>DD/MM/YYYY</option>
-                        <option>MM/DD/YYYY</option>
-                        <option>YYYY-MM-DD</option>
-                      </select>
-                    </SettingsRow>
-                  </SettingsSection>
-                </div>
-              )}
-
-              {activeTab === 'billing' && (
-                <div>
-                  <SettingsSection title="Current Plan">
-                    <div className="flex items-center justify-between p-4 rounded-xl border border-amber-500/30" style={{ background: '#04080F' }}>
-                      <div>
-                        <p className="text-sm font-semibold text-white">Growth Plan</p>
-                        <p className="text-xs text-slate-400 mt-0.5">£99 / month &middot; Billed monthly</p>
-                      </div>
-                      <span className="text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2.5 py-1 rounded-full font-medium">Active</span>
-                    </div>
-                    <div className="mt-4 grid grid-cols-3 gap-3">
-                      {[
-                        { label: 'Active Projects', value: '12' },
-                        { label: 'Team Members', value: '8' },
-                        { label: 'Storage Used', value: '4.2 GB' },
-                      ].map(({ label, value }) => (
-                        <div key={label} className="p-3 rounded-xl border border-white/5" style={{ background: '#0F1A2E' }}>
-                          <p className="text-lg font-bold text-white">{value}</p>
-                          <p className="text-xs text-slate-500 mt-0.5">{label}</p>
-                        </div>
-                      ))}
-                    </div>
-                  </SettingsSection>
-                  <SettingsSection title="Payment Method">
-                    <div className="flex items-center justify-between p-4 rounded-xl border border-white/5" style={{ background: '#04080F' }}>
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-6 rounded bg-blue-600 flex items-center justify-center"><span className="text-xs font-bold text-white">VISA</span></div>
-                        <div>
-                          <p className="text-sm text-white">Visa ending 4242</p>
-                          <p className="text-xs text-slate-500">Expires 12/26</p>
-                        </div>
-                      </div>
-                      <button className="text-xs text-amber-400 hover:text-amber-300 transition-colors">Update</button>
-                    </div>
-                  </SettingsSection>
-                  <SettingsSection title="Billing History">
-                    {[
-                      { date: 'Mar 1, 2026', amount: '£99.00', status: 'Paid' },
-                      { date: 'Feb 1, 2026', amount: '£99.00', status: 'Paid' },
-                      { date: 'Jan 1, 2026', amount: '£99.00', status: 'Paid' },
-                    ].map((item) => (
-                      <div key={item.date} className="flex items-center justify-between py-3 border-b border-white/5 last:border-0">
-                        <div>
-                          <p className="text-sm text-white">{item.date}</p>
-                          <p className="text-xs text-slate-500">Growth Plan &mdash; Monthly</p>
-                        </div>
-                        <div className="flex items-center gap-3">
-                          <span className="text-sm text-white">{item.amount}</span>
-                          <span className="text-xs bg-emerald-500/10 text-emerald-400 px-2 py-0.5 rounded-full">{item.status}</span>
-                          <button className="text-slate-500 hover:text-slate-300 transition-colors"><ExternalLink className="w-3.5 h-3.5" /></button>
-                        </div>
-                      </div>
-                    ))}
-                  </SettingsSection>
-                  <div className="text-center mt-4">
-                    <p className="text-xs text-slate-500">Questions about billing?{' '}<a href="mailto:info@crewdeskapp.com" className="text-amber-400 hover:text-amber-300 transition-colors">Contact support</a></p>
+            {/* Profile Tab */}
+            {activeTab === 'profile' && (
+              <div>
+                <SettingsSection title="Personal Information">
+                  <div className="mb-4">
+                    <label className="block text-xs text-slate-400 mb-1">Full Name</label>
+                    <input
+                      type="text"
+                      value={profileData.full_name}
+                      onChange={e => setProfileData(p => ({ ...p, full_name: e.target.value }))}
+                      className="w-full px-3 py-2 rounded-lg text-sm text-white border border-white/10 focus:border-amber-500 outline-none transition-colors"
+                      style={{ background: '#04080F' }}
+                    />
                   </div>
-                </div>
-              )}
+                  <div className="mb-4">
+                    <label className="block text-xs text-slate-400 mb-1">Email Address</label>
+                    <input
+                      type="email"
+                      value={profileData.email}
+                      disabled
+                      className="w-full px-3 py-2 rounded-lg text-sm text-slate-500 border border-white/5 outline-none cursor-not-allowed"
+                      style={{ background: '#04080F' }}
+                    />
+                    <p className="text-xs text-slate-600 mt-1">Email cannot be changed here. Contact support to update.</p>
+                  </div>
+                  <button
+                    onClick={handleSave}
+                    className="flex items-center gap-2 text-sm font-medium bg-amber-500 hover:bg-amber-400 text-black px-4 py-2 rounded-lg transition-colors"
+                  >
+                    {saved ? <><CheckCircle className="w-4 h-4" /> Saved!</> : 'Save changes'}
+                  </button>
+                </SettingsSection>
 
-              {activeTab === 'notifications' && (
-                <div>
-                  <SettingsSection title="Email Notifications">
-                    <SettingsRow label="Project Updates" desc="When a project status changes or a new file is added">
-                      <Toggle on={notifs.projectUpdates} onChange={(v) => setNotifs({ ...notifs, projectUpdates: v })} />
-                    </SettingsRow>
-                    <SettingsRow label="New Messages" desc="When you receive a message in a project thread">
-                      <Toggle on={notifs.newMessages} onChange={(v) => setNotifs({ ...notifs, newMessages: v })} />
-                    </SettingsRow>
-                    <SettingsRow label="Invoice Paid" desc="When a client pays an invoice">
-                      <Toggle on={notifs.invoicePaid} onChange={(v) => setNotifs({ ...notifs, invoicePaid: v })} />
-                    </SettingsRow>
-                    <SettingsRow label="Weekly Digest" desc="A weekly summary of your workspace activity">
-                      <Toggle on={notifs.weeklyDigest} onChange={(v) => setNotifs({ ...notifs, weeklyDigest: v })} />
-                    </SettingsRow>
-                    <SettingsRow label="Marketing Emails" desc="Product updates, tips, and offers from CrewDesk">
-                      <Toggle on={notifs.marketingEmails} onChange={(v) => setNotifs({ ...notifs, marketingEmails: v })} />
-                    </SettingsRow>
-                  </SettingsSection>
-                </div>
-              )}
-
-              {activeTab === 'security' && (
-                <div>
-                  <SettingsSection title="Authentication">
-                    <SettingsRow label="Two-Factor Authentication" desc="Require a code each time you sign in">
-                      <Toggle on={security.twoFactor} onChange={(v) => setSecurity({ ...security, twoFactor: v })} />
-                    </SettingsRow>
-                    <SettingsRow label="Session Alerts" desc="Get notified when a new device signs in">
-                      <Toggle on={security.sessionAlerts} onChange={(v) => setSecurity({ ...security, sessionAlerts: v })} />
-                    </SettingsRow>
-                  </SettingsSection>
-                  <SettingsSection title="Password">
-                    <div className="mb-4">
-                      <label className="block text-xs text-slate-400 mb-1">Current Password</label>
-                      <input type="password" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" className="w-full px-3 py-2 rounded-lg text-sm text-white border border-white/10 focus:border-amber-500 outline-none transition-colors" style={{ background: '#04080F' }} />
-                    </div>
-                    <div className="mb-4">
-                      <label className="block text-xs text-slate-400 mb-1">New Password</label>
-                      <input type="password" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" className="w-full px-3 py-2 rounded-lg text-sm text-white border border-white/10 focus:border-amber-500 outline-none transition-colors" style={{ background: '#04080F' }} />
-                    </div>
-                    <div>
-                      <label className="block text-xs text-slate-400 mb-1">Confirm New Password</label>
-                      <input type="password" placeholder="&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;" className="w-full px-3 py-2 rounded-lg text-sm text-white border border-white/10 focus:border-amber-500 outline-none transition-colors" style={{ background: '#04080F' }} />
-                    </div>
-                  </SettingsSection>
-                  <SettingsSection title="Danger Zone">
-                    <div className="flex items-start gap-3 p-4 rounded-xl border border-red-500/20" style={{ background: '#1a0808' }}>
-                      <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-white">Delete Account</p>
-                        <p className="text-xs text-slate-500 mt-0.5">Permanently delete your account and all associated data. This cannot be undone.</p>
-                      </div>
-                      <button className="text-xs text-red-400 hover:text-red-300 border border-red-500/30 px-3 py-1.5 rounded-lg transition-colors shrink-0">Delete</button>
-                    </div>
-                  </SettingsSection>
-                </div>
-              )}
-            </div>
-
-            <div className="flex justify-end mt-2">
-              <button onClick={handleSave} className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-black font-semibold text-sm transition-all">
-                {saved ? (<><Check className="w-4 h-4" />Saved</>) : 'Save Changes'}
-              </button>
-            </div>
-          </div>
-        
-              {/* Sign Out */}
-              <div className="mt-8 pt-6 border-t border-white/5">
-                <button
-                  onClick={handleSignOut}
-                  className="flex items-center gap-3 px-4 py-3 rounded-xl text-rose-400 hover:bg-rose-500/10 border border-rose-500/20 hover:border-rose-500/30 transition-all text-sm font-medium w-full"
-                >
-                  <LogOut className="w-4 h-4" />
-                  Sign out of CrewDesk
-                </button>
+                <SettingsSection title="Account">
+                  <SettingsRow label="Sign out" desc="Sign out of your CrewDesk account">
+                    <button
+                      onClick={handleSignout}
+                      className="flex items-center gap-2 text-sm text-slate-400 hover:text-rose-400 transition-colors"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      Sign out
+                    </button>
+                  </SettingsRow>
+                </SettingsSection>
               </div>
+            )}
+
+            {/* Workspace Tab */}
+            {activeTab === 'workspace' && (
+              <div>
+                <SettingsSection title="Workspace Details">
+                  <div className="mb-4">
+                    <label className="block text-xs text-slate-400 mb-1">Workspace Name</label>
+                    <input
+                      type="text"
+                      defaultValue={workspace?.name || ''}
+                      className="w-full px-3 py-2 rounded-lg text-sm text-white border border-white/10 focus:border-amber-500 outline-none transition-colors"
+                      style={{ background: '#04080F' }}
+                    />
+                  </div>
+                  <button
+                    onClick={handleSave}
+                    className="flex items-center gap-2 text-sm font-medium bg-amber-500 hover:bg-amber-400 text-black px-4 py-2 rounded-lg transition-colors"
+                  >
+                    {saved ? <><CheckCircle className="w-4 h-4" /> Saved!</> : 'Save changes'}
+                  </button>
+                </SettingsSection>
+              </div>
+            )}
+
+            {/* Billing Tab */}
+            {activeTab === 'billing' && (
+              <div>
+                <SettingsSection title="Current Plan">
+                  <div className="flex items-center justify-between p-4 rounded-xl border border-amber-500/30 mb-4" style={{ background: '#04080F' }}>
+                    <div>
+                      <p className="text-sm font-semibold text-white">{workspace ? getPlanLabel(workspace.plan) : '—'}</p>
+                      {workspace?.plan === 'trial' ? (
+                        <p className="text-xs text-amber-400 mt-0.5">
+                          {getTrialDaysLeft() !== null ? `${getTrialDaysLeft()} days remaining` : 'Trial active'}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-slate-400 mt-0.5 capitalize">{workspace?.subscription_status || 'Active'}</p>
+                      )}
+                    </div>
+                    <span className="text-xs bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2.5 py-1 rounded-full font-medium">
+                      {workspace?.plan === 'trial' ? 'Trial' : 'Paid'}
+                    </span>
+                  </div>
+
+                  {workspace?.plan === 'trial' ? (
+                    <div className="space-y-3">
+                      <p className="text-sm text-slate-400">Upgrade to a paid plan to keep full access after your trial ends.</p>
+                      <Link
+                        href="/pricing"
+                        className="flex items-center gap-2 text-sm font-semibold bg-amber-500 hover:bg-amber-400 text-black px-4 py-2.5 rounded-lg transition-colors w-fit"
+                      >
+                        View plans & upgrade →
+                      </Link>
+                    </div>
+                  ) : (
+                    <div className="space-y-3">
+                      <p className="text-sm text-slate-400">Manage your subscription, update payment methods, and download invoices through the billing portal.</p>
+                      <button
+                        onClick={openBillingPortal}
+                        disabled={billingLoading}
+                        className="flex items-center gap-2 text-sm font-semibold bg-amber-500 hover:bg-amber-400 disabled:opacity-60 text-black px-4 py-2.5 rounded-lg transition-colors"
+                      >
+                        {billingLoading ? (
+                          <><Loader2 className="w-4 h-4 animate-spin" /> Opening portal...</>
+                        ) : (
+                          <><ExternalLink className="w-4 h-4" /> Manage billing</>
+                        )}
+                      </button>
+                      {billingError && (
+                        <div className="flex items-start gap-2 p-3 rounded-lg bg-rose-500/10 border border-rose-500/20">
+                          <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+                          <p className="text-xs text-rose-400">{billingError}</p>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </SettingsSection>
+
+                <SettingsSection title="Need help?">
+                  <p className="text-xs text-slate-500">
+                    Questions about billing?{' '}
+                    <a href="mailto:info@crewdeskapp.com" className="text-amber-400 hover:text-amber-300 transition-colors">
+                      Contact us at info@crewdeskapp.com
+                    </a>
+                  </p>
+                </SettingsSection>
+              </div>
+            )}
+
+            {/* Notifications Tab */}
+            {activeTab === 'notifications' && (
+              <div>
+                <SettingsSection title="Email Notifications">
+                  <SettingsRow label="Project Updates" desc="When a project status changes or a new file is added">
+                    <Toggle on={notifs.projectUpdates} onChange={v => setNotifs({ ...notifs, projectUpdates: v })} />
+                  </SettingsRow>
+                  <SettingsRow label="New Messages" desc="When you receive a message in a project thread">
+                    <Toggle on={notifs.newMessages} onChange={v => setNotifs({ ...notifs, newMessages: v })} />
+                  </SettingsRow>
+                  <SettingsRow label="Invoice Paid" desc="When a client pays an invoice">
+                    <Toggle on={notifs.invoicePaid} onChange={v => setNotifs({ ...notifs, invoicePaid: v })} />
+                  </SettingsRow>
+                  <SettingsRow label="Weekly Digest" desc="A weekly summary of your workspace activity">
+                    <Toggle on={notifs.weeklyDigest} onChange={v => setNotifs({ ...notifs, weeklyDigest: v })} />
+                  </SettingsRow>
+                  <SettingsRow label="Marketing Emails" desc="Product updates, tips, and offers from CrewDesk">
+                    <Toggle on={notifs.marketingEmails} onChange={v => setNotifs({ ...notifs, marketingEmails: v })} />
+                  </SettingsRow>
+                </SettingsSection>
+              </div>
+            )}
+
+            {/* Security Tab */}
+            {activeTab === 'security' && (
+              <div>
+                <SettingsSection title="Security">
+                  <SettingsRow label="Two-Factor Authentication" desc="Add an extra layer of security to your account">
+                    <Toggle on={security.twoFactor} onChange={v => setSecurity({ ...security, twoFactor: v })} />
+                  </SettingsRow>
+                  <SettingsRow label="Session Alerts" desc="Get notified of new sign-ins to your account">
+                    <Toggle on={security.sessionAlerts} onChange={v => setSecurity({ ...security, sessionAlerts: v })} />
+                  </SettingsRow>
+                </SettingsSection>
+                <SettingsSection title="Password">
+                  <p className="text-sm text-slate-400 mb-3">Change your password via the sign-in page.</p>
+                  <a
+                    href="/login"
+                    className="text-xs text-amber-400 hover:text-amber-300 transition-colors"
+                  >
+                    Reset password →
+                  </a>
+                </SettingsSection>
+              </div>
+            )}
+
+          </div>
         </main>
       </div>
     </div>
   )
-                                         }
+}
