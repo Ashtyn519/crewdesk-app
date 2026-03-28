@@ -6,28 +6,28 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 const C = { bg: '#04080F', card: '#0A1020', border: '#1A2540', amber: '#F59E0B', text: '#FFFFFF', muted: '#64748B', green: '#10B981', rose: '#EF4444', blue: '#3B82F6', purple: '#A78BFA' };
 
-const DEPTS = ['All', 'Camera', 'Sound', 'Lighting', 'Art', 'Production', 'Post'];
+const DEPTS = ['All', 'Design', 'Development', 'Marketing', 'Strategy', 'Finance', 'Operations'];
 
-const initCrew = [
-  { id: 1, name: 'Sarah Chen', role: 'Director of Photography', dept: 'Camera', rate: '£650/day', rating: 5, available: true, skills: ['ARRI Alexa', 'Colour Grade', 'Drone'] },
-  { id: 2, name: 'James O'Brien', role: 'Sound Designer', dept: 'Sound', rate: '£450/day', rating: 5, available: true, skills: ['Boom', 'DaVinci', 'Pro Tools'] },
-  { id: 3, name: 'Maya Patel', role: 'Gaffer', dept: 'Lighting', rate: '£500/day', rating: 4, available: false, skills: ['LED', 'HMI', 'Practical Lighting'] },
-  { id: 4, name: 'Tom Williams', role: 'Production Designer', dept: 'Art', rate: '£550/day', rating: 5, available: true, skills: ['Set Design', 'CAD', 'Photoshop'] },
-  { id: 5, name: 'Emma Clarke', role: 'Line Producer', dept: 'Production', rate: '£700/day', rating: 4, available: false, skills: ['Budgeting', 'Scheduling', 'Movie Magic'] },
-  { id: 6, name: 'Alex Kim', role: 'Editor', dept: 'Post', rate: '£500/day', rating: 5, available: true, skills: ['Premiere', 'After Effects', 'DaVinci'] },
+const initFreelancers = [
+  { id: 1, name: 'Sarah Chen', role: 'Senior UI Designer', dept: 'Design', rate: '£650/day', rating: 5, available: true, skills: ['Figma', 'Design Systems', 'Prototyping'] },
+  { id: 2, name: 'James O\u2019Brien', role: 'Full-Stack Developer', dept: 'Development', rate: '£550/day', rating: 5, available: true, skills: ['React', 'Node.js', 'TypeScript'] },
+  { id: 3, name: 'Maya Patel', role: 'Brand Strategist', dept: 'Marketing', rate: '£500/day', rating: 4, available: false, skills: ['Brand Identity', 'Positioning', 'Content Strategy'] },
+  { id: 4, name: 'Tom Williams', role: 'Product Manager', dept: 'Strategy', rate: '£700/day', rating: 5, available: true, skills: ['Roadmapping', 'Agile', 'Stakeholder Mgmt'] },
+  { id: 5, name: 'Emma Clarke', role: 'Financial Consultant', dept: 'Finance', rate: '£650/day', rating: 4, available: false, skills: ['Forecasting', 'Reporting', 'Excel'] },
+  { id: 6, name: 'Alex Kim', role: 'Data Analyst', dept: 'Operations', rate: '£500/day', rating: 5, available: true, skills: ['Python', 'Tableau', 'SQL'] },
 ];
 
-type Crew = typeof initCrew[0];
+type Freelancer = typeof initFreelancers[0];
 
-export default function CrewScreen() {
-  const [crew, setCrew] = useState(initCrew);
+export default function FreelancersScreen() {
+  const [freelancers, setFreelancers] = useState(initFreelancers);
   const [search, setSearch] = useState('');
   const [dept, setDept] = useState('All');
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ name: '', role: '', dept: 'Camera', rate: '' });
+  const [form, setForm] = useState({ name: '', role: '', dept: 'Design', rate: '' });
   const [expandedId, setExpandedId] = useState<number | null>(null);
 
-  const filtered = crew.filter(c => {
+  const filtered = freelancers.filter(c => {
     const matchS = c.name.toLowerCase().includes(search.toLowerCase()) || c.role.toLowerCase().includes(search.toLowerCase());
     const matchD = dept === 'All' || c.dept === dept;
     return matchS && matchD;
@@ -35,19 +35,19 @@ export default function CrewScreen() {
 
   function save() {
     if (!form.name || !form.role) { Alert.alert('Error', 'Name and role required.'); return; }
-    setCrew(c => [...c, { id: Date.now(), ...form, rating: 4, available: true, skills: [] }]);
+    setFreelancers(c => [...c, { id: Date.now(), ...form, rating: 4, available: true, skills: [] }]);
     setShowModal(false);
-    setForm({ name: '', role: '', dept: 'Camera', rate: '' });
+    setForm({ name: '', role: '', dept: 'Design', rate: '' });
   }
 
   function toggleAvail(id: number) {
-    setCrew(c => c.map(m => m.id === id ? { ...m, available: !m.available } : m));
+    setFreelancers(c => c.map(m => m.id === id ? { ...m, available: !m.available } : m));
   }
 
   return (
     <SafeAreaView style={styles.root}>
       <View style={styles.header}>
-        <Text style={styles.title}>Crew</Text>
+        <Text style={styles.title}>Freelancers</Text>
         <TouchableOpacity style={styles.addBtn} onPress={() => setShowModal(true)}>
           <Ionicons name="add" size={20} color="#04080F" />
           <Text style={styles.addText}>Add</Text>
@@ -55,7 +55,7 @@ export default function CrewScreen() {
       </View>
       <View style={styles.searchRow}>
         <Ionicons name="search" size={16} color={C.muted} style={{ marginRight: 8 }} />
-        <TextInput style={styles.searchInput} placeholder="Search crew..." placeholderTextColor={C.muted} value={search} onChangeText={setSearch} />
+        <TextInput style={styles.searchInput} placeholder="Search freelancers..." placeholderTextColor={C.muted} value={search} onChangeText={setSearch} />
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.deptScroll} contentContainerStyle={{ gap: 8, paddingRight: 20 }}>
         {DEPTS.map(d => (
@@ -77,7 +77,7 @@ export default function CrewScreen() {
               </View>
               <View style={{ alignItems: 'flex-end', gap: 6 }}>
                 <TouchableOpacity style={[styles.availBadge, { backgroundColor: m.available ? C.green + '20' : C.rose + '20' }]} onPress={() => toggleAvail(m.id)}>
-                  <Text style={[styles.availText, { color: m.available ? C.green : C.rose }]}>{m.available ? 'Available' : 'Booked'}</Text>
+                  <Text style={[styles.availText, { color: m.available ? C.green : C.rose }]}>{m.available ? 'Available' : 'Engaged'}</Text>
                 </TouchableOpacity>
                 <Text style={styles.rateText}>{m.rate}</Text>
               </View>
@@ -101,10 +101,10 @@ export default function CrewScreen() {
         <View style={styles.overlay}>
           <View style={styles.modal}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Add Crew Member</Text>
+              <Text style={styles.modalTitle}>Add Freelancer</Text>
               <TouchableOpacity onPress={() => setShowModal(false)}><Ionicons name="close" size={22} color={C.muted} /></TouchableOpacity>
             </View>
-            {[{ label: 'Full Name', key: 'name', placeholder: 'e.g. Sarah Chen' }, { label: 'Role', key: 'role', placeholder: 'e.g. Director of Photography' }, { label: 'Day Rate', key: 'rate', placeholder: 'e.g. £650/day' }].map(f => (
+            {[{ label: 'Full Name', key: 'name', placeholder: 'e.g. Sarah Chen' }, { label: 'Role', key: 'role', placeholder: 'e.g. Senior UI Designer' }, { label: 'Day Rate', key: 'rate', placeholder: 'e.g. £650/day' }].map(f => (
               <View key={f.key}>
                 <Text style={styles.fieldLabel}>{f.label}</Text>
                 <TextInput style={styles.field} placeholder={f.placeholder} placeholderTextColor={C.muted} value={(form as any)[f.key]} onChangeText={v => setForm(ff => ({ ...ff, [f.key]: v }))} />
@@ -112,7 +112,7 @@ export default function CrewScreen() {
             ))}
             <TouchableOpacity style={styles.saveBtn} onPress={save}>
               <LinearGradient colors={['#F59E0B', '#D97706']} style={styles.saveGrad}>
-                <Text style={styles.saveText}>Add to Crew</Text>
+                <Text style={styles.saveText}>Add Freelancer</Text>
               </LinearGradient>
             </TouchableOpacity>
           </View>
