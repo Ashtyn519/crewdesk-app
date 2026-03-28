@@ -7,23 +7,23 @@ import { LinearGradient } from 'expo-linear-gradient';
 const C = { bg: '#04080F', card: '#0A1020', border: '#1A2540', amber: '#F59E0B', text: '#FFFFFF', muted: '#64748B', green: '#10B981', blue: '#3B82F6' };
 
 const initThreads = [
-  { id: 1, name: 'Sarah Chen', role: 'DP', lastMsg: 'Camera package confirmed for Monday', time: '2m', unread: 3, online: true },
-  { id: 2, name: 'James O'Brien', role: 'Sound', lastMsg: 'Sound check complete, ready to go', time: '18m', unread: 0, online: true },
-  { id: 3, name: 'Neon Films', role: 'Client', lastMsg: 'Invoice received, processing payment', time: '1h', unread: 1, online: false },
-  { id: 4, name: 'Maya Patel', role: 'Gaffer', lastMsg: 'Lighting rig setup done, looks great!', time: '3h', unread: 0, online: false },
-  { id: 5, name: 'BBC Studios', role: 'Client', lastMsg: 'Can we push the deadline by 2 days?', time: 'Yesterday', unread: 2, online: false },
+  { id: 1, name: 'Sarah Chen', role: 'UI Designer', lastMsg: 'Design assets ready for Monday handoff', time: '2m', unread: 3, online: true },
+  { id: 2, name: 'James O'Brien', role: 'Developer', lastMsg: 'Dev build deployed to staging', time: '18m', unread: 0, online: true },
+  { id: 3, name: 'Apex Solutions', role: 'Client', lastMsg: 'Invoice received, processing payment', time: '1h', unread: 1, online: false },
+  { id: 4, name: 'Maya Patel', role: 'Strategist', lastMsg: 'Brand guidelines approved, looks great!', time: '3h', unread: 0, online: false },
+  { id: 5, name: 'Spark Retail', role: 'Client', lastMsg: 'Can we push the deadline by 2 days?', time: 'Yesterday', unread: 2, online: false },
 ];
 
 const initMessages: Record<number, { id: number; text: string; mine: boolean; time: string }[]> = {
   1: [
-    { id: 1, text: 'Hi! Confirming the camera package for Monday shoot', mine: false, time: '9:00 AM' },
-    { id: 2, text: 'Great, ARRI Alexa + Zeiss primes confirmed', mine: true, time: '9:05 AM' },
-    { id: 3, text: 'Camera package confirmed for Monday', mine: false, time: '9:10 AM' },
+    { id: 1, text: 'Hi! Confirming the design assets for Monday handoff', mine: false, time: '9:00 AM' },
+    { id: 2, text: 'Great, Figma file + specs confirmed', mine: true, time: '9:05 AM' },
+    { id: 3, text: 'Design assets delivered, all looking good', mine: false, time: '9:10 AM' },
   ],
   2: [
-    { id: 1, text: 'Sound check complete, all mics working', mine: false, time: '8:30 AM' },
-    { id: 2, text: 'Perfect. See you on set at 7am', mine: true, time: '8:35 AM' },
-    { id: 3, text: 'Sound check complete, ready to go', mine: false, time: '8:40 AM' },
+    { id: 1, text: 'Staging build is live, all tests passing', mine: false, time: '8:30 AM' },
+    { id: 2, text: 'Great work. Let\'s review at standups tomorrow', mine: true, time: '8:35 AM' },
+    { id: 3, text: 'Sprint ready, ready to deploy', mine: false, time: '8:40 AM' },
   ],
 };
 
