@@ -269,4 +269,4 @@ export default function LoginPage() {
                 <LoginContent />
           </Suspense>
         )
-}</></svg>
+}
