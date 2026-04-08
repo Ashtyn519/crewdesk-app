@@ -9,7 +9,7 @@ const perks = [
   'Manage your entire freelance roster',
   'Contracts, invoices and payments in one place',
   'Real-time project tracking and analytics',
-  'Free 14-day trial — no credit card needed',
+  'Free 14-day trial â no credit card needed',
 ]
 
 function GoogleIcon() {
@@ -82,13 +82,13 @@ export default function SignupPage() {
         <div className="flex-1 flex flex-col justify-center max-w-lg pt-16">
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-amber-400/20 bg-amber-400/5 text-amber-400 text-xs font-medium mb-8 w-fit">
             <Zap className="w-3 h-3" />
-            Free to get started — no credit card needed
+            Free to get started â no credit card needed
           </div>
           <h1 className="text-[2.75rem] leading-[1.12] font-bold text-white mb-5">
             The operating<br />system for your<br /><span className="text-amber-400">freelance workforce.</span>
           </h1>
           <p className="text-white/45 text-base leading-relaxed mb-10 max-w-sm">
-            Hire, brief, contract, invoice and pay your freelancers — all from one beautifully designed workspace.
+            Hire, brief, contract, invoice and pay your freelancers â all from one beautifully designed workspace.
           </p>
           <div className="space-y-3">
             {perks.map(p => (
@@ -103,7 +103,7 @@ export default function SignupPage() {
         </div>
         <div className="flex items-center gap-3 pt-8 border-t border-white/5">
           <div className="flex items-center gap-1">
-            {[...Array(5)].map((_, i) => <span key={i} className="text-amber-400 text-xs">★</span>)}
+            {[...Array(5)].map((_, i) => <span key={i} className="text-amber-400 text-xs">â</span>)}
           </div>
           <p className="text-slate-500 text-xs">Trusted by 2,400+ businesses worldwide</p>
         </div>
@@ -220,7 +220,7 @@ export default function SignupPage() {
               disabled={loading || !!oauthLoading}
               className="w-full flex items-center justify-center gap-2 bg-amber-400 hover:bg-amber-300 disabled:opacity-50 text-black font-semibold py-3.5 rounded-xl transition-all mt-2 shadow-lg shadow-amber-400/20"
             >
-              {loading ? 'Creating account…' : (
+              {loading ? 'Creating accountâ¦' : (
                 <>Create free account <ArrowRight className="w-4 h-4" /></>
               )}
             </button>
