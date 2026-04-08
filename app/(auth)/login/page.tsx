@@ -93,39 +93,39 @@ function LoginContent() {
                         <div className="flex items-center gap-3">
                                   <div className="w-9 h-9 rounded-xl bg-amber-400 flex items-center justify-center">
                                               <Zap className="w-5 h-5 text-[#04080F]" strokeWidth={2.5} />
-                                  </div>div>
-                                  <span className="text-white font-bold text-xl tracking-tight">CrewDesk</span>span>
-                        </div>div>
+                                  </div>
+                                  <span className="text-white font-bold text-xl tracking-tight">CrewDesk</span>
+                        </div>
                         <div className="flex-1 flex flex-col justify-center max-w-lg pt-16">
                                   <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-amber-400/20 bg-amber-400/5 text-amber-400 text-xs font-medium mb-8 w-fit">
                                               <Zap className="w-3.5 h-3.5" />
                                               The operating system for freelance teams
-                                  </div>div>
+                                  </div>
                                   <h1 className="text-[2.75rem] leading-[1.12] font-bold text-white mb-5">
-                                              Your freelance<br /><span className="text-amber-400">workforce,</span>span><br />fully in control.
-                                  </h1>h1>
+                                              Your freelance<br /><span className="text-amber-400">workforce,</span><br />fully in control.
+                                  </h1>
                                   <p className="text-white/45 text-base leading-relaxed mb-10 max-w-sm">
                                               Hire, contract, invoice and communicate with your entire crew from one beautifully designed workspace.
-                                  </p>p>
+                                  </p>
                                   <div className="grid grid-cols-2 gap-3">
                                     {features.map(f => (
                           <div key={f.label} className="flex items-start gap-3 p-3.5 rounded-2xl bg-white/[0.03] border border-white/[0.06]">
                                           <div className="w-8 h-8 rounded-xl bg-amber-400/10 flex items-center justify-center shrink-0">
                                                             <f.icon className="w-4 h-4 text-amber-400" />
-                                          </div>div>
+                                          </div>
                                           <div>
-                                                            <p className="text-white text-xs font-semibold">{f.label}</p>p>
-                                                            <p className="text-white/35 text-xs mt-0.5 leading-snug">{f.desc}</p>p>
-                                          </div>div>
-                          </div>div>
+                                                            <p className="text-white text-xs font-semibold">{f.label}</p>
+                                                            <p className="text-white/35 text-xs mt-0.5 leading-snug">{f.desc}</p>
+                                          </div>
+                          </div>
                         ))}
-                                  </div>div>
-                        </div>div>
+                                  </div>
+                        </div>
                         <div className="flex items-center gap-2 text-white/25 text-xs">
                                   <Shield className="w-3.5 h-3.5" />
-                                  <span>Secure, encrypted, and built for professional teams</span>span>
-                        </div>div>
-                </div>div>
+                                  <span>Secure, encrypted, and built for professional teams</span>
+                        </div>
+                </div>
           
             {/* Right panel */}
                 <div className="flex-1 flex items-center justify-center px-8 py-14">
@@ -133,11 +133,11 @@ function LoginContent() {
                                   <div className="flex lg:hidden items-center gap-2 mb-8">
                                               <div className="w-8 h-8 rounded-xl bg-amber-400 flex items-center justify-center">
                                                             <Zap className="w-4 h-4 text-[#04080F]" strokeWidth={2.5} />
-                                              </div>div>
-                                              <span className="text-white font-bold text-lg">CrewDesk</span>span>
-                                  </div>div>
-                                  <h2 className="text-2xl font-bold text-white mb-1.5">Welcome back</h2>h2>
-                                  <p className="text-white/40 text-sm mb-8">Sign in to your CrewDesk workspace</p>p>
+                                              </div>
+                                              <span className="text-white font-bold text-lg">CrewDesk</span>
+                                  </div>
+                                  <h2 className="text-2xl font-bold text-white mb-1.5">Welcome back</h2>
+                                  <p className="text-white/40 text-sm mb-8">Sign in to your CrewDesk workspace</p>
                         
                           {/* OAuth buttons */}
                                   <div className="space-y-3 mb-6">
@@ -153,7 +153,7 @@ function LoginContent() {
                                                                               </svg>
                                                                             ) : <GoogleIcon />}
                                                             Continue with Google
-                                              </button>button>
+                                              </button>
                                               <button
                                                               type="button"
                                                               onClick={() => handleOAuth('apple')}
@@ -166,19 +166,19 @@ function LoginContent() {
                                                                               </svg>
                                                                             ) : <AppleIcon />}
                                                             Continue with Apple
-                                              </button>button>
-                                  </div>div>
+                                              </button>
+                                  </div>
                         
                           {/* Divider */}
                                   <div className="flex items-center gap-3 mb-6">
                                               <div className="flex-1 h-px bg-white/[0.08]" />
-                                              <span className="text-white/25 text-xs">or sign in with email</span>span>
+                                              <span className="text-white/25 text-xs">or sign in with email</span>
                                               <div className="flex-1 h-px bg-white/[0.08]" />
-                                  </div>div>
+                                  </div>
                         
                                   <form onSubmit={handleLogin} className="space-y-4">
                                               <div>
-                                                            <label className="block text-xs font-medium text-white/50 mb-1.5">Email address</label>label>
+                                                            <label className="block text-xs font-medium text-white/50 mb-1.5">Email address</label>
                                                             <input
                                                                               type="email"
                                                                               required
@@ -187,10 +187,10 @@ function LoginContent() {
                                                                               placeholder="you@company.com"
                                                                               className="w-full bg-white/[0.04] border border-white/[0.08] hover:border-white/[0.14] focus:border-amber-400/50 rounded-xl px-4 py-3 text-sm text-white placeholder-white/25 focus:outline-none transition-colors"
                                                                             />
-                                              </div>div>
+                                              </div>
                                               <div>
                                                             <div className="flex items-center justify-between mb-1.5">
-                                                                            <label className="text-xs font-medium text-white/50">Password</label>label>
+                                                                            <label className="text-xs font-medium text-white/50">Password</label>
                                                                             <button
                                                                                                 type="button"
                                                                                                 onClick={handleForgotPassword}
@@ -198,8 +198,8 @@ function LoginContent() {
                                                                                                 className="text-xs text-amber-400 hover:text-amber-300 transition-colors disabled:opacity-50"
                                                                                               >
                                                                               {resetLoading ? 'Sending...' : 'Forgot password?'}
-                                                                            </button>button>
-                                                            </div>div>
+                                                                            </button>
+                                                            </div>
                                                             <div className="relative">
                                                                             <input
                                                                                                 type={showPw ? 'text' : 'password'}
@@ -215,19 +215,19 @@ function LoginContent() {
                                                                                                 className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
                                                                                               >
                                                                               {showPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                                                                            </button>button>
-                                                            </div>div>
-                                              </div>div>
+                                                                            </button>
+                                                            </div>
+                                              </div>
                                   
                                     {resetSent && (
                           <div className="flex items-start gap-2 text-emerald-400 text-xs bg-emerald-400/10 border border-emerald-400/20 rounded-xl px-3 py-2.5">
                                           <CheckCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                                          <span>Password reset email sent! Check your inbox and follow the link to reset your password.</span>span>
-                          </div>div>
+                                          <span>Password reset email sent! Check your inbox and follow the link to reset your password.</span>
+                          </div>
                                               )}
                                   
                                     {error && (
-                          <p className="text-red-400 text-xs bg-red-400/10 border border-red-400/20 rounded-xl px-3 py-2.5">{error}</p>p>
+                          <p className="text-red-400 text-xs bg-red-400/10 border border-red-400/20 rounded-xl px-3 py-2.5">{error}</p>
                                               )}
                                   
                                               <button
@@ -240,26 +240,26 @@ function LoginContent() {
                                                                                                 <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="31.4" strokeDashoffset="10" />
                                                                               </svg>
                                                                             ) : (
-                                                                              <><span>Sign in</span>span><ArrowRight className="w-4 h-4" /></>>
+                                                                              <><span>Sign in</span><ArrowRight className="w-4 h-4" /></>>
                                                                             )}
-                                              </button>button>
-                                  </form>form>
+                                              </button>
+                                  </form>
                         
                                   <p className="text-center text-white/35 text-xs mt-6">
                                               Don&apos;t have an account?{' '}
-                                              <Link href="/signup" className="text-amber-400 hover:text-amber-300 font-medium transition-colors">Create one free</Link>Link>
-                                  </p>p>
+                                              <Link href="/signup" className="text-amber-400 hover:text-amber-300 font-medium transition-colors">Create one free</Link>
+                                  </p>
                         
                                   <div className="flex items-center justify-center gap-4 mt-8 pt-6 border-t border-white/[0.06]">
                                     {[{ icon: Shield, label: 'Secure & encrypted' }, { icon: Zap, label: 'Always fast' }, { icon: Users, label: 'Priority support' }].map(b => (
                           <div key={b.label} className="flex items-center gap-1.5 text-white/25 text-xs">
                                           <b.icon className="w-3 h-3" />{b.label}
-                          </div>div>
+                          </div>
                         ))}
-                                  </div>div>
-                        </div>div>
-                </div>div>
-          </div>div>
+                                  </div>
+                        </div>
+                </div>
+          </div>
         )
 }
 
@@ -267,6 +267,6 @@ export default function LoginPage() {
     return (
           <Suspense fallback={<div className="min-h-screen bg-[#04080F]" />}>
                 <LoginContent />
-          </Suspense>Suspense>
+          </Suspense>
         )
 }</></svg>
