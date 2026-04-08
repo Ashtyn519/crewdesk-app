@@ -27,7 +27,7 @@ function AppleIcon() {
     return (
           <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M12.627 0c.073.937-.257 1.875-.744 2.573-.487.717-1.316 1.27-2.143 1.205-.09-.917.318-1.875.772-2.468C11.04.588 11.98.07 12.627 0zM15.75 12.394c-.378.89-.558 1.29-1.044 2.078-.677 1.09-1.633 2.448-2.818 2.458-.994.01-1.25-.637-2.6-.63-1.35.008-1.632.643-2.632.633-1.185-.01-2.09-1.24-2.767-2.332C2.149 12.457 1.8 9.886 2.745 8.332c.665-1.117 1.768-1.77 2.808-1.77 1.044 0 1.7.64 2.564.64.837 0 1.346-.642 2.551-.642 1.026 0 2.007.558 2.674 1.522-2.348 1.282-1.966 4.623.408 5.512z" fill="currentColor"/>
-          </svg>svg>
+          </svg>
         )
 }
 
@@ -150,7 +150,7 @@ function LoginContent() {
                                                 {oauthLoading === 'google' ? (
                                                                               <svg className="animate-spin w-4 h-4 text-gray-600" viewBox="0 0 24 24" fill="none">
                                                                                                 <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="31.4" strokeDashoffset="10" />
-                                                                              </svg>svg>
+                                                                              </svg>
                                                                             ) : <GoogleIcon />}
                                                             Continue with Google
                                               </button>button>
@@ -163,7 +163,7 @@ function LoginContent() {
                                                 {oauthLoading === 'apple' ? (
                                                                               <svg className="animate-spin w-4 h-4 text-white" viewBox="0 0 24 24" fill="none">
                                                                                                 <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="31.4" strokeDashoffset="10" />
-                                                                              </svg>svg>
+                                                                              </svg>
                                                                             ) : <AppleIcon />}
                                                             Continue with Apple
                                               </button>button>
@@ -238,7 +238,7 @@ function LoginContent() {
                                                 {loading ? (
                                                                               <svg className="animate-spin w-4 h-4" viewBox="0 0 24 24" fill="none">
                                                                                                 <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="31.4" strokeDashoffset="10" />
-                                                                              </svg>svg>
+                                                                              </svg>
                                                                             ) : (
                                                                               <><span>Sign in</span>span><ArrowRight className="w-4 h-4" /></>>
                                                                             )}
