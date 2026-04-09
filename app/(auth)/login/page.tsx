@@ -240,7 +240,7 @@ function LoginContent() {
                                                                                                 <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="31.4" strokeDashoffset="10" />
                                                                               </svg>
                                                                             ) : (
-                                                                              <><span>Sign in</span><ArrowRight className="w-4 h-4" /></>>
+                                                                              <><span>Sign in</span><ArrowRight className="w-4 h-4" /></>
                                                                             )}
                                               </button>
                                   </form>
