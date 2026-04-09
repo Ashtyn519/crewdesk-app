@@ -250,7 +250,7 @@ export default function OnboardingPage() {
                                                                 onClick={finish}
                                                                 className="flex-1 flex items-center justify-center gap-2 bg-amber-400 hover:bg-amber-300 disabled:opacity-40 text-black font-semibold py-3 rounded-xl transition-all text-sm"
                                                               >
-                                                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Launch my workspace <ChevronRight className="w-4 h-4" /></>>}
+                                                {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <>Launch my workspace <ChevronRight className="w-4 h-4" /></>}
                                               </button>
                                 </div>
                     </div>
